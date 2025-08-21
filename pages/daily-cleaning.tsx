@@ -20,19 +20,29 @@ type Props = {
 
 export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
   try {
-    const baseUrl =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : `http://${req.headers.host}`;
+    // Build origin from the incoming request host to avoid any cross-host weirdness.
+    const host = req.headers.host as string;
+    const origin =
+      process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
 
-    const r = await fetch(`${baseUrl}/api/listings`, { cache: "no-store" });
-    const json = await r.json();
+    const resp = await fetch(`${origin}/api/listings`, { cache: "no-store", redirect: "follow" });
+    const text = await resp.text();
 
-    if (!r.ok) {
-      return { props: { listings: [], error: json?.error || `HTTP ${r.status}` } };
+    let json: any = null;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      // Not JSON (likely an HTML error/redirect page)
+      const snippet = text.trim().slice(0, 120);
+      return { props: { listings: [], error: `HTTP ${resp.status} ${resp.statusText} — ${snippet}` } };
     }
 
-    return { props: { listings: (json?.data ?? []) as Listing[] } };
+    if (!resp.ok) {
+      return { props: { listings: [], error: json?.error || `HTTP ${resp.status}` } };
+    }
+
+    const data = (json?.data ?? []) as Listing[];
+    return { props: { listings: data } };
   } catch (e: any) {
     return { props: { listings: [], error: e?.message || String(e) } };
   }
@@ -44,21 +54,14 @@ export default function DailyCleaning({ listings, error }: Props) {
       <h1 className="text-5xl font-black mb-6">🧽 Daily Verified Cleaning Listings</h1>
 
       {error && <p className="text-red-600 text-xl">Error: {error}</p>}
-      {!error && listings.length === 0 && (
-        <p className="text-gray-500">No listings yet.</p>
-      )}
+      {!error && listings.length === 0 && <p className="text-gray-500">No listings yet.</p>}
 
       <ul className="space-y-6">
         {listings.map((l) => (
-          <li key={l.listNumber} className="border rounded-xl p-5 shadow-sm">
+          <li key={`${l.listNumber}-${l.header ?? ''}-${l.location ?? ''}`} className="border rounded-xl p-5 shadow-sm">
             <h2 className="text-xl font-semibold">
               {l.externalUrl ? (
-                <a
-                  href={l.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
+                <a href={l.externalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                   {l.header ?? "Untitled Listing"}
                 </a>
               ) : (
@@ -80,11 +83,7 @@ export default function DailyCleaning({ listings, error }: Props) {
 
             {(l.brokerContactFullName || l.brokerCompany) && (
               <p className="mt-3 text-sm text-gray-700">
-                Broker:{" "}
-                <strong>
-                  {l.brokerContactFullName ?? "Unknown"}
-                  {l.brokerCompany ? ` (${l.brokerCompany})` : ""}
-                </strong>
+                Broker: <strong>{l.brokerContactFullName ?? "Unknown"}{l.brokerCompany ? ` (${l.brokerCompany})` : ""}</strong>
               </p>
             )}
 
