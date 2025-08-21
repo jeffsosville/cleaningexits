@@ -1,106 +1,102 @@
-import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+'use client';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 type Listing = {
-  id: number;
   header: string;
   location: string;
   price: number;
-  cashFlow: number;
-  ebitda: number;
+  cashFlow: number | null;
+  ebitda: number | null;
   description: string;
   brokerContactFullName: string;
   brokerCompany: string;
-  listings_url: string;
+  externalUrl: string | null;
+  listNumber: number;
 };
 
-export default function DailyCleaningListings() {
-  const [listings, setListings] = useState<Listing[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export default function Listings() {
+  const [listings, setListings] = useState<Listing[]>([]);
 
   useEffect(() => {
-    const fetchListings = async () => {
+    const fetchData = async () => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
       const { data, error } = await supabase
-        .from("todays_cleaning_listings")
-        .select("*")
+        .from('daily_listings')
+        .select(`
+          listNumber,
+          header,
+          location,
+          price,
+          cashFlow,
+          ebitda,
+          description,
+          brokerContactFullName,
+          brokerCompany,
+          externalUrl
+        `)
+        .order('price', { ascending: false })
         .limit(10);
 
       if (error) {
-        setError(error.message);
-        console.error("Error loading listings:", error.message);
+        console.error('Error fetching listings:', error);
       } else {
-        setListings(data);
+        setListings(data as Listing[]);
       }
     };
 
-    fetchListings();
+    fetchData();
   }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">🧽 Daily Verified Cleaning Listings</h1>
-      {error && <div className="text-red-500">Error: {error}</div>}
-      {!listings?.length && !error && (
-        <div className="text-gray-500">Loading verified listings...</div>
-      )}
-      <ul className="space-y-6">
-        {listings?.map((listing) => (
+    <section className="max-w-4xl mx-auto px-4 py-10">
+      <h2 className="text-3xl font-bold mb-8">Today’s Cleaning Listings</h2>
+      <ul className="space-y-8">
+        {listings.map((listing) => (
           <li
-            key={listing.id}
-            className="border p-4 rounded-lg shadow hover:bg-gray-50 transition"
+            key={listing.listNumber}
+            className="border border-gray-200 rounded-2xl p-6 shadow-sm"
           >
-            <h2 className="text-xl font-semibold mb-1">
-              {listing.listings_url ? (
+            <h3 className="text-xl font-semibold">
+              {listing.externalUrl ? (
                 <a
-                  href={listing.listings_url}
+                  href={listing.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
                 >
-                  {listing.header || "Untitled Listing"}
+                  {listing.header}
                 </a>
               ) : (
-                listing.header || "Untitled Listing"
+                listing.header
               )}
-            </h2>
-            <p className="text-sm text-gray-600 mb-1">{listing.location || "Unknown location"}</p>
-            {listing.price && (
-              <p className="text-green-700 font-bold">💰 ${Number(listing.price).toLocaleString()}</p>
-            )}
-            {listing.cashFlow && (
-              <p className="text-blue-700 text-sm">
-                💵 Cash Flow: ${Number(listing.cashFlow).toLocaleString()}
-              </p>
-            )}
-            {listing.ebitda && (
-              <p className="text-blue-500 text-sm">
-                📊 EBITDA: ${Number(listing.ebitda).toLocaleString()}
-              </p>
-            )}
-            {listing.brokerCompany || listing.brokerContactFullName ? (
-              <p className="text-sm mt-2 text-gray-700">
-                Broker:{" "}
-                <strong>
-                  {listing.brokerContactFullName
-                    ? `${listing.brokerContactFullName}`
-                    : "Unknown"}{" "}
-                  {listing.brokerCompany ? `(${listing.brokerCompany})` : ""}
-                </strong>
-              </p>
-            ) : null}
-            {listing.description && (
-              <p className="text-sm mt-2 text-gray-600 line-clamp-3">
-                {listing.description}
-              </p>
-            )}
+            </h3>
+            <p className="text-gray-600">{listing.location}</p>
+
+            <div className="mt-2 space-y-1">
+              {listing.price && (
+                <p>💰 Asking Price: ${Number(listing.price).toLocaleString()}</p>
+              )}
+              {listing.cashFlow && !isNaN(Number(listing.cashFlow)) && (
+                <p>💵 Cash Flow: ${Number(listing.cashFlow).toLocaleString()}</p>
+              )}
+              {listing.ebitda && !isNaN(Number(listing.ebitda)) && (
+                <p>📈 EBITDA: ${Number(listing.ebitda).toLocaleString()}</p>
+              )}
+            </div>
+
+            <p className="mt-2 text-sm text-gray-700">{listing.description}</p>
+
+            <div className="mt-4 text-sm text-gray-500">
+              {listing.brokerContactFullName} — {listing.brokerCompany}
+            </div>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
