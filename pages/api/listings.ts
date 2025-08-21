@@ -1,25 +1,42 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-export const config = {
-  runtime: "nodejs",
-};
+function serializeError(e: any) {
+  try {
+    return JSON.parse(JSON.stringify(e, Object.getOwnPropertyNames(e)));
+  } catch {
+    return { message: String(e?.message || e), stack: String(e?.stack || "") };
+  }
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const urlEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const keyEnv = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  const report: any = {
+    env: {
+      urlPresent: Boolean(urlEnv),
+      keyPresent: Boolean(keyEnv),
+      urlPreview: urlEnv ? urlEnv.slice(0, 60) : null,
+      keyPreview: keyEnv ? keyEnv.slice(0, 10) + "..." : null,
+    },
+    restUrl: null,
+  };
+
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+    const url = urlEnv?.trim();
+    const key = keyEnv?.trim();
 
     if (!url || !key) {
-      return res.status(500).json({
-        error: "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
-        urlPresent: Boolean(url),
-        keyPresent: Boolean(key),
-      });
+      report.reason = "missing_env";
+      return res.status(500).json(report);
     }
 
-    const restUrl = `${url}/rest/v1/daily_listings` +
+    const restUrl =
+      `${url}/rest/v1/daily_listings` +
       `?select=listNumber,header,location,price,cashFlow,ebitda,description,brokerContactFullName,brokerCompany,externalUrl` +
-      `&order=price.desc&limit=20`;
+      `&order=price.desc&limit=5`;
+
+    report.restUrl = restUrl;
 
     const r = await fetch(restUrl, {
       headers: {
@@ -30,22 +47,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       credentials: "omit",
       cache: "no-store",
+      redirect: "follow",
     });
 
     const text = await r.text();
+    report.responseStatus = r.status;
+    report.responseStatusText = r.statusText;
+    report.rawBodyPreview = text.slice(0, 300);
+
     let body: any = text;
-    try { body = JSON.parse(text); } catch {}
+    try { body = JSON.parse(text); } catch { /* keep text */ }
 
     if (!r.ok) {
-      return res.status(r.status).json({
-        error: body?.message || body || r.statusText,
-        status: r.status,
-        restUrl,
-      });
+      report.body = body;
+      return res.status(r.status).json(report);
     }
 
-    return res.status(200).json({ data: body });
+    return res.status(200).json({ data: body, report });
   } catch (e: any) {
-    return res.status(500).json({ error: String(e?.message || e) });
+    report.error = serializeError(e);
+    // Surface cause if available (Node fetch often sets e.cause with code like ENOTFOUND)
+    // @ts-ignore
+    if (e?.cause) report.cause = serializeError(e.cause);
+    return res.status(500).json(report);
   }
 }
