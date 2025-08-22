@@ -73,26 +73,3 @@ export default function CleaningIndex({ listings, error }: Props) {
     </div>
   );
 }
-EOF
-3) Commit & push
-bash
-Copy
-Edit
-git add pages/cleaning-index.tsx
-git commit -m "Fix cleaning-index page (real component + data)"
-git push origin main
-4) If it still errors on Vercel
-There may be a second stray file or cached artifact. Do a quick search and clean:
-
-bash
-Copy
-Edit
-# find any other files starting with raw <ul in pages/
-grep -R "^<ul" pages || true
-
-# ensure there isn't a duplicate with similar name
-ls -la pages | grep -i cleaning-index
-
-# optional: build locally to confirm it's clean
-rm -rf .next
-npm run build
