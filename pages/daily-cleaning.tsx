@@ -2,16 +2,18 @@
 import { GetServerSideProps } from "next";
 
 type Listing = {
-  listNumber: number | null;
+  listnumber: number | null;
   header: string | null;
   location: string | null;
   price: number | null;
-  cashFlow: number | string | null;
+  cashflow: number | string | null;
   ebitda: number | string | null;
   description: string | null;
-  brokerContactFullName: string | null;
-  brokerCompany: string | null;
-  externalUrl: string | null;
+  broker_contact_fullname: string | null;
+  broker_company: string | null;
+  externalurl: string | null;
+  listings_url: string | null;
+  best_url: string | null;
 };
 
 type Props = { listings: Listing[]; error?: string | null };
@@ -19,10 +21,10 @@ type Props = { listings: Listing[]; error?: string | null };
 export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
   try {
     const host = req.headers.host as string;
-    const origin = process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
+    const origin =
+      process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
     const r = await fetch(`${origin}/api/listings`, { cache: "no-store" });
     const j = await r.json();
-
     if (!r.ok) return { props: { listings: [], error: j?.error || `HTTP ${r.status}` } };
     return { props: { listings: (j?.data ?? []) as Listing[] } };
   } catch (e: any) {
@@ -39,35 +41,76 @@ export default function DailyCleaning({ listings, error }: Props) {
       {!error && listings.length === 0 && <p className="text-gray-500">No listings yet.</p>}
 
       <ul className="space-y-6">
-        {listings.map((l, idx) => (
-          <li key={`${l.listNumber ?? idx}-${l.header ?? ""}`} className="border rounded-xl p-5 shadow-sm">
-            <h2 className="text-xl font-semibold">
-              {l.externalUrl ? (
-                <a href={l.externalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  {l.header ?? "Untitled Listing"}
-                </a>
-              ) : (
-                l.header ?? "Untitled Listing"
-              )}
-            </h2>
+        {listings.map((l, idx) => {
+          const key = `${l.listnumber ?? idx}-${l.header ?? ""}`;
+          const href = l.best_url ?? undefined;
+          const badge = l.externalurl ? "Direct" : l.listings_url ? "Broker Page" : "Search";
 
-            <p className="text-gray-600">{l.location ?? "Unknown location"}</p>
+          return (
+            <li key={key} className="border rounded-xl p-5 shadow-sm">
+              <h2 className="text-xl font-semibold">
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {l.header ?? "Untitled Listing"}
+                  </a>
+                ) : (
+                  l.header ?? "Untitled Listing"
+                )}
+                <span className="ml-2 text-xs rounded bg-gray-100 px-2 py-0.5">{badge}</span>
+              </h2>
 
-            <div className="mt-2 space-y-1 text-sm">
-              {l.price != null && <p>💰 Asking Price: ${Number(l.price).toLocaleString()}</p>}
-              {l.cashFlow && !Number.isNaN(Number(l.cashFlow)) && <p>💵 Cash Flow: ${Number(l.cashFlow).toLocaleString()}</p>}
-              {l.ebitda && !Number.isNaN(Number(l.ebitda)) && <p>📈 EBITDA: ${Number(l.ebitda).toLocaleString()}</p>}
-            </div>
-
-            {(l.brokerContactFullName || l.brokerCompany) && (
-              <p className="mt-3 text-sm text-gray-700">
-                Broker: <strong>{l.brokerContactFullName ?? "Unknown"}{l.brokerCompany ? ` (${l.brokerCompany})` : ""}</strong>
+              <p className="text-gray-600">
+                {l.location ?? "Unknown location"}
+                {l.price != null && (
+                  <span className="ml-2 font-semibold">
+                    • ${Number(l.price).toLocaleString()}
+                  </span>
+                )}
               </p>
-            )}
 
-            {l.description && <p className="mt-3 text-sm text-gray-700">{l.description}</p>}
-          </li>
-        ))}
+              <div className="mt-2 space-y-1 text-sm">
+                {l.cashflow && !Number.isNaN(Number(l.cashflow)) && (
+                  <p>💵 Cash Flow: ${Number(l.cashflow).toLocaleString()}</p>
+                )}
+                {l.ebitda && !Number.isNaN(Number(l.ebitda)) && (
+                  <p>📈 EBITDA: ${Number(l.ebitda).toLocaleString()}</p>
+                )}
+              </div>
+
+              {(l.broker_contact_fullname || l.broker_company) && (
+                <p className="mt-3 text-sm text-gray-700">
+                  Broker:{" "}
+                  <strong>
+                    {l.broker_contact_fullname ?? "Unknown"}
+                    {l.broker_company ? ` (${l.broker_company})` : ""}
+                  </strong>
+                </p>
+              )}
+
+              {l.description && (
+                <p className="mt-3 text-sm text-gray-700">{l.description}</p>
+              )}
+
+              <div className="mt-2 text-xs text-gray-500 space-x-3">
+                {l.externalurl && (
+                  <a href={l.externalurl} target="_blank" rel="noopener noreferrer">
+                    Direct
+                  </a>
+                )}
+                {l.listings_url && (
+                  <a href={l.listings_url} target="_blank" rel="noopener noreferrer">
+                    Broker Page
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
