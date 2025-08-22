@@ -20,26 +20,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     "";
 
   const base = rawBase.trim().replace(/\/+$/, "");
-  if (!base || !key) return res.status(500).json({ error: "Missing SUPABASE_URL / SUPABASE_ANON_KEY" });
+  if (!base || !key) {
+    return res.status(500).json({ error: "Missing SUPABASE_URL / SUPABASE_ANON_KEY" });
+  }
 
+  // Query the VIEW, not the raw table
   const params = new URLSearchParams({
     select: [
-      "listNumber",
+      "listnumber",
       "header",
       "location",
       "price",
-      "cashFlow",
+      "cashflow",
       "ebitda",
       "description",
-      "brokerContactFullName",
-      "brokerCompany",
-      "externalUrl",
+      "broker_contact_fullname",
+      "broker_company",
+      "externalurl",
+      "listings_url",
+      "best_url"
     ].join(","),
     order: "price.desc",
     limit: "50",
   });
 
-  const restUrl = `${base}/rest/v1/daily_listings?${params.toString()}`;
+  const restUrl = `${base}/rest/v1/daily_listings_with_broker_urls?${params.toString()}`;
 
   try {
     const r = await fetch(restUrl, {
@@ -53,7 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const text = await r.text();
-    if (!r.ok) return res.status(r.status).json({ error: text || r.statusText });
+    if (!r.ok) {
+      return res.status(r.status).json({ error: text || r.statusText });
+    }
 
     return res.status(200).json({ data: JSON.parse(text) });
   } catch (e: any) {
