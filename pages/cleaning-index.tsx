@@ -1,48 +1,44 @@
-import Link from 'next/link';
+<ul className="space-y-6">
+  {listings.map((l, idx) => (
+    <li key={idx} className="border rounded-xl p-5 shadow-sm">
+      <h2 className="text-xl font-semibold">
+        {l.externalUrl ? (
+          <a
+            href={l.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            {l.header ?? 'Untitled Listing'}
+          </a>
+        ) : (
+          l.header ?? 'Untitled Listing'
+        )}
+      </h2>
 
-export default function CleaningIndexPage() {
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-6">🧼 The Cleaning Index</h1>
-      <p className="mb-4 text-lg">
-        We audited hundreds of cleaning business listings across marketplaces and broker sites. Here’s what we found—and why most listings aren’t what they seem.
-      </p>
+      <p className="text-gray-600">{l.location ?? 'Unknown location'}</p>
 
-      <div className="overflow-x-auto mb-8">
-        <table className="table-auto w-full border-collapse border border-gray-300 text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left">Category</th>
-              <th className="border px-4 py-2 text-right">Count</th>
-              <th className="border px-4 py-2 text-right">% of Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td className="border px-4 py-2">Total Listings Audited</td><td className="border px-4 py-2 text-right">782</td><td className="border px-4 py-2 text-right">100.00%</td></tr>
-            <tr><td className="border px-4 py-2">Matched to Broker Site</td><td className="border px-4 py-2 text-right">431</td><td className="border px-4 py-2 text-right">55.10%</td></tr>
-            <tr><td className="border px-4 py-2">With Broker + Financials</td><td className="border px-4 py-2 text-right">278</td><td className="border px-4 py-2 text-right">35.54%</td></tr>
-            <tr><td className="border px-4 py-2">Unmatched / FSBO</td><td className="border px-4 py-2 text-right">351</td><td className="border px-4 py-2 text-right">44.90%</td></tr>
-            <tr><td className="border px-4 py-2">FSBO + Financials</td><td className="border px-4 py-2 text-right">82</td><td className="border px-4 py-2 text-right">10.49%</td></tr>
-            <tr className="font-bold bg-yellow-50"><td className="border px-4 py-2">Fully Real Listings (Broker or FSBO + Financials)</td><td className="border px-4 py-2 text-right">360</td><td className="border px-4 py-2 text-right">46.01%</td></tr>
-          </tbody>
-        </table>
+      <div className="mt-2 space-y-1 text-sm">
+        {l.price != null && (
+          <p>💰 Asking Price: ${Number(l.price).toLocaleString()}</p>
+        )}
+        {l.cashFlow && !Number.isNaN(Number(l.cashFlow)) && (
+          <p>💵 Cash Flow: ${Number(l.cashFlow).toLocaleString()}</p>
+        )}
+        {l.ebitda && !Number.isNaN(Number(l.ebitda)) && (
+          <p>📈 EBITDA: ${Number(l.ebitda).toLocaleString()}</p>
+        )}
       </div>
 
-      <p className="mb-6">
-        Less than half of all cleaning listings we reviewed had a real source and financials. Most are dead, duplicated, or lack meaningful information.
-      </p>
-
-      <p className="mb-6 font-semibold">
-        You’re not browsing 782 listings. You’re browsing ~360 that are truly actionable.
-      </p>
-
-      <p className="mb-8 text-lg font-medium">This is why we built the Cleaning Index.</p>
-
-      <Link href="/daily-cleaning">
-        <a className="inline-block bg-green-700 text-white px-6 py-3 rounded-lg shadow hover:bg-green-800 transition">
-          🔎 View Today's Verified Cleaning Listings
-        </a>
-      </Link>
-    </div>
-  );
-}
+      {(l.brokerContactFullName || l.brokerCompany) && (
+        <p className="mt-3 text-sm text-gray-700">
+          Broker:{' '}
+          <strong>
+            {l.brokerContactFullName ?? 'Unknown'}
+            {l.brokerCompany ? ` (${l.brokerCompany})` : ''}
+          </strong>
+        </p>
+      )}
+    </li>
+  ))}
+</ul>
