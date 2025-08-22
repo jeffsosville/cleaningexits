@@ -1,19 +1,45 @@
 // pages/api/listings.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 
-export const config = { runtime: "nodejs" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const base = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-  const key  = (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-
-  if (!base || !key) {
-    return res.status(500).json({ error: "Missing SUPABASE_URL / SUPABASE_ANON_KEY" });
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const restUrl = `${base}/rest/v1/daily_listings` +
-    `?select=listNumber,header,location,price,cashFlow,ebitda,description,brokerContactFullName,brokerCompany,externalUrl` +
-    `&order=price.desc&limit=50`; // <- 50 items
+  const rawBase =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    "";
+  const key =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "";
+
+  const base = rawBase.trim().replace(/\/+$/, "");
+  if (!base || !key) return res.status(500).json({ error: "Missing SUPABASE_URL / SUPABASE_ANON_KEY" });
+
+  const params = new URLSearchParams({
+    select: [
+      "listNumber",
+      "header",
+      "location",
+      "price",
+      "cashFlow",
+      "ebitda",
+      "description",
+      "brokerContactFullName",
+      "brokerCompany",
+      "externalUrl",
+    ].join(","),
+    order: "price.desc",
+    limit: "50",
+  });
+
+  const restUrl = `${base}/rest/v1/daily_listings?${params.toString()}`;
 
   try {
     const r = await fetch(restUrl, {
@@ -23,15 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         Accept: "application/json",
         Prefer: "return=representation",
       },
-      credentials: "omit",
       cache: "no-store",
     });
 
     const text = await r.text();
     if (!r.ok) return res.status(r.status).json({ error: text || r.statusText });
 
-    const data = JSON.parse(text);
-    return res.status(200).json({ data });
+    return res.status(200).json({ data: JSON.parse(text) });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || String(e) });
   }
