@@ -1,7 +1,8 @@
+// pages/daily-cleaning.tsx
 import { GetServerSideProps } from "next";
 
 type Listing = {
-  listNumber: number;
+  listNumber: number | null;
   header: string | null;
   location: string | null;
   price: number | null;
@@ -13,36 +14,17 @@ type Listing = {
   externalUrl: string | null;
 };
 
-type Props = {
-  listings: Listing[];
-  error?: string | null;
-};
+type Props = { listings: Listing[]; error?: string | null };
 
 export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
   try {
-    // Build origin from the incoming request host to avoid any cross-host weirdness.
     const host = req.headers.host as string;
-    const origin =
-      process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
+    const origin = process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
+    const r = await fetch(`${origin}/api/listings`, { cache: "no-store" });
+    const j = await r.json();
 
-    const resp = await fetch(`${origin}/api/listings`, { cache: "no-store", redirect: "follow" });
-    const text = await resp.text();
-
-    let json: any = null;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      // Not JSON (likely an HTML error/redirect page)
-      const snippet = text.trim().slice(0, 120);
-      return { props: { listings: [], error: `HTTP ${resp.status} ${resp.statusText} — ${snippet}` } };
-    }
-
-    if (!resp.ok) {
-      return { props: { listings: [], error: json?.error || `HTTP ${resp.status}` } };
-    }
-
-    const data = (json?.data ?? []) as Listing[];
-    return { props: { listings: data } };
+    if (!r.ok) return { props: { listings: [], error: j?.error || `HTTP ${r.status}` } };
+    return { props: { listings: (j?.data ?? []) as Listing[] } };
   } catch (e: any) {
     return { props: { listings: [], error: e?.message || String(e) } };
   }
@@ -51,14 +33,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => 
 export default function DailyCleaning({ listings, error }: Props) {
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-5xl font-black mb-6">🧽 Daily Verified Cleaning Listings</h1>
+      <h1 className="text-4xl font-bold mb-6">🧽 Daily Verified Cleaning Listings</h1>
 
-      {error && <p className="text-red-600 text-xl">Error: {error}</p>}
+      {error && <p className="text-red-600">Error: {error}</p>}
       {!error && listings.length === 0 && <p className="text-gray-500">No listings yet.</p>}
 
       <ul className="space-y-6">
-        {listings.map((l) => (
-          <li key={`${l.listNumber}-${l.header ?? ''}-${l.location ?? ''}`} className="border rounded-xl p-5 shadow-sm">
+        {listings.map((l, idx) => (
+          <li key={`${l.listNumber ?? idx}-${l.header ?? ""}`} className="border rounded-xl p-5 shadow-sm">
             <h2 className="text-xl font-semibold">
               {l.externalUrl ? (
                 <a href={l.externalUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
@@ -73,12 +55,8 @@ export default function DailyCleaning({ listings, error }: Props) {
 
             <div className="mt-2 space-y-1 text-sm">
               {l.price != null && <p>💰 Asking Price: ${Number(l.price).toLocaleString()}</p>}
-              {l.cashFlow && !Number.isNaN(Number(l.cashFlow)) && (
-                <p>💵 Cash Flow: ${Number(l.cashFlow).toLocaleString()}</p>
-              )}
-              {l.ebitda && !Number.isNaN(Number(l.ebitda)) && (
-                <p>📈 EBITDA: ${Number(l.ebitda).toLocaleString()}</p>
-              )}
+              {l.cashFlow && !Number.isNaN(Number(l.cashFlow)) && <p>💵 Cash Flow: ${Number(l.cashFlow).toLocaleString()}</p>}
+              {l.ebitda && !Number.isNaN(Number(l.ebitda)) && <p>📈 EBITDA: ${Number(l.ebitda).toLocaleString()}</p>}
             </div>
 
             {(l.brokerContactFullName || l.brokerCompany) && (
