@@ -1,4 +1,3 @@
-// pages/cleaning-index.tsx
 import { GetServerSideProps } from "next";
 
 type Listing = {
@@ -18,11 +17,10 @@ type Props = { listings: Listing[]; error?: string | null };
 export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
   try {
     const host = req.headers.host as string;
-    const origin =
-      process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
+    const origin = process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
     const r = await fetch(`${origin}/api/listings`, { cache: "no-store" });
     const j = await r.json();
-    if (!r.ok) return { props: { listings: [], error: j?.error || `HTTP ${r.status}` } };
+    if (!r.ok) return { props: { listings: [], error: j?.error || \`HTTP \${r.status}\` } };
     return { props: { listings: (j?.data ?? []) as Listing[] } };
   } catch (e: any) {
     return { props: { listings: [], error: e?.message || String(e) } };
@@ -42,45 +40,30 @@ export default function CleaningIndex({ listings, error }: Props) {
 
       <ul className="space-y-6">
         {listings.map((l, idx) => {
-          const key = `${l.listnumber ?? idx}-${l.header ?? ""}`;
+          const key = \`\${l.listnumber ?? idx}-\${l.header ?? ""}\`;
           const href = l.best_url ?? undefined;
           const badge = l.externalurl ? "Direct" : l.listings_url ? "Broker Page" : "Search";
           return (
             <li key={key} className="border rounded-xl p-5 shadow-sm">
               <h2 className="text-xl font-semibold">
                 {href ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     {l.header ?? "Untitled Listing"}
                   </a>
                 ) : (
                   l.header ?? "Untitled Listing"
                 )}
-                <span className="ml-2 text-xs rounded bg-gray-100 px-2 py-0.5">
-                  {badge}
-                </span>
+                <span className="ml-2 text-xs rounded bg-gray-100 px-2 py-0.5">{badge}</span>
               </h2>
 
               <p className="text-gray-600">
                 {l.location ?? "Unknown location"}
-                {l.price != null && (
-                  <span className="ml-2 font-semibold">
-                    • ${Number(l.price).toLocaleString()}
-                  </span>
-                )}
+                {l.price != null && <span className="ml-2 font-semibold">• ${Number(l.price).toLocaleString()}</span>}
               </p>
 
               {(l.broker_contact_fullname || l.broker_company) && (
                 <p className="mt-2 text-sm text-gray-700">
-                  Broker:{" "}
-                  <strong>
-                    {l.broker_contact_fullname ?? "Unknown"}
-                    {l.broker_company ? ` (${l.broker_company})` : ""}
-                  </strong>
+                  Broker: <strong>{l.broker_contact_fullname ?? "Unknown"}{l.broker_company ? \` (\${l.broker_company})\` : ""}</strong>
                 </p>
               )}
             </li>
@@ -90,3 +73,26 @@ export default function CleaningIndex({ listings, error }: Props) {
     </div>
   );
 }
+EOF
+3) Commit & push
+bash
+Copy
+Edit
+git add pages/cleaning-index.tsx
+git commit -m "Fix cleaning-index page (real component + data)"
+git push origin main
+4) If it still errors on Vercel
+There may be a second stray file or cached artifact. Do a quick search and clean:
+
+bash
+Copy
+Edit
+# find any other files starting with raw <ul in pages/
+grep -R "^<ul" pages || true
+
+# ensure there isn't a duplicate with similar name
+ls -la pages | grep -i cleaning-index
+
+# optional: build locally to confirm it's clean
+rm -rf .next
+npm run build
