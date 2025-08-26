@@ -1,63 +1,73 @@
 // pages/index.tsx
-import Link from "next/link";
 import Head from "next/head";
+import Link from "next/link";
 
-export default function CleaningIndexPage() {
+export default function Home() {
   return (
     <>
       <Head>
-        <title>The Cleaning Index</title>
-        <meta name="description" content="Verified cleaning & related service listings with real sources and financials." />
+        <title>Cleaning Exits</title>
+        <meta name="description" content="Verified cleaning & services listings, daily feed + indexed analysis." />
       </Head>
 
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold mb-6">🧼 The Cleaning Index</h1>
+      <main className="min-h-screen bg-white">
+        {/* Hero */}
+        <section className="max-w-5xl mx-auto px-6 py-16">
+          <div className="text-center">
+            <h1 className="text-5xl font-extrabold tracking-tight mb-4">Cleaning Exits</h1>
+            <p className="text-gray-600 text-lg mb-8">
+              Find real, actionable cleaning & related service listings. Daily verified feed + a curated index.
+            </p>
 
-        <p className="mb-4 text-lg">
-          We audited hundreds of cleaning business listings across marketplaces and broker sites.
-          Here’s what we found—and why most listings aren’t what they seem.
-        </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/daily-cleaning"
+                className="inline-block rounded-lg px-6 py-3 bg-green-700 text-white font-semibold shadow hover:bg-green-800 transition"
+              >
+                🔎 View Today’s Listings
+              </Link>
+              <Link
+                href="/cleaning-index"
+                className="inline-block rounded-lg px-6 py-3 bg-gray-900 text-white font-semibold shadow hover:bg-black transition"
+              >
+                📚 Explore the Index
+              </Link>
+            </div>
+          </div>
+        </section>
 
-        <div className="overflow-x-auto mb-8">
-          <table className="table-auto w-full border-collapse border border-gray-300 text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-4 py-2 text-left">Category</th>
-                <th className="border px-4 py-2 text-right">Count</th>
-                <th className="border px-4 py-2 text-right">% of Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td className="border px-4 py-2">Total Listings Audited</td><td className="border px-4 py-2 text-right">782</td><td className="border px-4 py-2 text-right">100.00%</td></tr>
-              <tr><td className="border px-4 py-2">Matched to Broker Site</td><td className="border px-4 py-2 text-right">431</td><td className="border px-4 py-2 text-right">55.10%</td></tr>
-              <tr><td className="border px-4 py-2">With Broker + Financials</td><td className="border px-4 py-2 text-right">278</td><td className="border px-4 py-2 text-right">35.54%</td></tr>
-              <tr><td className="border px-4 py-2">Unmatched / FSBO</td><td className="border px-4 py-2 text-right">351</td><td className="border px-4 py-2 text-right">44.90%</td></tr>
-              <tr><td className="border px-4 py-2">FSBO + Financials</td><td className="border px-4 py-2 text-right">82</td><td className="border px-4 py-2 text-right">10.49%</td></tr>
-              <tr className="font-bold bg-yellow-50">
-                <td className="border px-4 py-2">Fully Real Listings (Broker or FSBO + Financials)</td>
-                <td className="border px-4 py-2 text-right">360</td>
-                <td className="border px-4 py-2 text-right">46.01%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* Quick cards */}
+        <section className="max-w-5xl mx-auto px-6 pb-16">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <Link
+              href="/daily-cleaning"
+              className="block border rounded-2xl p-6 hover:shadow-md transition"
+            >
+              <h2 className="text-xl font-semibold mb-2">Daily Cleaning Listings</h2>
+              <p className="text-gray-600">
+                Fresh, verified listings pulled from our broker matching. Prefer direct sources over marketplace noise.
+              </p>
+            </Link>
 
-        <p className="mb-6">
-          Less than half of all cleaning listings we reviewed had a real source and financials.
-          Most are dead, duplicated, or lack meaningful information.
-        </p>
+            <Link
+              href="/cleaning-index"
+              className="block border rounded-2xl p-6 hover:shadow-md transition"
+            >
+              <h2 className="text-xl font-semibold mb-2">The Cleaning Index</h2>
+              <p className="text-gray-600">
+                Our audited index: which listings are real, which have financials, and where to find the originals.
+              </p>
+            </Link>
+          </div>
+        </section>
 
-        <p className="mb-8 text-lg font-medium">
-          You’re not browsing 782 listings. You’re browsing ~360 that are truly actionable.
-        </p>
-
-        <Link
-          href="/daily-cleaning"
-          className="inline-block bg-green-700 text-white px-6 py-3 rounded-lg shadow hover:bg-green-800 transition"
-        >
-          🔎 View Today&apos;s Verified Cleaning Listings
-        </Link>
-      </div>
+        {/* Footer */}
+        <footer className="border-t">
+          <div className="max-w-5xl mx-auto px-6 py-8 text-sm text-gray-500">
+            Built for speed and signal. No fluff.
+          </div>
+        </footer>
+      </main>
     </>
   );
 }
