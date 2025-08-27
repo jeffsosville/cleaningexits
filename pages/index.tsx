@@ -1,3 +1,4 @@
+// pages/index.tsx
 import Head from "next/head";
 import Link from "next/link";
 
@@ -40,6 +41,42 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Quick cards */}
+        <section className="max-w-5xl mx-auto px-6 pb-16">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <Link
+              href="/daily-cleaning"
+              className="block border rounded-2xl p-6 hover:shadow-md transition"
+            >
+              <h2 className="text-xl font-semibold mb-2">
+                Daily Cleaning Listings
+              </h2>
+              <p className="text-gray-600">
+                Fresh, verified listings pulled from our broker matching. Prefer
+                direct sources over marketplace noise.
+              </p>
+            </Link>
+
+            <Link
+              href="/cleaning-index"
+              className="block border rounded-2xl p-6 hover:shadow-md transition"
+            >
+              <h2 className="text-xl font-semibold mb-2">The Cleaning Index</h2>
+              <p className="text-gray-600">
+                Our audited index: which listings are real, which have
+                financials, and where to find the originals.
+              </p>
+            </Link>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t">
+          <div className="max-w-5xl mx-auto px-6 py-8 text-sm text-gray-500">
+            Built for speed and signal. No fluff.
+          </div>
+        </footer>
       </main>
     </>
   );
