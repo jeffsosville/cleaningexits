@@ -50,7 +50,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => 
     const origin =
       process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
 
-    const resp = await fetch(`${origin}/api/listings`, { cache: "no-store" });
+    const resp = await fetch(`${origin}/api/listings?variant=index&limit=1000`, {
+  cache: "no-store",
+});
     const text = await resp.text();
 
     let json: any = null;
