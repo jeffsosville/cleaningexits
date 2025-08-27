@@ -6,12 +6,43 @@ type Listing = {
   city: string | null;
   state: string | null;
   price: number | null;
-  cashFlow: number | string | null;
+  cashFlow: number | null;
   description: string | null;
 };
 
+// Normalize API rows (which may come back as snake_case / different shapes)
+function normalizeRow(row: any): Listing {
+  const header = (row?.header ?? null) as string | null;
+
+  // Prefer explicit city/state if present; otherwise try to split "City, ST" from `location`
+  let city: string | null = row?.city ?? null;
+  let state: string | null = row?.state ?? null;
+  if ((!city || !state) && typeof row?.location === "string") {
+    const m = row.location.match(/^([^,]+)\s*,\s*([A-Za-z.\s-]{2,})\s*$/);
+    if (m) {
+      city = city ?? m[1];
+      state = state ?? m[2];
+    }
+  }
+
+  const listNumber = Number(row?.listNumber ?? row?.listnumber ?? 0) || 0;
+  const price = row?.price != null ? Number(row.price) : null;
+  const cashFlow =
+    row?.cashFlow != null
+      ? Number(row.cashFlow)
+      : row?.cashflow != null
+      ? Number(row.cashflow)
+      : null;
+
+  const description =
+    typeof row?.description === "string" ? row.description : null;
+
+  return { listNumber, header, city, state, price, cashFlow, description };
+}
+
 type Props = {
   listings: Listing[];
+  hiddenCount: number;
   error?: string | null;
 };
 
@@ -29,54 +60,62 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => 
       json = JSON.parse(text);
     } catch {
       const snippet = text.trim().slice(0, 120);
-      return { props: { listings: [], error: `HTTP ${resp.status} ${resp.statusText} — ${snippet}` } };
+      return { props: { listings: [], hiddenCount: 0, error: `HTTP ${resp.status} ${resp.statusText} — ${snippet}` } };
     }
 
     if (!resp.ok) {
-      return { props: { listings: [], error: json?.error || `HTTP ${resp.status}` } };
+      return { props: { listings: [], hiddenCount: 0, error: json?.error || `HTTP ${resp.status}` } };
     }
 
-    const data = (json?.data ?? []) as Listing[];
-    return { props: { listings: data } };
+    const raw = Array.isArray(json?.data) ? json.data : [];
+    const normalized: Listing[] = raw.map(normalizeRow);
+
+    // Filter: only show rows with a non-empty header
+    const visible = normalized.filter((l) => l.header && l.header.trim() !== "");
+    const hiddenCount = normalized.length - visible.length;
+
+    return { props: { listings: visible, hiddenCount } };
   } catch (e: any) {
-    return { props: { listings: [], error: e?.message || String(e) } };
+    return { props: { listings: [], hiddenCount: 0, error: e?.message || String(e) } };
   }
 };
 
-export default function DailyCleaning({ listings, error }: Props) {
+export default function DailyCleaning({ listings, hiddenCount, error }: Props) {
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-5xl font-black mb-6">🧽 Daily Verified Cleaning Listings</h1>
+      <h1 className="text-5xl font-black mb-3">🧽 Daily Verified Cleaning Listings</h1>
 
-      {error && <p className="text-red-600 text-xl">Error: {error}</p>}
+      {hiddenCount > 0 && (
+        <p className="text-sm text-gray-500 mb-4">
+          {hiddenCount} listing{hiddenCount === 1 ? "" : "s"} hidden (missing header).
+        </p>
+      )}
+
+      {error && <p className="text-red-600 text-lg">Error: {error}</p>}
       {!error && listings.length === 0 && <p className="text-gray-500">No listings yet.</p>}
 
       <ul className="space-y-6">
         {listings.map((l) => (
           <li
-            key={`${l.listNumber}-${l.header ?? ""}-${l.city ?? ""}-${l.state ?? ""}`}
+            key={`${l.listNumber}-${l.header}-${l.city ?? ""}-${l.state ?? ""}`}
             className="border rounded-xl p-5 shadow-sm"
           >
-            <h2 className="text-xl font-semibold">
-              {l.header ?? "Untitled Listing"}
-            </h2>
+            <h2 className="text-xl font-semibold">{l.header}</h2>
 
             <p className="text-gray-600">
-              {l.city ?? "Unknown city"}, {l.state ?? "Unknown state"}
+              {l.city ?? "Unknown city"}
+              {", "}
+              {l.state ?? "Unknown state"}
             </p>
 
             <div className="mt-2 space-y-1 text-sm">
-              {l.price != null && (
-                <p>💰 Asking Price: ${Number(l.price).toLocaleString()}</p>
-              )}
-              {l.cashFlow && !Number.isNaN(Number(l.cashFlow)) && (
+              {l.price != null && <p>💰 Asking Price: ${Number(l.price).toLocaleString()}</p>}
+              {l.cashFlow != null && !Number.isNaN(Number(l.cashFlow)) && (
                 <p>💵 Cash Flow: ${Number(l.cashFlow).toLocaleString()}</p>
               )}
             </div>
 
-            {l.description && (
-              <p className="mt-3 text-sm text-gray-700">{l.description}</p>
-            )}
+            {l.description && <p className="mt-3 text-sm text-gray-700">{l.description}</p>}
           </li>
         ))}
       </ul>
