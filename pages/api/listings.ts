@@ -28,7 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const variant = (req.query.variant as string) || "daily"; // "daily" | "index"
   const limit   = Math.min(Number(req.query.limit ?? (variant === "index" ? 1000 : 50)) || (variant === "index" ? 1000 : 50), 5000);
 
-  const source = variant === "index" ? "cleaning_exits" : "daily_listings_with_broker_urls";
+  const source = variant === "index"
+  ? "cleaning_exits_clean_only"  // ✅ use the view instead of raw table
+  : "daily_listings_with_broker_urls";
+
 
   // Select only columns that actually exist per source
   const selectCols =
