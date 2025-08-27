@@ -3,6 +3,18 @@ import type { NextApiRequest, NextApiResponse } from "next";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function toNum(v: any): number | null {
+  if (v == null) return null;
+  const n = Number(String(v).replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function splitCityState(location?: string | null): { city: string | null; state: string | null } {
+  if (!location || typeof location !== "string") return { city: null, state: null };
+  const m = location.match(/^([^,]+)\s*,\s*([A-Za-z.\s-]{2,})\s*$/);
+  return m ? { city: m[1], state: m[2] } : { city: location, state: null };
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -16,14 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const variant = (req.query.variant as string) || "daily"; // "daily" | "index"
   const limit   = Math.min(Number(req.query.limit ?? (variant === "index" ? 1000 : 50)) || (variant === "index" ? 1000 : 50), 5000);
 
-  // Source table/view per variant
   const source = variant === "index" ? "cleaning_exits" : "daily_listings_with_broker_urls";
 
-  // Select only the columns we need
+  // Select only columns that actually exist per source
   const selectCols =
     variant === "index"
-      ? ["header", "location", "region", "price", "cashflow", "description"].join(",")
-      : ["listnumber", "header", "city", "state", "price", "cashflow", "description"].join(",");
+      ? ["header","location","region","price","cashflow","description"].join(",")
+      : ["listnumber","header","location","price","cashflow","description"].join(",");
 
   const order =
     variant === "index"
@@ -43,24 +54,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       cache: "no-store",
     });
+
     const text = await r.text();
     if (!r.ok) return res.status(r.status).json({ error: text || r.statusText });
 
-    let data = JSON.parse(text) as any[];
+    const raw = JSON.parse(text) as any[];
 
-    // Filter + normalize index data
+    // Normalize to a uniform shape for the React pages
+    let data = raw
+      .filter((row) => typeof row?.header === "string" && row.header.trim() !== "")
+      .map((row) => {
+        if (variant === "index") {
+          // cleaning_exits rows: region ~ state, location ~ city/area
+          const city = row.location ?? null;
+          const state = row.region ?? null;
+          return {
+            header: row.header as string,
+            city,
+            state,
+            price: toNum(row.price),
+            cashFlow: toNum(row.cashflow),
+            description: typeof row.description === "string" ? row.description : null,
+          };
+        } else {
+          // daily_listings_with_broker_urls rows: only 'location' (e.g., "Denver, CO")
+          const { city, state } = splitCityState(row.location ?? null);
+          return {
+            header: row.header as string,
+            city,
+            state,
+            price: toNum(row.price),
+            cashFlow: toNum(row.cashflow),
+            description: typeof row.description === "string" ? row.description : null,
+          };
+        }
+      });
+
+    // For the index, keep ones with some finance signal and dedupe a bit
     if (variant === "index") {
+      const seen = new Set<string>();
       data = data
-        .filter((row) => row.header && row.header.trim() !== "")
-        .map((row) => ({
-          header: row.header,
-          city: row.location,
-          state: row.region,
-          price: row.price ? Number(row.price.replace(/[^\d.]/g, "")) : null,
-          cashFlow: row.cashflow ? Number(row.cashflow.replace(/[^\d.]/g, "")) : null,
-          description: row.description,
-        }));
+        .filter((x) => x.price != null || x.cashFlow != null)
+        .filter((x) => {
+          const k = `${(x.header || "").toLowerCase()}|${(x.city || "").toLowerCase()}|${(x.state || "").toLowerCase()}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
     }
+
+    // Enforce limit after normalization
+    data = data.slice(0, limit);
 
     return res.status(200).json({ data });
   } catch (e: any) {
