@@ -27,7 +27,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/daily-cleaning"
+                href="/cleaning-index"
                 className="inline-block rounded-lg px-6 py-3 bg-green-700 text-white font-semibold shadow hover:bg-green-800 transition"
               >
                 🔎 View Today’s Listings
@@ -39,6 +39,15 @@ export default function Home() {
                 📚 Explore the Index
               </Link>
             </div>
+
+            <div className="mt-4">
+              <Link
+                href="/subscribe"
+                className="text-sm text-gray-600 underline underline-offset-2"
+              >
+                Prefer email? Get the daily list →
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -46,7 +55,7 @@ export default function Home() {
         <section className="max-w-5xl mx-auto px-6 pb-16">
           <div className="grid sm:grid-cols-2 gap-6">
             <Link
-              href="/daily-cleaning"
+              href="/cleaning-index"
               className="block border rounded-2xl p-6 hover:shadow-md transition"
             >
               <h2 className="text-xl font-semibold mb-2">
