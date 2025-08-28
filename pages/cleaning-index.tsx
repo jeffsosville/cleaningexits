@@ -1,20 +1,10 @@
 // pages/cleaning-index.tsx
 import { GetServerSideProps } from "next";
 
-type Listing = {
-  header: string | null;
-  city: string | null;
-  state: string | null;
-  price: number | string | null;
-  revenue: number | string | null;
-  cashflow: number | string | null;
-  broker_name: string | null;
-  source_url: string | null;
-  pulled_at: string | null;
-};
+type AnyRow = Record<string, any>;
 
 type Props = {
-  listings: Listing[];
+  listings: AnyRow[];
   error?: string | null;
 };
 
@@ -24,19 +14,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => 
     const origin =
       process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
 
+    // No order by default (it can fail if the column doesn't exist).
+    // You can pass ?order=pulled_at.desc in the URL later if your view supports it.
     const resp = await fetch(
-      `${origin}/api/listings?view=cleaning_filtered&order=pulled_at.desc&limit=200`,
+      `${origin}/api/listings?view=cleaning_filtered&limit=200`,
       { cache: "no-store" }
     );
     const json = await resp.json();
 
     if (!resp.ok) {
-      return {
-        props: { listings: [], error: json?.error || `HTTP ${resp.status}` },
-      };
+      return { props: { listings: [], error: json?.error || `HTTP ${resp.status}` } };
     }
 
-    return { props: { listings: (json?.data ?? []) as Listing[] } };
+    return { props: { listings: (json?.data ?? []) as AnyRow[] } };
   } catch (e: any) {
     return { props: { listings: [], error: e?.message || String(e) } };
   }
@@ -57,58 +47,107 @@ export default function CleaningIndex({ listings, error }: Props) {
 
       <ul className="space-y-6">
         {listings
-          .filter((l) => l.header)
-          .map((l, idx) => (
-            <li
-              key={`${l.source_url ?? "x"}-${l.header ?? "h"}-${idx}`}
-              className="border rounded-xl p-5 shadow-sm"
-            >
-              <h2 className="text-xl font-semibold">{l.header}</h2>
-              <p className="text-gray-600">
-                {[l.city, l.state].filter(Boolean).join(", ") || "Unknown location"}
-              </p>
+          .filter((l) => truthy(get(l, ["header", "title", "name"])))
+          .map((l, idx) => {
+            const header =
+              firstVal(l, ["header", "title", "name"]) ?? "Untitled listing";
+            const location =
+              buildLocation(l) || "Unknown location";
 
-              <div className="mt-2 space-y-1 text-sm">
-                {n(l.price) !== null && <p>💰 Asking Price: {fmt(n(l.price))}</p>}
-                {n(l.revenue) !== null && <p>📦 Revenue: {fmt(n(l.revenue))}</p>}
-                {n(l.cashflow) !== null && n(l.cashflow)! > 0 && (
-                  <p>💵 Cash Flow: {fmt(n(l.cashflow))}</p>
-                )}
-              </div>
+            const price = firstNum(l, ["price", "asking_price", "listprice", "amount"]);
+            const revenue = firstNum(l, ["revenue", "sales", "gross_revenue"]);
+            const cashflow = firstNum(l, ["cashflow", "cash_flow", "sde", "seller_discretionary_earnings"]);
+            const broker = firstVal(l, ["broker_name", "broker", "agent", "company_name"]);
+            const source = firstVal(l, ["source_url", "url", "link"]);
+            const pulledAt = firstDate(l, ["pulled_at", "created_at", "updated_at"]);
 
-              <div className="mt-3 text-sm text-gray-700 flex flex-wrap gap-3">
-                {l.broker_name && <span>🤝 {l.broker_name}</span>}
-                {l.source_url && (
-                  <a
-                    href={l.source_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-2"
-                  >
-                    original
-                  </a>
+            return (
+              <li
+                key={`${source ?? "x"}-${header}-${idx}`}
+                className="border rounded-xl p-5 shadow-sm"
+              >
+                <h2 className="text-xl font-semibold">{header}</h2>
+                <p className="text-gray-600">{location}</p>
+
+                <div className="mt-2 space-y-1 text-sm">
+                  {price !== null && <p>💰 Asking Price: {fmt(price)}</p>}
+                  {revenue !== null && <p>📦 Revenue: {fmt(revenue)}</p>}
+                  {cashflow !== null && cashflow > 0 && (
+                    <p>💵 Cash Flow: {fmt(cashflow)}</p>
+                  )}
+                </div>
+
+                <div className="mt-3 text-sm text-gray-700 flex flex-wrap gap-3">
+                  {broker && <span>🤝 {broker}</span>}
+                  {source && (
+                    <a
+                      href={source}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      original
+                    </a>
+                  )}
+                  {pulledAt && (
+                    <span>🗓️ {new Date(pulledAt).toLocaleDateString()}</span>
+                  )}
+                </div>
+
+                {truthy(get(l, ["description", "summary", "notes"])) && (
+                  <p className="mt-3 text-sm text-gray-700">
+                    {firstVal(l, ["description", "summary", "notes"])}
+                  </p>
                 )}
-                {l.pulled_at && (
-                  <span>🗓️ {new Date(l.pulled_at).toLocaleDateString()}</span>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
       </ul>
     </div>
   );
 }
 
-function n(v: any): number | null {
-  if (v === null || v === undefined) return null;
-  const num = Number(v);
-  return Number.isFinite(num) ? num : null;
+/* ---------- helpers (schema-agnostic) ---------- */
+
+function get(obj: any, keys: string[]) {
+  for (const k of keys) if (k in obj && obj[k] != null) return obj[k];
+  return null;
 }
-function fmt(num: number | null) {
-  if (num === null) return "—";
-  return num.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
+function truthy(v: any) {
+  return !(v === null || v === undefined || v === "" || (typeof v === "number" && !Number.isFinite(v)));
+}
+function firstVal(obj: any, keys: string[]) {
+  const v = get(obj, keys);
+  return typeof v === "string" ? v : (typeof v === "number" ? String(v) : v);
+}
+function firstNum(obj: any, keys: string[]): number | null {
+  const v = get(obj, keys);
+  if (v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function firstDate(obj: any, keys: string[]): string | null {
+  const v = get(obj, keys);
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+function fmt(n: number | null) {
+  if (n === null) return "—";
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function buildLocation(row: AnyRow): string {
+  // Prefer city, state if present
+  const city = firstVal(row, ["city", "town"]);
+  const state = firstVal(row, ["state", "region_code", "state_code"]);
+  const combo = [city, state].filter(Boolean).join(", ");
+  if (combo) return combo;
+
+  // Fallbacks
+  return (
+    firstVal(row, ["location"]) ||
+    [firstVal(row, ["region"]), firstVal(row, ["country_code", "country"])].filter(Boolean).join(", ") ||
+    ""
+  );
 }
