@@ -4,23 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type AllowedView = "cleaning_filtered";
-const DEFAULT_VIEW: AllowedView = "cleaning_filtered";
-
-const SELECT_BY_VIEW: Record<string, string> = {
-  cleaning_filtered: [
-    // no "id" here on purpose
-    "header",
-    "city",
-    "state",
-    "price",
-    "revenue",
-    "cashflow",
-    "broker_name",
-    "source_url",
-    "pulled_at",
-  ].join(","),
-};
+const DEFAULT_VIEW = "cleaning_filtered";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -42,32 +26,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .json({ error: "Missing SUPABASE_URL / SUPABASE_ANON_KEY" });
   }
 
-  const view = ((req.query.view as string) || DEFAULT_VIEW) as AllowedView;
+  const view = ((req.query.view as string) || DEFAULT_VIEW).trim();
 
+  // Build PostgREST params. We request "*" to avoid column-mismatch errors.
   const params = new URLSearchParams();
-  params.set("select", SELECT_BY_VIEW[view] || "*");
+  params.set("select", "*");
 
-  const orderParam =
-    (req.query.order as string) || (view === "cleaning_filtered" ? "pulled_at.desc" : "");
+  // Optional: client can pass ?order=col.desc — we’ll pass it through.
+  const orderParam = (req.query.order as string) || "";
   if (orderParam) params.set("order", orderParam);
 
+  // Optional limit (default 200)
   const limit = Number(req.query.limit ?? 200);
   if (Number.isFinite(limit) && limit > 0) params.set("limit", String(limit));
 
-  // today filter (only for cleaning_filtered)
-  if (req.query.today === "1" && view === "cleaning_filtered") {
+  // Optional: today filter if your view has pulled_at; if it doesn't, PostgREST will 42703.
+  // To stay defensive, only add this if caller explicitly opts in with &today=1&has_pulled_at=1.
+  if (req.query.today === "1" && req.query.has_pulled_at === "1") {
     const today = new Date().toISOString().slice(0, 10);
     params.set("pulled_at", `gte.${today}T00:00:00Z`);
     params.append("pulled_at", `lte.${today}T23:59:59Z`);
   }
 
-  // simple free-text filter on header/city/state
-  const q = (req.query.q as string)?.trim();
-  if (q && view === "cleaning_filtered") {
-    params.set("or", `header.ilike.*${q}*,city.ilike.*${q}*,state.ilike.*${q}*`);
-  }
+  // Optional: free-text search on header/city/state if the columns exist.
+  // We can't detect existence cheaply here, so we expose a passthrough OR
+  // filter via ?or=header.ilike.*carpet*,city.ilike.*carpet*,state.ilike.*carpet*
+  const or = (req.query.or as string) || "";
+  if (or) params.set("or", or);
 
-  const restUrl = `${base}/rest/v1/${view}?${params.toString()}`;
+  const restUrl = `${base}/rest/v1/${encodeURIComponent(view)}?${params.toString()}`;
 
   try {
     const r = await fetch(restUrl, {
