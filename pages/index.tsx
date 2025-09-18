@@ -32,26 +32,76 @@ const money = (n?: number | null) =>
   !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export async function getServerSideProps() {
-  const [{ data: top10 }, { data: kpiRows }] = await Promise.all([
-    supabase
-      .from("cleaning_top10_featured")
-      .select("header, city, state, price, revenue, cashflow, ebitda, url, picked_on, notes")
-      .order("picked_on", { ascending: false })
-      .limit(10),
-    supabase
+  // 1) Try curated featured
+  const { data: featured, error: eFeat } = await supabase
+    .from("cleaning_top10_featured")
+    .select("header, city, state, price, revenue, cashflow, ebitda, url, picked_on, notes")
+    .order("picked_on", { ascending: false })
+    .limit(10);
+
+  // If we have curated rows, use them.
+  if ((featured?.length ?? 0) > 0 && !eFeat) {
+    // Optionally pull KPIs (non-blocking)
+    const { data: kpiRows } = await supabase
       .from("cleaning_index_kpis_v1")
       .select("month_label, total_listed, verified_real, junk_pct, last_updated")
       .order("last_updated", { ascending: false })
-      .limit(1),
-  ]);
+      .limit(1);
+
+    return {
+      props: {
+        top10: featured,
+        kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
+      },
+    };
+  }
+
+  // 2) Fallback to AUTO view (map its columns → homepage shape)
+  const { data: auto, error: eAuto } = await supabase
+    .from("cleaning_top10_auto")
+    .select("id, title, location, region, price, cashflow, ebitda, broker, url, description")
+    .limit(10);
+
+  const mapped = (auto ?? []).map((r: any) => {
+    // split "City, ST" into parts if present
+    let city: string | null = null;
+    let state: string | null = null;
+    if (r.location && typeof r.location === "string" && r.location.includes(",")) {
+      const parts = r.location.split(",").map((s: string) => s.trim());
+      city = parts[0] || null;
+      state = parts[1] || r.region || null;
+    } else {
+      state = r.region || null;
+    }
+    return {
+      header: r.title ?? null,
+      city,
+      state,
+      price: r.price ?? null,
+      revenue: null,
+      cashflow: r.cashflow ?? null,
+      ebitda: r.ebitda ?? null,
+      url: r.url ?? null,
+      picked_on: null,
+      notes: r.description ?? null,
+    };
+  });
+
+  // KPIs (optional)
+  const { data: kpiRows } = await supabase
+    .from("cleaning_index_kpis_v1")
+    .select("month_label, total_listed, verified_real, junk_pct, last_updated")
+    .order("last_updated", { ascending: false })
+    .limit(1);
 
   return {
     props: {
-      top10: (top10 ?? []) as Top10[],
-      kpis: (kpiRows && kpiRows[0]) ? (kpiRows[0] as KPI) : null,
+      top10: mapped,         // ← shows AUTO if featured is empty
+      kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
     },
   };
 }
+
 
 export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null }) {
   return (
