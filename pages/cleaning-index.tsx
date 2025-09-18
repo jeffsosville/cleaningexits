@@ -1,153 +1,151 @@
 // pages/cleaning-index.tsx
+import Head from "next/head";
+import Link from "next/link";
 import { GetServerSideProps } from "next";
+import { supabase } from "../lib/supabaseClient";
 
-type AnyRow = Record<string, any>;
-
-type Props = {
-  listings: AnyRow[];
-  error?: string | null;
+type Card = {
+  id: number | null;
+  title: string | null;
+  city_state: string | null;
+  asking_price: number | null;
+  cash_flow: number | null;
+  ebitda: number | null;
+  summary: string | null;
+  url: string | null;
+  image_url: string | null;
+  broker: string | null;
+  broker_contact: string | null;
+  recentlyAdded: boolean | null;
+  recentlyUpdated: boolean | null;
 };
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
-  try {
-    const host = req.headers.host as string;
-    const origin =
-      process.env.NODE_ENV === "production" ? `https://${host}` : `http://${host}`;
+function fmtMoney(n?: number | null) {
+  if (!n) return "—";
+  return n.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
 
-    // No order by default (it can fail if the column doesn't exist).
-    // You can pass ?order=pulled_at.desc in the URL later if your view supports it.
-    const resp = await fetch(
-      `${origin}/api/listings?view=cleaning_filtered&limit=200`,
-      { cache: "no-store" }
-    );
-    const json = await resp.json();
+export const getServerSideProps: GetServerSideProps = async () => {
+  // Pull 50 cards from the simplified public view
+  const { data, error } = await supabase
+    .from("cleaning_listings_cards")
+    .select(
+      "id, title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, recentlyAdded, recentlyUpdated"
+    )
+    .limit(50);
 
-    if (!resp.ok) {
-      return { props: { listings: [], error: json?.error || `HTTP ${resp.status}` } };
-    }
+  // Graceful fallback if the view isn't ready yet
+  const listings: Card[] =
+    error || !data
+      ? [
+          {
+            id: 0,
+            title: "Example Cleaning Co. (placeholder)",
+            city_state: "Austin, TX",
+            asking_price: 425000,
+            cash_flow: 152000,
+            ebitda: null,
+            summary:
+              "Residential & light commercial; 120 recurring clients; owner transitioning. (This is a placeholder card until your Supabase view is wired.)",
+            url: "#",
+            image_url: "/default-listing.jpg",
+            broker: "—",
+            broker_contact: "—",
+            recentlyAdded: true,
+            recentlyUpdated: null,
+          },
+        ]
+      : (data as Card[]);
 
-    return { props: { listings: (json?.data ?? []) as AnyRow[] } };
-  } catch (e: any) {
-    return { props: { listings: [], error: e?.message || String(e) } };
-  }
+  return { props: { listings } };
 };
 
-export default function CleaningIndex({ listings, error }: Props) {
+export default function CleaningIndex({ listings }: { listings: Card[] }) {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-5xl font-black mb-2">🧼 The Cleaning Index</h1>
-      <p className="mb-6 text-gray-700">
-        The curated, simplified view of cleaning & related service listings.
-      </p>
+    <>
+      <Head>
+        <title>Cleaning Exits — The Cleaning Index</title>
+      </Head>
 
-      {error && <p className="text-red-600 text-xl">Error: {error}</p>}
-      {!error && listings.length === 0 && (
-        <p className="text-gray-500">No listings available.</p>
-      )}
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* Header */}
+        <header className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+            The Cleaning Index
+          </h1>
+          <p className="mt-2 text-gray-600 max-w-2xl">
+            Our audited feed of **real** cleaning & related service listings. We
+            dedupe, filter out franchise funnels, and prefer verified sources over
+            marketplace noise.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/"
+              className="text-emerald-700 hover:text-emerald-800 underline"
+            >
+              ← Back to Top 10
+            </Link>
+          </div>
+        </header>
 
-      <ul className="space-y-6">
-        {listings
-          .filter((l) => truthy(get(l, ["header", "title", "name"])))
-          .map((l, idx) => {
-            const header =
-              firstVal(l, ["header", "title", "name"]) ?? "Untitled listing";
-            const location =
-              buildLocation(l) || "Unknown location";
-
-            const price = firstNum(l, ["price", "asking_price", "listprice", "amount"]);
-            const revenue = firstNum(l, ["revenue", "sales", "gross_revenue"]);
-            const cashflow = firstNum(l, ["cashflow", "cash_flow", "sde", "seller_discretionary_earnings"]);
-            const broker = firstVal(l, ["broker_name", "broker", "agent", "company_name"]);
-            const source = firstVal(l, ["source_url", "url", "link"]);
-            const pulledAt = firstDate(l, ["pulled_at", "created_at", "updated_at"]);
-
-            return (
-              <li
-                key={`${source ?? "x"}-${header}-${idx}`}
-                className="border rounded-xl p-5 shadow-sm"
-              >
-                <h2 className="text-xl font-semibold">{header}</h2>
-                <p className="text-gray-600">{location}</p>
-
-                <div className="mt-2 space-y-1 text-sm">
-                  {price !== null && <p>💰 Asking Price: {fmt(price)}</p>}
-                  {revenue !== null && <p>📦 Revenue: {fmt(revenue)}</p>}
-                  {cashflow !== null && cashflow > 0 && (
-                    <p>💵 Cash Flow: {fmt(cashflow)}</p>
-                  )}
+        {/* Cards grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {listings.map((l, idx) => (
+            <article
+              key={`${l.id ?? "demo"}-${idx}`}
+              className="rounded-2xl border p-4 shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex gap-4">
+                <img
+                  src={l.image_url ?? "/default-listing.jpg"}
+                  alt={l.title ?? ""}
+                  className="w-24 h-24 object-cover rounded-lg bg-gray-100"
+                />
+                <div className="flex-1">
+                  <a
+                    href={l.url ?? "#"}
+                    target={l.url ? "_blank" : "_self"}
+                    rel="noreferrer"
+                    className="font-semibold text-lg hover:underline"
+                  >
+                    {l.title ?? "Untitled listing"}
+                  </a>
+                  <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
+                  <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-x-3 gap-y-1">
+                    <span>Price {fmtMoney(l.asking_price)}</span>
+                    {l.cash_flow && <span>Cash Flow {fmtMoney(l.cash_flow)}</span>}
+                    {l.ebitda && <span>EBITDA {fmtMoney(Number(l.ebitda))}</span>}
+                  </div>
                 </div>
+              </div>
 
-                <div className="mt-3 text-sm text-gray-700 flex flex-wrap gap-3">
-                  {broker && <span>🤝 {broker}</span>}
-                  {source && (
-                    <a
-                      href={source}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2"
-                    >
-                      original
-                    </a>
-                  )}
-                  {pulledAt && (
-                    <span>🗓️ {new Date(pulledAt).toLocaleDateString()}</span>
-                  )}
-                </div>
+              {l.summary && (
+                <p className="text-sm text-gray-600 mt-3">{l.summary}</p>
+              )}
 
-                {truthy(get(l, ["description", "summary", "notes"])) && (
-                  <p className="mt-3 text-sm text-gray-700">
-                    {firstVal(l, ["description", "summary", "notes"])}
-                  </p>
-                )}
-              </li>
-            );
-          })}
-      </ul>
-    </div>
-  );
-}
+              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                <span>Broker: {l.broker_contact || l.broker || "—"}</span>
+                <span>
+                  {l.recentlyAdded ? "New" : l.recentlyUpdated ? "Updated" : ""}
+                </span>
+              </div>
+            </article>
+          ))}
+        </section>
 
-/* ---------- helpers (schema-agnostic) ---------- */
-
-function get(obj: any, keys: string[]) {
-  for (const k of keys) if (k in obj && obj[k] != null) return obj[k];
-  return null;
-}
-function truthy(v: any) {
-  return !(v === null || v === undefined || v === "" || (typeof v === "number" && !Number.isFinite(v)));
-}
-function firstVal(obj: any, keys: string[]) {
-  const v = get(obj, keys);
-  return typeof v === "string" ? v : (typeof v === "number" ? String(v) : v);
-}
-function firstNum(obj: any, keys: string[]): number | null {
-  const v = get(obj, keys);
-  if (v === null) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-function firstDate(obj: any, keys: string[]): string | null {
-  const v = get(obj, keys);
-  if (!v) return null;
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d.toISOString();
-}
-function fmt(n: number | null) {
-  if (n === null) return "—";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
-
-function buildLocation(row: AnyRow): string {
-  // Prefer city, state if present
-  const city = firstVal(row, ["city", "town"]);
-  const state = firstVal(row, ["state", "region_code", "state_code"]);
-  const combo = [city, state].filter(Boolean).join(", ");
-  if (combo) return combo;
-
-  // Fallbacks
-  return (
-    firstVal(row, ["location"]) ||
-    [firstVal(row, ["region"]), firstVal(row, ["country_code", "country"])].filter(Boolean).join(", ") ||
-    ""
+        {/* Footer note */}
+        <p className="mt-10 text-center text-sm text-gray-500">
+          Verified — no franchises, no lead-gen. Want the curated list?{" "}
+          <Link href="/" className="underline text-emerald-700">
+            See this week’s Top 10
+          </Link>
+          .
+        </p>
+      </main>
+    </>
   );
 }
