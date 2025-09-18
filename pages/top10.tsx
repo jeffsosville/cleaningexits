@@ -35,7 +35,7 @@ export default function Top10({ rows, hadError }: { rows: Row[]; hadError: boole
       <main className="mx-auto max-w-5xl px-4 py-8">
         <header className="mb-6">
           <h1 className="text-3xl font-bold">Top 10</h1>
-          <p className="text-gray-600">Highest-priced listings with cash flow or EBITDA and a listed broker.</p>
+          <p className="text-gray-600">Curated Cleaning Businesses, no spam, fluff or junk.</p>
           <div className="mt-2">
             <Link href="/" className="underline text-emerald-700">← Back to Home</Link>
           </div>
