@@ -130,20 +130,33 @@ const money = (n?: number | null) =>
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const { data, error } = await supabase
-    .from("daily_cleaning_candidates")
-    .select("*") // ← robust: take all cols, normalize in JS
-    .limit(200);
-
-  const normalized = (data ?? []).map(normalizeRow);
+    .from("daily_cleaning_today")              // ← use the curated view
+    .select("*")
+    .order("scraped_at", { ascending: false }) // newest first
+    .limit(60);                                 // belt-and-suspenders cap
 
   return {
     props: {
-      rows: normalized as Card[],
+      rows: (data ?? []).map((r: any) => ({
+        key: String(r.id ?? r.url ?? Math.random()),
+        title: r.title ?? null,
+        city_state: r.city_state ?? null,
+        asking_price: r.asking_price ?? null,
+        cash_flow: r.cash_flow ?? null,
+        ebitda: r.ebitda ?? null,
+        summary: r.summary ?? null,
+        url: r.url ?? null,
+        image_url: r.image_url ?? null,
+        broker: r.broker ?? null,
+        broker_contact: r.broker_contact ?? null,
+        scraped_at: r.scraped_at ?? null,
+      })),
       hadError: !!error,
       errMsg: error?.message ?? null,
     },
   };
 };
+
 
 export default function DailyCleaning({
   rows,
