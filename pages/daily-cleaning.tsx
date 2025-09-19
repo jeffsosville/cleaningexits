@@ -5,7 +5,7 @@ import { GetServerSideProps } from "next";
 import { supabase } from "../lib/supabaseClient";
 
 type Card = {
-  id: number | null;
+  id: string | number | null;
   title: string | null;
   city_state: string | null;
   asking_price: number | null;
@@ -16,18 +16,19 @@ type Card = {
   image_url: string | null;
   broker: string | null;
   broker_contact: string | null;
-  ingested_at: string | null;
+  scraped_at: string | null; // <-- from daily_cleaning_candidates
 };
 
-const $ = (n?: number | null) =>
+const money = (n?: number | null) =>
   !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const { data, error } = await supabase
-    .from("cleaning_listings_today")
+    .from("daily_cleaning_candidates")
     .select(
-      "id, title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, ingested_at"
-    );
+      "id, title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at"
+    )
+    .limit(200); // safety cap
 
   return { props: { rows: (data ?? []) as Card[], hadError: !!error } };
 };
@@ -52,19 +53,30 @@ export default function DailyCleaning({ rows, hadError }: { rows: Card[]; hadErr
         ) : (
           <ul className="space-y-4">
             {rows.map((l) => (
-              <li key={l.id ?? Math.random()} className="rounded-2xl border p-4 hover:shadow-sm transition">
+              <li key={String(l.id ?? Math.random())} className="rounded-2xl border p-4 hover:shadow-sm transition">
                 <div className="flex gap-4">
-                  <img src={l.image_url ?? "/default-listing.jpg"} alt={l.title ?? ""} className="w-24 h-24 rounded-lg object-cover bg-gray-100" />
+                  <img
+                    src={l.image_url ?? "/default-listing.jpg"}
+                    alt={l.title ?? ""}
+                    className="w-24 h-24 rounded-lg object-cover bg-gray-100"
+                  />
                   <div className="flex-1">
-                    <a href={l.url ?? "#"} target={l.url ? "_blank" : "_self"} rel="noreferrer" className="font-semibold text-lg hover:underline">
+                    <a
+                      href={l.url ?? "#"}
+                      target={l.url ? "_blank" : "_self"}
+                      rel="noreferrer"
+                      className="font-semibold text-lg hover:underline"
+                    >
                       {l.title ?? "Untitled listing"}
                     </a>
                     <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
                     <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-3">
-                      <span>Price {$(l.asking_price)}</span>
-                      {l.cash_flow && <span>Cash Flow {$(l.cash_flow)}</span>}
-                      {l.ebitda && <span>EBITDA {$(Number(l.ebitda))}</span>}
-                      <span className="text-gray-500">Added {l.ingested_at ? new Date(l.ingested_at).toLocaleTimeString() : ""}</span>
+                      <span>Price {money(l.asking_price)}</span>
+                      {l.cash_flow ? <span>Cash Flow {money(l.cash_flow)}</span> : null}
+                      {l.ebitda ? <span>EBITDA {money(Number(l.ebitda))}</span> : null}
+                      <span className="text-gray-500">
+                        Added {l.scraped_at ? new Date(l.scraped_at).toLocaleTimeString() : ""}
+                      </span>
                     </div>
                     {l.summary && <p className="text-sm text-gray-600 mt-2">{l.summary}</p>}
                     <div className="text-xs text-gray-500 mt-2">Broker: {l.broker_contact || l.broker || "—"}</div>
