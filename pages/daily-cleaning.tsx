@@ -5,7 +5,6 @@ import { GetServerSideProps } from "next";
 import { supabase } from "../lib/supabaseClient";
 
 type Card = {
-  id: string | number | null;
   title: string | null;
   city_state: string | null;
   asking_price: number | null;
@@ -16,7 +15,7 @@ type Card = {
   image_url: string | null;
   broker: string | null;
   broker_contact: string | null;
-  scraped_at: string | null; // <-- from daily_cleaning_candidates
+  scraped_at: string | null; // from daily_cleaning_candidates
 };
 
 const money = (n?: number | null) =>
@@ -26,14 +25,29 @@ export const getServerSideProps: GetServerSideProps = async () => {
   const { data, error } = await supabase
     .from("daily_cleaning_candidates")
     .select(
-      "id, title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at"
+      // Removed "id"
+      "title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at"
     )
-    .limit(200); // safety cap
+    .limit(200);
 
-  return { props: { rows: (data ?? []) as Card[], hadError: !!error } };
+  return {
+    props: {
+      rows: (data ?? []) as Card[],
+      hadError: !!error,
+      errMsg: error?.message ?? null,
+    },
+  };
 };
 
-export default function DailyCleaning({ rows, hadError }: { rows: Card[]; hadError: boolean }) {
+export default function DailyCleaning({
+  rows,
+  hadError,
+  errMsg,
+}: {
+  rows: Card[];
+  hadError: boolean;
+  errMsg?: string | null;
+}) {
   const today = new Date().toLocaleDateString();
   return (
     <>
@@ -45,45 +59,52 @@ export default function DailyCleaning({ rows, hadError }: { rows: Card[]; hadErr
           <div className="mt-2">
             <Link href="/" className="underline text-emerald-700">← Back to Home</Link>
           </div>
-          {hadError && <p className="mt-3 text-sm text-red-600">Couldn’t load from Supabase. Check grants/RLS.</p>}
+          {hadError && (
+            <p className="mt-3 text-sm text-red-600">
+              Couldn’t load from Supabase. {errMsg ?? "Check grants/RLS and view columns."}
+            </p>
+          )}
         </header>
 
         {rows.length === 0 ? (
           <p className="text-gray-600">No new listings yet today. Check back later.</p>
         ) : (
           <ul className="space-y-4">
-            {rows.map((l) => (
-              <li key={String(l.id ?? Math.random())} className="rounded-2xl border p-4 hover:shadow-sm transition">
-                <div className="flex gap-4">
-                  <img
-                    src={l.image_url ?? "/default-listing.jpg"}
-                    alt={l.title ?? ""}
-                    className="w-24 h-24 rounded-lg object-cover bg-gray-100"
-                  />
-                  <div className="flex-1">
-                    <a
-                      href={l.url ?? "#"}
-                      target={l.url ? "_blank" : "_self"}
-                      rel="noreferrer"
-                      className="font-semibold text-lg hover:underline"
-                    >
-                      {l.title ?? "Untitled listing"}
-                    </a>
-                    <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
-                    <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-3">
-                      <span>Price {money(l.asking_price)}</span>
-                      {l.cash_flow ? <span>Cash Flow {money(l.cash_flow)}</span> : null}
-                      {l.ebitda ? <span>EBITDA {money(Number(l.ebitda))}</span> : null}
-                      <span className="text-gray-500">
-                        Added {l.scraped_at ? new Date(l.scraped_at).toLocaleTimeString() : ""}
-                      </span>
+            {rows.map((l) => {
+              const key = `${l.url ?? ""}|${l.title ?? ""}|${l.city_state ?? ""}`;
+              return (
+                <li key={key || Math.random()} className="rounded-2xl border p-4 hover:shadow-sm transition">
+                  <div className="flex gap-4">
+                    <img
+                      src={l.image_url ?? "/default-listing.jpg"}
+                      alt={l.title ?? ""}
+                      className="w-24 h-24 rounded-lg object-cover bg-gray-100"
+                    />
+                    <div className="flex-1">
+                      <a
+                        href={l.url ?? "#"}
+                        target={l.url ? "_blank" : "_self"}
+                        rel="noreferrer"
+                        className="font-semibold text-lg hover:underline"
+                      >
+                        {l.title ?? "Untitled listing"}
+                      </a>
+                      <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
+                      <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-3">
+                        <span>Price {money(l.asking_price)}</span>
+                        {l.cash_flow ? <span>Cash Flow {money(l.cash_flow)}</span> : null}
+                        {l.ebitda ? <span>EBITDA {money(Number(l.ebitda))}</span> : null}
+                        <span className="text-gray-500">
+                          Added {l.scraped_at ? new Date(l.scraped_at).toLocaleTimeString() : ""}
+                        </span>
+                      </div>
+                      {l.summary && <p className="text-sm text-gray-600 mt-2">{l.summary}</p>}
+                      <div className="text-xs text-gray-500 mt-2">Broker: {l.broker_contact || l.broker || "—"}</div>
                     </div>
-                    {l.summary && <p className="text-sm text-gray-600 mt-2">{l.summary}</p>}
-                    <div className="text-xs text-gray-500 mt-2">Broker: {l.broker_contact || l.broker || "—"}</div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </main>
