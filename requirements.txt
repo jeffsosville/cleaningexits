@@ -1,0 +1,48 @@
+# requirements.txt
+curl-cffi==0.7.3
+supabase==2.8.1
+colorama==0.4.6
+python-dotenv==1.0.1
+
+# .env (Create this file and add your credentials)
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_KEY=your_supabase_service_role_key_here
+
+# docker-compose.yml (Optional: For containerized deployment)
+version: '3.8'
+
+services:
+  bizbuysell-scraper:
+    build: .
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+    # Run daily at 2 AM
+    command: |
+      sh -c "
+        while true; do
+          python daily_scraper.py
+          echo 'Sleeping for 24 hours...'
+          sleep 86400
+        done
+      "
+
+# Dockerfile (Optional: For containerized deployment)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY daily_scraper.py .
+
+CMD ["python", "daily_scraper.py"]
+
+# crontab entry (Alternative to Docker for scheduling)
+# Add this line to your crontab (crontab -e):
+# 0 2 * * * cd /path/to/your/project && python daily_scraper.py >> /path/to/logs/cron.log 2>&1
