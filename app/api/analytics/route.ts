@@ -1,7 +1,6 @@
-// app/api/analytics/route.ts
+// app/api/analytics/route.ts - REMOVE the Listing import
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Listing } from '../../../types/listings';
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_ANON_KEY!;
