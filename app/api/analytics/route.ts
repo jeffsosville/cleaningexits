@@ -10,7 +10,7 @@ export async function GET() {
   try {
     // Get total listings count
     const { count: totalCount } = await supabase
-      .from('daily_listings')
+      .from('cleaning_listings')
       .select('*', { count: 'exact', head: true });
 
     // Get today's listings count
