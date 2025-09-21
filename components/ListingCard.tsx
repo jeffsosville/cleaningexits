@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { Listing } from '@/app/api/listings/route';
+import { Listing } from '../types/listings';
 
 interface ListingCardProps {
   listing: Listing;
