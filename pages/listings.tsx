@@ -1,7 +1,7 @@
 // pages/listings.tsx
 import React from 'react';
 import Head from 'next/head';
-import { ListingsGrid } from '@/components/ListingsGrid';
+import { ListingsGrid } from '../components/ListingsGrid';
 
 export default function ListingsPage() {
   return (
