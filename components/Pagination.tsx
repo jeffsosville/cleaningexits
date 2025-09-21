@@ -1,4 +1,4 @@
-// components/Pagination.tsx
+// components/Pagination.tsx - FIXED TypeScript types
 'use client';
 
 import React from 'react';
@@ -18,8 +18,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   hasPrev,
   onPageChange
 }) => {
-  const getPageNumbers = () => {
-    const pages = [];
+  const getPageNumbers = (): number[] => {
+    const pages: number[] = [];
     const showPages = 5;
     let start = Math.max(1, currentPage - Math.floor(showPages / 2));
     let end = Math.min(totalPages, start + showPages - 1);
