@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { ListingCard } from './ListingCard';
 import { SearchFilters } from './SearchFilters';
 import { Pagination } from './Pagination';
-import { Listing } from '@/app/api/listings/route';
+import { Listing } from '../types/listings';
 
 interface ListingsResponse {
   listings: Listing[];
