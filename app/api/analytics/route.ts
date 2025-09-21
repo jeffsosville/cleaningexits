@@ -10,20 +10,20 @@ export async function GET() {
   try {
     // Get total listings count
     const { count: totalCount } = await supabase
-      .from('cleaning_listings')
+      .from('public.cleaning_listings')
       .select('*', { count: 'exact', head: true });
 
     // Get today's listings count
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const { count: todayCount } = await supabase
-      .from('cleaning_listings')
+      .from('public.cleaning_listings')
       .select('*', { count: 'exact', head: true })
       .gte('scraped_at', today.toISOString());
 
     // Get average price
     const { data: priceData } = await supabase
-      .from('cleaning_listings')
+      .from('public.cleaning_listings')
       .select('price')
       .not('price', 'is', null)
       .gt('price', 0);
@@ -34,7 +34,7 @@ export async function GET() {
 
     // Get top locations
     const { data: locationData } = await supabase
-      .from('cleaning_listings')
+      .from('public.cleaning_listings')
       .select('location')
       .not('location', 'is', null);
 
