@@ -1,27 +1,27 @@
 import os
 import json
-import time
 import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from curl_cffi import requests
-from colorama import Fore, Style, init
+from colorama import init
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from supabase import create_client, Client
 import logging
 
-# Initialize colorama
+# --- Setup ---
+
 init(autoreset=True)
 
-# Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler('scraper.log'), logging.StreamHandler()]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("scraper.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
+# Only keep listings that look like "cleaning" businesses
 CLEANING_KEYWORDS = [
     "clean", "cleaning", "janitor", "janitorial", "maid", "housekeep",
     "carpet", "floor", "window", "pressure wash", "power wash",
@@ -29,21 +29,34 @@ CLEANING_KEYWORDS = [
     "sanitation", "disinfect", "detailing", "laundry", "laundromat"
 ]
 
-def _is_cleaning_listing(l: Dict[str, Any]) -> bool:
+NEGATIVE_KEYWORDS = [
+    "restaurant", "bar", "tavern", "food", "hotel", "dental", "dentist",
+    "yoga", "salon", "spa", "furniture", "pet", "veterinary", "wildlife",
+    "coach", "growth coach", "lawn", "landscap", "hvac", "medical", "ramen"
+]
+
+
+def _looks_cleaning(l: Dict[str, Any]) -> bool:
     text = " ".join([
         str(l.get("header") or ""),
         str(l.get("description") or ""),
         str(l.get("categoryDetails") or "")
     ]).lower()
-    return any(k in text for k in CLEANING_KEYWORDS)
+    return any(k in text for k in CLEANING_KEYWORDS) and not any(n in text for n in NEGATIVE_KEYWORDS)
 
-def _to_int(x) -> Optional[int]:
+
+def _to_bigint(x) -> Optional[int]:
+    """Strip commas/decimals and return int (what your BIGINT columns expect)."""
     if x is None or x == "":
         return None
     try:
-        return int(float(str(x).replace(",", "")))
+        s = str(x).replace(",", "")
+        if "." in s:
+            s = s.split(".")[0]  # drop decimal part entirely
+        return int(s)
     except Exception:
         return None
+
 
 class DatabaseManager:
     def __init__(self, supabase_url: str, supabase_key: str):
@@ -54,70 +67,93 @@ class DatabaseManager:
             logger.error(f"❌ Failed to initialize Supabase client: {e}")
             raise
 
-    def transform_listing(self, listing: Dict[str, Any]) -> Dict[str, Any]:
-        # surrogate key (urlStub + header)
-        list_number = listing.get('listNumber') or listing.get('listnumber') or ""
-        url_stub = listing.get('urlStub') or listing.get('urlstub') or ""
-        header = listing.get('header') or ""
+    def _transform_for_table(self, listing: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform raw BizBuySell listing into the shape of your existing
+        public.daily_listings table (keeps original column names).
+        Also appends surrogate_key + scraped_at.
+        """
+        # Stable surrogate key (same dedupe key you used in logs)
+        url_stub = listing.get("urlStub") or ""
+        header = listing.get("header") or ""
         surrogate_key = hashlib.md5(f"{url_stub}__{header}".encode()).hexdigest()
 
-        transformed = {
-            "surrogate_key": surrogate_key,
-            "listnumber": str(list_number) if list_number else None,
-            "header": listing.get("header"),
-            "city_state": listing.get("location"),
+        # Start with a shallow copy so original keys (price, cashFlow, etc.) remain
+        row = dict(listing)
 
-            # sanitize all numeric fields
-            "asking_price": _to_int(listing.get("price")),
-            "cash_flow": _to_int(listing.get("cashFlow")),
-            "ebitda": _to_int(listing.get("ebitda")),
-            "initial_fee": _to_int(listing.get("initialFee")),
-            "initial_capital": _to_int(listing.get("initialCapital")),
+        # Normalize numeric/BIGINT columns your table expects as integers
+        # (add more if you later make other numeric columns BIGINT)
+        NUMERIC_BIGINT_KEYS = [
+            "price",
+            "cashFlow",
+            "ebitda",
+            "initialFee",
+            "initialCapital",
+            "activeListingsCount",
+            "soldListingsCount",
+            "adLevelId",
+            "userTypeId",
+            "siteSpecificId",
+            "listingTypeId",
+            "placementTypeId",
+            "sponsorLevelId",
+            "expirationTypeId",
+            "advertiserId",
+        ]
+        for k in NUMERIC_BIGINT_KEYS:
+            if k in row:
+                row[k] = _to_bigint(row.get(k))
 
-            "summary": listing.get("description"),
-            "url": listing.get("urlStub"),
-            "image_url": None,
-            "broker": listing.get("brokerCompany") or listing.get("brokerContactFullName"),
-            "broker_contact": None,
-            "region": listing.get("region"),
-            "scraped_at": datetime.now(timezone.utc).isoformat(),
+        # Ensure booleans-as-text columns remain strings ("True"/"False") only if table is text
+        # If your table uses boolean types for these, you can cast to bool instead.
+        # Leaving as-is because your earlier schema dump showed text-like usage for many flags.
 
-            "contact_info": listing.get("contactInfo") or None,
-            "detail_requests": listing.get("detailRequests") or None,
-            "diamond_metadata": listing.get("diamondMetaData") or None,
+        # Add/override housekeeping fields
+        row["surrogate_key"] = surrogate_key
+        row["scraped_at"] = datetime.now(timezone.utc).isoformat()
 
-            "account": listing.get("account"),
-            "listingtypeid": listing.get("listingTypeId"),
-            "categorydetails": listing.get("categoryDetails") or None,
-        }
-        return transformed
+        return row
 
     def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
         if not listings:
             logger.warning("No listings to insert")
             return True
 
-        transformed_listings = []
+        # Filter to cleaning only, then transform
+        transformed: List[Dict[str, Any]] = []
         for raw in listings:
             try:
-                if not _is_cleaning_listing(raw):
+                if not _looks_cleaning(raw):
                     continue
-                t = self.transform_listing(raw)
-                transformed_listings.append(t)
+                t = self._transform_for_table(raw)
+                transformed.append(t)
             except Exception as e:
                 logger.error(f"Error transforming listing {raw.get('listNumber', 'Unknown')}: {e}")
 
-        if not transformed_listings:
+        if not transformed:
             logger.info("No cleaning listings to upsert.")
             return True
 
+        # Final guard: sanitize numeric fields again right before send (belt & suspenders)
+        NUMERIC_BIGINT_KEYS = [
+            "price", "cashFlow", "ebitda", "initialFee", "initialCapital",
+            "activeListingsCount", "soldListingsCount", "adLevelId", "userTypeId",
+            "siteSpecificId", "listingTypeId", "placementTypeId", "sponsorLevelId",
+            "expirationTypeId", "advertiserId",
+        ]
+        for row in transformed:
+            for k in NUMERIC_BIGINT_KEYS:
+                if k in row:
+                    row[k] = _to_bigint(row.get(k))
+
+        # Batch upsert
         batch_size = 100
-        total = len(transformed_listings)
+        total = len(transformed)
         done = 0
         for i in range(0, total, batch_size):
-            batch = transformed_listings[i:i + batch_size]
+            batch = transformed[i:i + batch_size]
             try:
-                self.client.table('daily_listings').upsert(
+                self.client.table("daily_listings").upsert(
                     batch,
                     on_conflict="surrogate_key"
                 ).execute()
@@ -131,25 +167,26 @@ class DatabaseManager:
 
     def get_recent_listings_count(self, hours: int = 24) -> int:
         try:
-            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
-            r = self.client.table('daily_listings') \
-                .select('surrogate_key', count='exact') \
-                .gte('scraped_at', cutoff_time.isoformat()) \
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+            r = self.client.table("daily_listings") \
+                .select("surrogate_key", count="exact") \
+                .gte("scraped_at", cutoff.isoformat()) \
                 .execute()
             return r.count or 0
         except Exception as e:
             logger.error(f"Error getting recent listings count: {e}")
             return 0
 
+
 class BizBuySellScraper:
     def __init__(self):
         self.session = requests.Session(impersonate="chrome")
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Origin': 'https://www.bizbuysell.com',
-            'Referer': 'https://www.bizbuysell.com/',
-            'Content-Type': 'application/json',
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Origin": "https://www.bizbuysell.com",
+            "Referer": "https://www.bizbuysell.com/",
+            "Content-Type": "application/json",
         }
         self.token = None
         self.get_auth_token()
@@ -157,8 +194,8 @@ class BizBuySellScraper:
     def get_auth_token(self):
         logger.info("🔑 Obtaining authentication token...")
         try:
-            resp = self.session.get('https://www.bizbuysell.com/', headers=self.headers, timeout=20)
-            self.token = resp.cookies.get('_track_tkn')
+            resp = self.session.get("https://www.bizbuysell.com/", headers=self.headers, timeout=20)
+            self.token = resp.cookies.get("_track_tkn")
             if self.token:
                 logger.info("✅ Authentication token obtained")
             else:
@@ -174,7 +211,7 @@ class BizBuySellScraper:
         logger.info(f"🚀 Scraping with {workers} workers, {max_pages} pages")
 
         api_headers = dict(self.headers)
-        api_headers['Authorization'] = f'Bearer {self.token}'
+        api_headers["Authorization"] = f"Bearer {self.token}"
 
         payload_template = {
             "bfsSearchCriteria": {
@@ -191,7 +228,7 @@ class BizBuySellScraper:
                 "cashFlowMax": 0,
                 "grossIncomeMin": 0,
                 "grossIncomeMax": 0,
-                "daysListedAgo": 30,
+                "daysListedAgo": 30,  # widen window while testing
                 "establishedAfterYear": 0,
                 "listingsWithNoAskingPrice": 0,
                 "homeBasedListings": 0,
@@ -217,7 +254,7 @@ class BizBuySellScraper:
             payload["bfsSearchCriteria"]["pageNumber"] = page_number
             try:
                 r = self.session.post(
-                    'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
+                    "https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults",
                     headers=api_headers,
                     json=payload,
                     timeout=30,
@@ -242,7 +279,6 @@ class BizBuySellScraper:
                 logger.error(f"❌ Error fetching page {page_number}: {e}")
                 return []
 
-        from concurrent.futures import as_completed
         with ThreadPoolExecutor(max_workers=workers) as ex:
             futures = [ex.submit(fetch_page, p) for p in range(1, max_pages + 1)]
             for f in as_completed(futures):
@@ -252,6 +288,7 @@ class BizBuySellScraper:
 
         logger.info(f"🎉 Scraping complete. Unique listings: {len(all_listings)}")
         return all_listings
+
 
 class DailyScrapeAutomator:
     def __init__(self, supabase_url: str, supabase_key: str):
@@ -293,12 +330,16 @@ class DailyScrapeAutomator:
             logger.error(f"❌ Top-level error in daily scrape: {e}")
             return False
 
+
 def main():
-    supabase_url = os.getenv('SUPABASE_URL')
-    supabase_key = os.getenv('SUPABASE_KEY')
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
 
     if not supabase_url or not supabase_key:
         logger.error("❌ Missing SUPABASE_URL or SUPABASE_KEY")
+        return
+    if ".supabase.co" not in supabase_url:
+        logger.error(f"❌ SUPABASE_URL looks wrong: {supabase_url}")
         return
 
     automator = DailyScrapeAutomator(supabase_url, supabase_key)
@@ -307,6 +348,7 @@ def main():
         logger.info("🎉 Daily automation completed successfully!")
     else:
         logger.error("💥 Daily automation failed!")
+
 
 if __name__ == "__main__":
     main()
