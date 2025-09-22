@@ -117,7 +117,7 @@ class DatabaseManager:
 
         return transformed
 
-    def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
+        def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
         if not listings:
             logger.warning("No listings to insert")
             return True
@@ -163,13 +163,10 @@ class DatabaseManager:
 
             try:
                 self.client.table("daily_listings").upsert(
-                cleaned_batch,
-                on_conflict=["listNumber", "surrogate_key"]
+                    cleaned_batch,
+                    on_conflict="surrogate_key"   # ✅ only this
                 ).execute()
 
-
-
-                ).execute()
                 total_inserted += len(cleaned_batch)
                 logger.info(
                     f"✅ Upserted {len(cleaned_batch)} listings (Total {total_inserted})"
