@@ -1,11 +1,10 @@
 import os
 import json
-import time
 import hashlib
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from curl_cffi import requests
-from colorama import Fore, Style, init
+from colorama import init
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from supabase import create_client, Client
@@ -27,16 +26,14 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     def __init__(self, supabase_url: str, supabase_key: str):
-        """Initialize Supabase client"""
         try:
             self.client: Client = create_client(supabase_url, supabase_key)
-            logger.info("✅ Supabase client initialized successfully")
+            logger.info("Supabase client initialized successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Supabase client: {e}")
+            logger.error(f"Failed to initialize Supabase client: {e}")
             raise
 
     def safe_int(self, value: Any) -> Optional[int]:
-        """Safely convert value to integer, handling decimals and None"""
         if value is None or value == '' or value == 'None':
             return None
         try:
@@ -51,11 +48,9 @@ class DatabaseManager:
                 return int(float(value))
             return int(float(str(value)))
         except (ValueError, TypeError, OverflowError):
-            logger.debug(f"Could not convert '{value}' (type: {type(value)}) to int")
             return None
 
-    def safe_numeric(self, value: Any) -> Optional[float]:
-        """Safely convert value to numeric (for price column)"""
+    def safe_float(self, value: Any) -> Optional[float]:
         if value is None or value == '' or value == 'None':
             return None
         try:
@@ -68,11 +63,9 @@ class DatabaseManager:
                 return float(value)
             return float(str(value))
         except (ValueError, TypeError, OverflowError):
-            logger.debug(f"Could not convert '{value}' to numeric")
             return None
 
     def safe_str(self, value: Any) -> Optional[str]:
-        """Safely convert value to string"""
         if value is None:
             return None
         if isinstance(value, (dict, list)):
@@ -81,33 +74,30 @@ class DatabaseManager:
         return str_val if str_val else None
 
     def transform_listing(self, listing: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform raw listing data to match your actual database schema"""
-        # Create surrogate key from listNumber and urlStub
         list_number = self.safe_int(listing.get('listNumber'))
         url_stub = self.safe_str(listing.get('urlStub'))
         surrogate_key = hashlib.md5(f"{list_number}_{url_stub}".encode()).hexdigest()
         
-        # Map the data with correct types based on your table structure
         transformed = {
             'header': self.safe_str(listing.get('header')),
             'location': self.safe_str(listing.get('location')),
             'locationCrumbs': self.safe_str(listing.get('locationCrumbs')),
-            'price': self.safe_numeric(listing.get('price')),  # NUMERIC not BIGINT
+            'price': self.safe_float(listing.get('price')),
             'description': self.safe_str(listing.get('description')),
-            'type': self.safe_int(listing.get('type')),  # BIGINT
+            'type': self.safe_int(listing.get('type')),
             'img': self.safe_str(listing.get('img')),
-            'listNumber': self.safe_int(listing.get('listNumber')),  # BIGINT
-            'specificId': self.safe_int(listing.get('specificId')),  # BIGINT
+            'listNumber': self.safe_int(listing.get('listNumber')),
+            'specificId': self.safe_int(listing.get('specificId')),
             'urlStub': self.safe_str(listing.get('urlStub')),
             'cashFlow': self.safe_str(listing.get('cashFlow')),
-            'listingTypeId': self.safe_int(listing.get('listingTypeId')),  # BIGINT
+            'listingTypeId': self.safe_int(listing.get('listingTypeId')),
             'ebitda': self.safe_str(listing.get('ebitda')),
             'financingTypeId': self.safe_str(listing.get('financingTypeId')),
             'leaseRateDuration': self.safe_str(listing.get('leaseRateDuration')),
             'leaseRatePerSquareFoot': self.safe_str(listing.get('leaseRatePerSquareFoot')),
-            'searchOffset': self.safe_int(listing.get('searchOffset')),  # BIGINT
-            'adLevelId': self.safe_int(listing.get('adLevelId')),  # BIGINT
-            'siteSpecificId': self.safe_int(listing.get('siteSpecificId')),  # BIGINT
+            'searchOffset': self.safe_int(listing.get('searchOffset')),
+            'adLevelId': self.safe_int(listing.get('adLevelId')),
+            'siteSpecificId': self.safe_int(listing.get('siteSpecificId')),
             'isDiamondReinforcement': self.safe_str(listing.get('isDiamondReinforcement')),
             'brokerCompany': self.safe_str(listing.get('brokerCompany')),
             'brokerIntroduction': self.safe_str(listing.get('brokerIntroduction')),
@@ -144,7 +134,7 @@ class DatabaseManager:
             'placementTypeId': self.safe_str(listing.get('placementTypeId')),
             'sponsorLevelId': self.safe_str(listing.get('sponsorLevelId')),
             'categoryDetails': self.safe_str(listing.get('categoryDetails')),
-            'scraped_at': datetime.now(timezone.utc).isoformat(),  # Use scraped_at not ingested_at
+            'scraped_at': datetime.now(timezone.utc).isoformat(),
             'surrogate_key': surrogate_key
         }
 
@@ -186,96 +176,39 @@ class DatabaseManager:
 
         return transformed
 
-    def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
-        """Insert or update listings using raw SQL - bypassing broken Supabase client"""
+    def insert_listings(self, listings: List[Dict[str, Any]]) -> bool:
         if not listings:
             logger.warning("No listings to insert")
             return True
-
-        # Skip Supabase client entirely and go straight to raw SQL
-        logger.info("Using raw SQL approach due to Supabase client conflict issues...")
-        return self.upsert_with_raw_sql(listings)
-
-    def upsert_with_raw_sql(self, listings: List[Dict[str, Any]]) -> bool:
-        """Raw SQL upsert that actually works"""
-        if not listings:
-            return True
         
-        db_url = os.getenv('DATABASE_URL')
-        if not db_url:
-            logger.error("DATABASE_URL not set for raw SQL")
-            return False
+        # Deduplicate by surrogate_key in this batch
+        unique_listings = {}
+        for listing in listings:
+            transformed = self.transform_listing(listing)
+            surrogate_key = transformed.get('surrogate_key')
+            if surrogate_key:
+                unique_listings[surrogate_key] = transformed
         
-        try:
-            import psycopg2
-            
-            # Deduplicate by listNumber
-            unique_listings = {}
-            for listing in listings:
-                transformed = self.transform_listing(listing)
-                list_number = transformed.get('listNumber')
+        logger.info(f"Deduplicated {len(listings)} to {len(unique_listings)} unique listings")
+        
+        total_inserted = 0
+        total_skipped = 0
+        
+        for i, transformed in enumerate(unique_listings.values()):
+            try:
+                self.client.table('daily_listings').insert([transformed]).execute()
+                total_inserted += 1
                 
-                if list_number:
-                    unique_listings[list_number] = transformed
-                else:
-                    surrogate_key = transformed.get('surrogate_key')
-                    unique_listings[f"no_listnum_{surrogate_key}"] = transformed
-            
-            logger.info(f"Deduplicated {len(listings)} listings to {len(unique_listings)} unique entries")
-            
-            with psycopg2.connect(db_url) as conn:
-                with conn.cursor() as cur:
-                    success_count = 0
-                    update_count = 0
+                if (i + 1) % 50 == 0:
+                    logger.info(f"Progress: {i + 1}/{len(unique_listings)} processed")
                     
-                    for transformed in unique_listings.values():
-                        try:
-                            # Use ON CONFLICT DO UPDATE for proper upsert behavior
-                            sql = """
-                            INSERT INTO daily_listings (
-                                surrogate_key, price, "listNumber", "specificId", 
-                                type, header, location, "urlStub", "scraped_at"
-                            ) VALUES (
-                                %s, %s, %s, %s, %s, %s, %s, %s, %s
-                            )
-                            ON CONFLICT ("listNumber") DO UPDATE SET
-                                price = EXCLUDED.price,
-                                "specificId" = EXCLUDED."specificId",
-                                type = EXCLUDED.type,
-                                header = EXCLUDED.header,
-                                location = EXCLUDED.location,
-                                "urlStub" = EXCLUDED."urlStub",
-                                "scraped_at" = EXCLUDED."scraped_at",
-                                surrogate_key = EXCLUDED.surrogate_key
-                            """
-                            
-                            values = (
-                                transformed.get('surrogate_key'),
-                                self.safe_numeric(transformed.get('price')),
-                                self.safe_int(transformed.get('listNumber')),
-                                self.safe_int(transformed.get('specificId')),
-                                self.safe_int(transformed.get('type')),
-                                transformed.get('header'),
-                                transformed.get('location'),
-                                transformed.get('urlStub'),
-                                transformed.get('scraped_at')
-                            )
-                            
-                            cur.execute(sql, values)
-                            success_count += 1
-                            
-                        except Exception as e:
-                            logger.error(f"Failed to upsert record: {e}")
-                            continue
-                    
-            logger.info(f"Raw SQL upsert successful for {success_count}/{len(unique_listings)} listings")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Raw SQL upsert failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+            except Exception as e:
+                # Skip any duplicate or error
+                total_skipped += 1
+                continue
+        
+        logger.info(f"Insert complete: {total_inserted} new, {total_skipped} skipped")
+        return total_inserted > 0
 
 class BizBuySellScraper:
     def __init__(self):
@@ -300,21 +233,19 @@ class BizBuySellScraper:
         self.get_auth_token()
 
     def get_auth_token(self):
-        logger.info("🔑 Obtaining authentication token...")
+        logger.info("Obtaining authentication token...")
         try:
             response = self.session.get(
                 'https://www.bizbuysell.com/businesses-for-sale/new-york-ny/',
                 headers=self.headers
             )
             
-            logger.info(f"Response status: {response.status_code}")
-            
             possible_tokens = ['_track_tkn', 'track_tkn', 'auth_token', 'token']
             for token_name in possible_tokens:
                 token = response.cookies.get(token_name)
                 if token:
                     self.token = token
-                    logger.info(f"✅ Found token '{token_name}': {token[:20]}...")
+                    logger.info(f"Authentication token obtained: {token[:20]}...")
                     return
             
             if '_track_tkn' in response.text:
@@ -322,18 +253,16 @@ class BizBuySellScraper:
                 token_match = re.search(r'_track_tkn["\']?\s*[:=]\s*["\']?([^"\';\s]+)', response.text)
                 if token_match:
                     self.token = token_match.group(1)
-                    logger.info(f"✅ Extracted token from page content: {self.token[:20]}...")
+                    logger.info(f"Token extracted from page: {self.token[:20]}...")
                     return
             
-            logger.error("❌ No authentication token found")
+            logger.error("No authentication token found")
             
         except Exception as e:
-            logger.error(f"❌ Error obtaining token: {str(e)}")
+            logger.error(f"Error obtaining token: {e}")
 
-    def test_api_endpoint(self):
-        """Test if the API endpoint is working"""
+    def test_api(self):
         if not self.token:
-            logger.error("No token available for testing")
             return False
         
         api_headers = self.headers.copy()
@@ -349,7 +278,6 @@ class BizBuySellScraper:
         }
         
         try:
-            logger.info("🧪 Testing API endpoint...")
             response = self.session.post(
                 'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
                 headers=api_headers,
@@ -358,27 +286,26 @@ class BizBuySellScraper:
             )
             
             if response.status_code == 200:
-                data = response.json()
-                logger.info("✅ API test successful!")
+                logger.info("API test successful")
                 return True
             else:
-                logger.error(f"❌ API test failed. Status: {response.status_code}")
+                logger.error(f"API test failed: {response.status_code}")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ API test error: {e}")
+            logger.error(f"API test error: {e}")
             return False
 
     def scrape_listings(self, max_pages=100, workers=10):
         if not self.token:
-            logger.error("❌ No authentication token available. Cannot proceed.")
+            logger.error("No authentication token available")
             return []
 
-        if not self.test_api_endpoint():
-            logger.error("❌ API test failed. Aborting scrape.")
+        if not self.test_api():
+            logger.error("API test failed")
             return []
 
-        logger.info(f"🚀 Starting to scrape listings with {workers} workers...")
+        logger.info(f"Starting to scrape {max_pages} pages with {workers} workers")
 
         api_headers = self.headers.copy()
         api_headers['Authorization'] = f'Bearer {self.token}'
@@ -440,12 +367,12 @@ class BizBuySellScraper:
                                 listing_ids.add(listing_id)
                                 new_listings.append(listing)
                     if new_listings:
-                        logger.info(f"📄 Page {page_number}: Found {len(new_listings)} new listings")
+                        logger.info(f"Page {page_number}: {len(new_listings)} new listings")
                     return new_listings
                 else:
-                    logger.warning(f"⚠️ Failed to get data for page {page_number}. Status code: {response.status_code}")
+                    logger.warning(f"Page {page_number} failed: {response.status_code}")
             except Exception as e:
-                logger.error(f"❌ Error fetching page {page_number}: {str(e)}")
+                logger.error(f"Error fetching page {page_number}: {e}")
             return []
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -455,7 +382,7 @@ class BizBuySellScraper:
                 if page_listings:
                     all_listings.extend(page_listings)
 
-        logger.info(f"🎉 Scraping complete! Total unique listings scraped: {len(all_listings)}")
+        logger.info(f"Scraping complete: {len(all_listings)} unique listings")
         return all_listings
 
 class DailyScrapeAutomator:
@@ -464,15 +391,14 @@ class DailyScrapeAutomator:
         self.db = DatabaseManager(supabase_url, supabase_key)
     
     def run_daily_scrape(self, max_pages: int = 500, workers: int = 10, save_json: bool = True):
-        """Run the complete daily scraping process"""
         start_time = datetime.now()
-        logger.info(f"🚀 Starting daily scrape at {start_time}")
+        logger.info(f"Starting daily scrape at {start_time}")
         
         try:
             listings = self.scraper.scrape_listings(max_pages=max_pages, workers=workers)
             
             if not listings:
-                logger.warning("⚠️ No listings found during scraping")
+                logger.warning("No listings found during scraping")
                 return False
             
             if save_json:
@@ -481,48 +407,41 @@ class DailyScrapeAutomator:
                 try:
                     with open(filename, 'w', encoding='utf-8') as f:
                         json.dump(listings, f, indent=4)
-                    logger.info(f"💾 Results saved to {filename}")
+                    logger.info(f"Results saved to {filename}")
                 except Exception as e:
-                    logger.error(f"❌ Error saving JSON: {e}")
+                    logger.error(f"Error saving JSON: {e}")
             
-            # Insert into database
-            success = self.db.upsert_listings(listings)
+            success = self.db.insert_listings(listings)
             
             end_time = datetime.now()
             duration = end_time - start_time
             
             if success:
-                logger.info(f"✅ Daily scrape completed successfully in {duration}")
-                logger.info(f"📊 Processed {len(listings)} listings")
+                logger.info(f"Daily scrape completed successfully in {duration}")
+                logger.info(f"Processed {len(listings)} listings")
                 return True
             else:
-                logger.error(f"❌ Daily scrape failed during database insertion")
+                logger.error("Daily scrape failed during database insertion")
                 return False
                 
         except Exception as e:
-            logger.error(f"❌ Error in daily scrape process: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error in daily scrape process: {e}")
             return False
 
 def main():
-    """Main function that reads environment variables and runs the scraper"""
-    # Get environment variables
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_key = os.getenv('SUPABASE_KEY')
     
-    # Get workflow parameters with defaults
     max_pages = int(os.getenv('MAX_PAGES', '500'))
     workers = int(os.getenv('WORKERS', '10'))
     
     if not supabase_url or not supabase_key:
-        logger.error("❌ Missing required environment variables: SUPABASE_URL and SUPABASE_KEY")
+        logger.error("Missing required environment variables: SUPABASE_URL and SUPABASE_KEY")
         return
     
-    logger.info(f"🔧 Configuration: MAX_PAGES={max_pages}, WORKERS={workers}")
+    logger.info(f"Configuration: MAX_PAGES={max_pages}, WORKERS={workers}")
     
     try:
-        # Create automator and run daily scrape
         automator = DailyScrapeAutomator(supabase_url, supabase_key)
         success = automator.run_daily_scrape(
             max_pages=max_pages,
@@ -531,16 +450,13 @@ def main():
         )
         
         if success:
-            logger.info("🎉 Daily automation completed successfully!")
+            logger.info("Daily automation completed successfully!")
         else:
-            logger.error("💥 Daily automation failed!")
-            # Exit with error code for GitHub Actions
+            logger.error("Daily automation failed!")
             exit(1)
             
     except Exception as e:
-        logger.error(f"💥 Fatal error in main: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Fatal error in main: {e}")
         exit(1)
 
 if __name__ == "__main__":
