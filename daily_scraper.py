@@ -47,6 +47,16 @@ def _to_number(x) -> Optional[float]:
     except Exception:
         return None
 
+def _to_int(x) -> Optional[int]:
+    if x is None or x == "":
+        return None
+    try:
+        # handles "250000.0", "250,000", 250000
+        return int(float(str(x).replace(",", "")))
+    except Exception:
+        return None
+
+
 class DatabaseManager:
     def __init__(self, supabase_url: str, supabase_key: str):
         try:
@@ -69,9 +79,9 @@ class DatabaseManager:
             "listnumber": str(list_number) if list_number else None,
             "header": listing.get("header"),
             "city_state": listing.get("location"),
-            "asking_price": _to_number(listing.get("price")),
-            "cash_flow": _to_number(listing.get("cashFlow")),
-            "ebitda": _to_number(listing.get("ebitda")),
+            "asking_price": _to_int(listing.get("price")),
+            "cash_flow": _to_int(listing.get("cashFlow")),
+            "ebitda": _to_int(listing.get("ebitda")),
             "summary": listing.get("description"),
             "url": listing.get("urlStub"),
             "image_url": None,  # BBS often ships an array; keep null or derive later
