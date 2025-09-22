@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from supabase import create_client, Client
 import logging
-import math
 
 # Initialize colorama
 init(autoreset=True)
@@ -38,24 +37,13 @@ def _is_cleaning_listing(l: Dict[str, Any]) -> bool:
     ]).lower()
     return any(k in text for k in CLEANING_KEYWORDS)
 
-def _to_number(x) -> Optional[float]:
-    if x is None or x == "":
-        return None
-    try:
-        # handles "250000.0", "250,000", 250000
-        return float(str(x).replace(",", ""))
-    except Exception:
-        return None
-
 def _to_int(x) -> Optional[int]:
     if x is None or x == "":
         return None
     try:
-        # handles "250000.0", "250,000", 250000
         return int(float(str(x).replace(",", "")))
     except Exception:
         return None
-
 
 class DatabaseManager:
     def __init__(self, supabase_url: str, supabase_key: str):
@@ -67,35 +55,37 @@ class DatabaseManager:
             raise
 
     def transform_listing(self, listing: Dict[str, Any]) -> Dict[str, Any]:
-        # stable surrogate (urlStub + header is what you already dedupe on)
+        # surrogate key (urlStub + header)
         list_number = listing.get('listNumber') or listing.get('listnumber') or ""
         url_stub = listing.get('urlStub') or listing.get('urlstub') or ""
         header = listing.get('header') or ""
         surrogate_key = hashlib.md5(f"{url_stub}__{header}".encode()).hexdigest()
 
         transformed = {
-            # flat canon fields we actually use in frontend
             "surrogate_key": surrogate_key,
             "listnumber": str(list_number) if list_number else None,
             "header": listing.get("header"),
             "city_state": listing.get("location"),
+
+            # sanitize all numeric fields
             "asking_price": _to_int(listing.get("price")),
             "cash_flow": _to_int(listing.get("cashFlow")),
             "ebitda": _to_int(listing.get("ebitda")),
+            "initial_fee": _to_int(listing.get("initialFee")),
+            "initial_capital": _to_int(listing.get("initialCapital")),
+
             "summary": listing.get("description"),
             "url": listing.get("urlStub"),
-            "image_url": None,  # BBS often ships an array; keep null or derive later
+            "image_url": None,
             "broker": listing.get("brokerCompany") or listing.get("brokerContactFullName"),
-            "broker_contact": None,  # enrich later
+            "broker_contact": None,
             "region": listing.get("region"),
             "scraped_at": datetime.now(timezone.utc).isoformat(),
 
-            # keep the rich objects as JSONB (NOT dotted columns)
             "contact_info": listing.get("contactInfo") or None,
             "detail_requests": listing.get("detailRequests") or None,
             "diamond_metadata": listing.get("diamondMetaData") or None,
 
-            # helpful passthroughs for later joins/filters
             "account": listing.get("account"),
             "listingtypeid": listing.get("listingTypeId"),
             "categorydetails": listing.get("categoryDetails") or None,
@@ -107,7 +97,6 @@ class DatabaseManager:
             logger.warning("No listings to insert")
             return True
 
-        # transform + filter cleaning before DB
         transformed_listings = []
         for raw in listings:
             try:
@@ -242,7 +231,6 @@ class BizBuySellScraper:
                 new_listings = []
                 with lock:
                     for listing in listings:
-                        # your earlier dedupe key
                         listing_id = f"{listing.get('urlStub')}--{listing.get('header')}"
                         if listing_id and listing_id not in listing_ids:
                             listing_ids.add(listing_id)
@@ -254,6 +242,7 @@ class BizBuySellScraper:
                 logger.error(f"❌ Error fetching page {page_number}: {e}")
                 return []
 
+        from concurrent.futures import as_completed
         with ThreadPoolExecutor(max_workers=workers) as ex:
             futures = [ex.submit(fetch_page, p) for p in range(1, max_pages + 1)]
             for f in as_completed(futures):
