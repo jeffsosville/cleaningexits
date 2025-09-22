@@ -163,7 +163,9 @@ class DatabaseManager:
 
             try:
                 self.client.table("daily_listings").upsert(
-                    cleaned_batch, on_conflict="surrogate_key"
+                cleaned_batch, on_conflict="listNumber"
+                ).execute()
+
                 ).execute()
                 total_inserted += len(cleaned_batch)
                 logger.info(
