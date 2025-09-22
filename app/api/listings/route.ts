@@ -9,7 +9,7 @@ export async function GET() {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     const { data, error } = await supabase
-      .from('public.cleaning_listings')
+      .from('cleaning_listings')
       .select('*')
       .limit(5);
 
