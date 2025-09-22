@@ -5,10 +5,9 @@ import React, { useState, useEffect } from 'react';
 import { ListingCard } from './ListingCard';
 import { SearchFilters } from './SearchFilters';
 import { Pagination } from './Pagination';
-import { Listing } from '../types/listings';
 
 interface ListingsResponse {
-  listings: Listing[];
+  listings: any[];
   pagination: {
     page: number;
     limit: number;
@@ -20,7 +19,7 @@ interface ListingsResponse {
 }
 
 export const ListingsGrid: React.FC = () => {
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
@@ -147,7 +146,7 @@ export const ListingsGrid: React.FC = () => {
                 minPrice: '',
                 maxPrice: '',
                 location: '',
-                sortBy: 'scraped_at',
+                sortBy: 'ingested_at',
                 sortOrder: 'desc'
               })}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -170,7 +169,7 @@ export const ListingsGrid: React.FC = () => {
             {/* Listings Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {listings.map((listing) => (
-                <ListingCard key={listing.surrogate_key} listing={listing} />
+                <ListingCard key={listing.surrogate_key || listing.listNumber || listing.specificId} listing={listing} />
               ))}
             </div>
 
