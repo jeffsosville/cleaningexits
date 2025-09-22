@@ -186,138 +186,30 @@ class DatabaseManager:
 
         return transformed
 
-    def upsert_with_raw_sql(self, listings: List[Dict[str, Any]]) -> bool:
-        """Alternative upsert using raw SQL with correct data types"""
+    def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
+        """Insert or update listings in the database"""
         if not listings:
+            logger.warning("No listings to insert")
             return True
-        
-        db_url = os.getenv('DATABASE_URL')
-        if not db_url:
-            logger.error("DATABASE_URL not set for raw SQL fallback")
-            return False
-        
-        try:
-            import psycopg2
-            
-            # Deduplicate by listNumber to avoid unique constraint violations
-            unique_listings = {}
-            for listing in listings:
-                transformed = self.transform_listing(listing)
-                list_number = transformed.get('listNumber')
-                
-                # Use listNumber as key, keep the latest one
-                if list_number:
-                    unique_listings[list_number] = transformed
-                else:
-                    # If no listNumber, use surrogate_key
-                    surrogate_key = transformed.get('surrogate_key')
-                    unique_listings[f"no_listnum_{surrogate_key}"] = transformed
-            
-            logger.info(f"Deduplicated {len(listings)} listings to {len(unique_listings)} unique entries")
-            
-            with psycopg2.connect(db_url) as conn:
-                with conn.cursor() as cur:
-                    success_count = 0
-                    for transformed in unique_listings.values():
-                        try:
-                            # Use INSERT ... ON CONFLICT DO UPDATE for listNumber conflicts
-                            sql = """
-                            INSERT INTO daily_listings (
-                                surrogate_key, price, "listNumber", "specificId", 
-                                type, header, location, "urlStub", "scraped_at"
-                            ) VALUES (
-                                %s, %s::numeric, %s::bigint, %s::bigint, 
-                                %s::bigint, %s, %s, %s, %s::timestamptz
-                            )
-                            ON CONFLICT ("listNumber") DO UPDATE SET
-                                price = EXCLUDED.price,
-                                "specificId" = EXCLUDED."specificId",
-                                type = EXCLUDED.type,
-                                header = EXCLUDED.header,
-                                location = EXCLUDED.location,
-                                "urlStub" = EXCLUDED."urlStub",
-                                "scraped_at" = EXCLUDED."scraped_at",
-                                surrogate_key = EXCLUDED.surrogate_key
-                            """
-                            
-                            values = (
-                                transformed.get('surrogate_key'),
-                                self.safe_numeric(transformed.get('price')),  # Use numeric
-                                self.safe_int(transformed.get('listNumber')),
-                                self.safe_int(transformed.get('specificId')),
-                                self.safe_int(transformed.get('type')),
-                                transformed.get('header'),
-                                transformed.get('location'),
-                                transformed.get('urlStub'),
-                                transformed.get('scraped_at')  # Use scraped_at
-                            )
-                            
-                            cur.execute(sql, values)
-                            success_count += 1
-                            
-                        except Exception as e:
-                            logger.error(f"Failed to insert record: {e}")
-                            logger.debug(f"Problematic record: {transformed.get('listNumber')}")
-                            continue
-                    
-            logger.info(f"✅ Raw SQL upsert successful for {success_count}/{len(unique_listings)} listings")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Raw SQL upsert failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
 
-    def _clean_record_types(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean data types for a single record based on actual table structure"""
-        cleaned_record = record.copy()
-        
-        # BIGINT fields
-        bigint_fields = ['listNumber', 'specificId', 'type', 'searchOffset', 'adLevelId', 'siteSpecificId', 'listingTypeId']
-        for field in bigint_fields:
-            value = cleaned_record.get(field)
-            if value is not None and not isinstance(value, int):
-                try:
-                    if isinstance(value, str) and '.' in value:
-                        cleaned_record[field] = int(float(value))
-                    else:
-                        cleaned_record[field] = int(value)
-                except:
-                    cleaned_record[field] = None
-        
-        # NUMERIC field (price)
-        price_value = cleaned_record.get('price')
-        if price_value is not None and not isinstance(price_value, (int, float)):
-            try:
-                cleaned_record['price'] = float(price_value)
-            except:
-                cleaned_record['price'] = None
-        
-        return cleaned_record
-
-    def _try_supabase_upsert(self, listings: List[Dict[str, Any]]) -> bool:
-        """Try the original Supabase upsert method with duplicate key handling"""
         try:
-            # Transform listings and deduplicate within this batch
+            # Transform listings and deduplicate by listNumber
             transformed_listings = []
-            seen_keys = set()  # Track both listNumber and surrogate_key
+            seen_list_numbers = set()
             
             for listing in listings:
                 try:
                     transformed = self.transform_listing(listing)
                     
-                    # Create a composite key for deduplication
+                    # Skip if we've already seen this listNumber in this batch
                     list_number = transformed.get('listNumber')
-                    surrogate_key = transformed.get('surrogate_key')
-                    
-                    # Skip if we've seen this combination before
-                    composite_key = f"{list_number}_{surrogate_key}"
-                    if composite_key in seen_keys:
-                        logger.debug(f"Skipping duplicate in batch: listNumber={list_number}")
+                    if list_number and list_number in seen_list_numbers:
+                        logger.debug(f"Skipping duplicate listNumber in batch: {list_number}")
                         continue
                     
-                    seen_keys.add(composite_key)
+                    if list_number:
+                        seen_list_numbers.add(list_number)
+                    
                     transformed_listings.append(transformed)
                     
                 except Exception as e:
@@ -328,83 +220,49 @@ class DatabaseManager:
                 logger.warning("No valid listings after transformation and deduplication")
                 return True
 
-            # Batch upsert with individual error handling
-            batch_size = 25  # Smaller batches for better error isolation
+            # Use smaller batches and handle conflicts properly
+            batch_size = 25
             total_inserted = 0
             
             for i in range(0, len(transformed_listings), batch_size):
                 batch = transformed_listings[i:i + batch_size]
-                
-                # Try batch insert first
-                success = self._try_batch_insert(batch, i//batch_size + 1)
-                if success:
+                try:
+                    # Use on_conflict with listNumber since that's the actual constraint
+                    result = self.client.table('daily_listings').upsert(
+                        batch,
+                        on_conflict='listNumber'  # Use listNumber instead of surrogate_key
+                    ).execute()
+                    
                     total_inserted += len(batch)
-                    continue
-                
-                # If batch fails, try individual inserts
-                logger.warning(f"Batch {i//batch_size + 1} failed, trying individual inserts...")
-                for j, record in enumerate(batch):
-                    try:
-                        # Clean the record
-                        cleaned_record = self._clean_record_types(record)
-                        
-                        result = self.client.table('daily_listings').upsert(
-                            [cleaned_record],
-                            on_conflict='surrogate_key'
-                        ).execute()
-                        
-                        total_inserted += 1
-                        
-                    except Exception as e:
-                        error_msg = str(e)
-                        if '23505' in error_msg and 'listNumber' in error_msg:
-                            logger.debug(f"Skipping duplicate listNumber: {record.get('listNumber')}")
-                        else:
-                            logger.error(f"Failed to insert record {j}: {e}")
+                    logger.info(f"✅ Upserted batch of {len(batch)} listings (Total: {total_inserted}/{len(transformed_listings)})")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error upserting batch {i//batch_size + 1}: {e}")
+                    
+                    # Try individual inserts for this batch
+                    logger.info(f"Trying individual inserts for batch {i//batch_size + 1}...")
+                    for record in batch:
+                        try:
+                            result = self.client.table('daily_listings').upsert(
+                                [record],
+                                on_conflict='listNumber'
+                            ).execute()
+                            total_inserted += 1
+                        except Exception as individual_error:
+                            error_msg = str(individual_error)
+                            if '23505' in error_msg and 'listNumber' in error_msg:
+                                logger.debug(f"Skipping duplicate listNumber: {record.get('listNumber')}")
+                            else:
+                                logger.error(f"Individual insert failed: {individual_error}")
 
-            logger.info(f"🎉 Successfully processed {total_inserted} listings with Supabase client")
+            logger.info(f"🎉 Successfully processed {total_inserted} listings")
             return total_inserted > 0
 
         except Exception as e:
-            logger.error(f"❌ Error in Supabase upsert: {e}")
+            logger.error(f"❌ Error in upsert_listings: {e}")
+            import traceback
+            traceback.print_exc()
             return False
-
-    def _try_batch_insert(self, batch: List[Dict], batch_num: int) -> bool:
-        """Try to insert a batch, return True if successful"""
-        try:
-            cleaned_batch = [self._clean_record_types(record) for record in batch]
-            
-            result = self.client.table('daily_listings').upsert(
-                cleaned_batch,
-                on_conflict='surrogate_key'
-            ).execute()
-            
-            logger.info(f"✅ Upserted batch {batch_num} of {len(batch)} listings")
-            return True
-            
-        except Exception as e:
-            error_msg = str(e)
-            if '23505' in error_msg:
-                logger.warning(f"Batch {batch_num} has duplicate key conflicts")
-            else:
-                logger.error(f"Batch {batch_num} failed: {e}")
-            return False
-
-    def upsert_listings(self, listings: List[Dict[str, Any]]) -> bool:
-        """Insert or update listings in the database with fallback to raw SQL"""
-        if not listings:
-            logger.warning("No listings to insert")
-            return True
-
-        # First try the original Supabase method
-        logger.info("🔄 Trying Supabase client method...")
-        success = self._try_supabase_upsert(listings)
-        
-        if not success:
-            logger.warning("🔄 Supabase upsert failed, trying raw SQL fallback...")
-            return self.upsert_with_raw_sql(listings)
-        
-        return success
 
 class BizBuySellScraper:
     def __init__(self):
@@ -437,7 +295,6 @@ class BizBuySellScraper:
             )
             
             logger.info(f"Response status: {response.status_code}")
-            logger.debug(f"Response cookies: {dict(response.cookies)}")
             
             possible_tokens = ['_track_tkn', 'track_tkn', 'auth_token', 'token']
             for token_name in possible_tokens:
@@ -459,8 +316,6 @@ class BizBuySellScraper:
             
         except Exception as e:
             logger.error(f"❌ Error obtaining token: {str(e)}")
-            import traceback
-            traceback.print_exc()
 
     def test_api_endpoint(self):
         """Test if the API endpoint is working"""
@@ -489,23 +344,16 @@ class BizBuySellScraper:
                 timeout=30
             )
             
-            logger.info(f"Test response status: {response.status_code}")
-            logger.debug(f"Test response headers: {dict(response.headers)}")
-            
             if response.status_code == 200:
                 data = response.json()
                 logger.info("✅ API test successful!")
-                logger.info(f"Response structure: {list(data.keys()) if isinstance(data, dict) else type(data)}")
                 return True
             else:
                 logger.error(f"❌ API test failed. Status: {response.status_code}")
-                logger.error(f"Response text: {response.text[:500]}")
                 return False
                 
         except Exception as e:
             logger.error(f"❌ API test error: {e}")
-            import traceback
-            traceback.print_exc()
             return False
 
     def scrape_listings(self, max_pages=100, workers=10):
@@ -580,8 +428,6 @@ class BizBuySellScraper:
                                 new_listings.append(listing)
                     if new_listings:
                         logger.info(f"📄 Page {page_number}: Found {len(new_listings)} new listings")
-                    elif page_number <= 10:
-                        logger.info(f"📄 Page {page_number}: No new listings found")
                     return new_listings
                 else:
                     logger.warning(f"⚠️ Failed to get data for page {page_number}. Status code: {response.status_code}")
