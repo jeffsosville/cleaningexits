@@ -1,7 +1,7 @@
 // components/SearchFilters.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SearchFiltersProps {
   filters: {
@@ -21,22 +21,47 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   onFilterChange,
   loading
 }) => {
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  // Debounce search and location inputs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localFilters.search !== filters.search || localFilters.location !== filters.location) {
+        onFilterChange(localFilters);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [localFilters.search, localFilters.location]);
+
+  // Update local filters when external filters change
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
   const handleInputChange = (field: string, value: string) => {
-    onFilterChange({
-      ...filters,
-      [field]: value
-    });
+    if (field === 'search' || field === 'location') {
+      // For search and location, update local state (debounced)
+      setLocalFilters({ ...localFilters, [field]: value });
+    } else {
+      // For other fields, update immediately
+      const newFilters = { ...filters, [field]: value };
+      setLocalFilters(newFilters);
+      onFilterChange(newFilters);
+    }
   };
 
   const clearFilters = () => {
-    onFilterChange({
+    const clearedFilters = {
       search: '',
       minPrice: '',
       maxPrice: '',
       location: '',
-      sortBy: 'scraped_at',
+      sortBy: 'ingested_at',
       sortOrder: 'desc'
-    });
+    };
+    setLocalFilters(clearedFilters);
+    onFilterChange(clearedFilters);
   };
 
   return (
@@ -50,7 +75,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           </label>
           <input
             type="text"
-            value={filters.search}
+            value={localFilters.search}
             onChange={(e) => handleInputChange('search', e.target.value)}
             placeholder="Business name, description..."
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -64,7 +89,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           </label>
           <input
             type="text"
-            value={filters.location}
+            value={localFilters.location}
             onChange={(e) => handleInputChange('location', e.target.value)}
             placeholder="City, State..."
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -78,7 +103,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           </label>
           <input
             type="number"
-            value={filters.minPrice}
+            value={localFilters.minPrice}
             onChange={(e) => handleInputChange('minPrice', e.target.value)}
             placeholder="0"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -92,7 +117,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           </label>
           <input
             type="number"
-            value={filters.maxPrice}
+            value={localFilters.maxPrice}
             onChange={(e) => handleInputChange('maxPrice', e.target.value)}
             placeholder="1,000,000"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -105,20 +130,18 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             Sort By
           </label>
           <select
-            value={`${filters.sortBy}-${filters.sortOrder}`}
+            value={`${localFilters.sortBy}-${localFilters.sortOrder}`}
             onChange={(e) => {
               const [sortBy, sortOrder] = e.target.value.split('-');
-              onFilterChange({
-                ...filters,
-                sortBy,
-                sortOrder
-              });
+              const newFilters = { ...localFilters, sortBy, sortOrder };
+              setLocalFilters(newFilters);
+              onFilterChange(newFilters);
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={loading}
           >
-            <option value="scraped_at-desc">Newest First</option>
-            <option value="scraped_at-asc">Oldest First</option>
+            <option value="ingested_at-desc">Newest First</option>
+            <option value="ingested_at-asc">Oldest First</option>
             <option value="price-desc">Price: High to Low</option>
             <option value="price-asc">Price: Low to High</option>
             <option value="header-asc">Name: A to Z</option>
