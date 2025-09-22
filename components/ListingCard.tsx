@@ -2,10 +2,9 @@
 'use client';
 
 import React from 'react';
-import { Listing } from '../types/listings';
 
 interface ListingCardProps {
-  listing: Listing;
+  listing: any;
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
@@ -19,9 +18,11 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     }).format(price);
   };
 
-  const formatCashFlow = (cashFlow: string) => {
+  const formatCashFlow = (cashFlow: string | number) => {
     if (!cashFlow) return null;
-    const num = parseFloat(cashFlow.replace(/[^0-9.-]+/g, ''));
+    const num = typeof cashFlow === 'string' 
+      ? parseFloat(cashFlow.replace(/[^0-9.-]+/g, ''))
+      : cashFlow;
     if (isNaN(num)) return cashFlow;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -32,15 +33,27 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   };
 
   const getBizBuySellUrl = () => {
-    return `https://www.bizbuysell.com/business/${listing.urlStub}`;
+    return listing.urlStub || `https://www.bizbuysell.com/business/listing/${listing.listNumber}`;
   };
+
+  const getImageUrl = () => {
+    if (!listing.img) return null;
+    try {
+      const imgArray = typeof listing.img === 'string' ? JSON.parse(listing.img) : listing.img;
+      return Array.isArray(imgArray) ? imgArray[0] : listing.img;
+    } catch {
+      return listing.img;
+    }
+  };
+
+  const imageUrl = getImageUrl();
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
-      {listing.img && (
+      {imageUrl && (
         <div className="relative h-48 overflow-hidden">
           <img
-            src={listing.img}
+            src={imageUrl}
             alt={listing.header || 'Business listing'}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
             onError={(e) => {
@@ -48,12 +61,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
             }}
           />
           <div className="absolute top-3 left-3 flex gap-2">
-            {listing.hotProperty === 'true' && (
+            {listing.hotProperty === true && (
               <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                 🔥 HOT
               </span>
             )}
-            {listing.recentlyAdded === 'true' && (
+            {listing.recentlyAdded === true && (
               <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                 ✨ NEW
               </span>
@@ -122,7 +135,10 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
 
         <div className="flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            Added {new Date(listing.ingested_at).toLocaleDateString()}
+            {listing.ingested_at 
+              ? `Added ${new Date(listing.ingested_at).toLocaleDateString()}`
+              : 'Recently added'
+            }
           </div>
           <a
             href={getBizBuySellUrl()}
