@@ -122,7 +122,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
 
         <div className="flex justify-between items-center">
           <div className="text-xs text-gray-500">
-            Added {new Date(listing.scraped_at).toLocaleDateString()}
+            Added {new Date(listing.ingested_at).toLocaleDateString()}
           </div>
           <a
             href={getBizBuySellUrl()}
