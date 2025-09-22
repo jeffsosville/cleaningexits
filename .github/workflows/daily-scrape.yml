@@ -1,0 +1,22 @@
+-- Create view for daily listings page
+CREATE OR REPLACE VIEW daily_cleaning_today AS 
+SELECT 
+  listNumber as id,
+  header as title,
+  location as city_state,
+  price as asking_price,
+  cashFlow as cash_flow,
+  ebitda,
+  description as summary,
+  CASE 
+    WHEN urlStub LIKE 'http%' THEN urlStub
+    ELSE CONCAT('https://www.bizbuysell.com/business/', urlStub)
+  END as url,
+  img as image_url,
+  brokerCompany as broker,
+  brokerContactFullName as broker_contact,
+  ingested_at as scraped_at
+FROM cleaning_listings 
+WHERE DATE(ingested_at) = CURRENT_DATE
+ORDER BY ingested_at DESC
+LIMIT 100;
