@@ -130,11 +130,11 @@ export default function Home({ top10, kpis, totalListings }: { top10: Top10[]; k
             Find real, actionable cleaning & related service listings. Weekly curated Top 10 + {totalListings.toLocaleString()}+ comprehensive business opportunities.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/listings" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 transition">
-              Browse All {totalListings.toLocaleString()}+ Listings
+            <Link href="/daily-cleaning" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 transition">
+              View Daily Listings
             </Link>
-            <Link href="/top10" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition">
-              View Top 10 Picks
+            <Link href="/listings" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition">
+              Browse All {totalListings.toLocaleString()}+ Listings
             </Link>
           </div>
           <div className="mt-3">
