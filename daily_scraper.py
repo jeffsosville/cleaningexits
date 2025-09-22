@@ -192,7 +192,7 @@ class BizBuySellScraper:
                 "cashFlowMax": 0,
                 "grossIncomeMin": 0,
                 "grossIncomeMax": 0,
-                "daysListedAgo": 1,
+                "daysListedAgo": 30,
                 "establishedAfterYear": 0,
                 "listingsWithNoAskingPrice": 0,
                 "homeBasedListings": 0,
