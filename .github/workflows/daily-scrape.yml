@@ -8,37 +8,28 @@ on:
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      # If your fix is on a non-main branch, uncomment the next 2 lines and set it:
-      # with:
-      #   ref: main
 
-    - name: Show repo state and script header
+    - name: Debug script being run
       run: |
-        echo "=== PWD ==="
-        pwd
         echo "=== HEAD commit ==="
         git rev-parse --short HEAD
-        echo "=== Repo root ==="
-        ls -lah
-        echo "=== daily_scraper.py (first 120 lines) ==="
-        sed -n '1,120p' daily_scraper.py || true
-        echo "=== SHA256 of daily_scraper.py ==="
-        (sha256sum daily_scraper.py || shasum -a 256 daily_scraper.py) 2>/dev/null || true
+        echo "=== First 40 lines of script ==="
+        head -n 40 daily_scraper.py
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-
+        
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install curl-cffi==0.7.3 supabase==2.8.1 colorama==0.4.6 python-dotenv==1.0.1
-
+        
     - name: Run daily scraper
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
