@@ -37,7 +37,7 @@ export const ListingsGrid: React.FC = () => {
     minPrice: '',
     maxPrice: '',
     location: '',
-    sortBy: 'scraped_at',
+    sortBy: 'ingested_at',
     sortOrder: 'desc'
   });
 
