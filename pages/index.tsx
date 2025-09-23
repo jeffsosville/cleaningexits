@@ -41,11 +41,6 @@ export async function getServerSideProps() {
 
   // If we have curated rows, use them.
   if ((featured?.length ?? 0) > 0 && !eFeat) {
-    // Get total count from comprehensive listings for display
-    const { count: totalListings } = await supabase
-      .from("cleaning_listings")
-      .select("*", { count: "exact", head: true });
-
     // Optionally pull KPIs (non-blocking)
     const { data: kpiRows } = await supabase
       .from("cleaning_index_kpis_v1")
@@ -57,7 +52,6 @@ export async function getServerSideProps() {
       props: {
         top10: featured,
         kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
-        totalListings: totalListings || 0,
       },
     };
   }
@@ -93,11 +87,6 @@ export async function getServerSideProps() {
     };
   });
 
-  // Get total count from comprehensive listings
-  const { count: totalListings } = await supabase
-    .from("cleaning_listings")
-    .select("*", { count: "exact", head: true });
-
   // KPIs (optional)
   const { data: kpiRows } = await supabase
     .from("cleaning_index_kpis_v1")
@@ -109,15 +98,15 @@ export async function getServerSideProps() {
     props: {
       top10: mapped,         // ← shows AUTO if featured is empty
       kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
-      totalListings: totalListings || 0,
     },
   };
 }
 
-export default function Home({ top10, kpis, totalListings }: { top10: Top10[]; kpis: KPI | null; totalListings: number }) {
+
+export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null }) {
   return (
     <>
-      <Head><title>Cleaning Exits — Business Opportunities & Exit Strategies</title></Head>
+      <Head><title>Cleaning Exits — Top 10 & Index</title></Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Hero + CTAs */}
@@ -127,14 +116,14 @@ export default function Home({ top10, kpis, totalListings }: { top10: Top10[]; k
           </div>
           <h1 className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight">Cleaning Exits</h1>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto">
-            Find real, actionable cleaning & related service listings. Weekly curated Top 10 + {totalListings.toLocaleString()}+ comprehensive business opportunities.
+            Find real, actionable cleaning & related service listings. Weekly curated Top 10 + a monthly audited Cleaning Index.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link href="/daily-cleaning" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 transition">
-              View Daily Listings
+              View Today&apos;s Listings
             </Link>
-            <Link href="/listings" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition">
-              Browse All {totalListings.toLocaleString()}+ Listings
+            <Link href="/cleaning-index" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition">
+              Explore the Index
             </Link>
           </div>
           <div className="mt-3">
@@ -191,63 +180,36 @@ export default function Home({ top10, kpis, totalListings }: { top10: Top10[]; k
 
         {/* INFO BLOCKS MOVED BELOW TOP 10 */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          {/* Comprehensive Listings */}
+          {/* Index teaser */}
           <div className="rounded-2xl border p-5">
-            <h3 className="font-semibold mb-1">Comprehensive Business Database</h3>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">
-                {totalListings.toLocaleString()} active listings
+            <h3 className="font-semibold mb-1">The Cleaning Index</h3>
+            {kpis ? (
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">
+                  {kpis.verified_real.toLocaleString()} real / {kpis.total_listed.toLocaleString()} listed
+                </div>
+                <div className="text-sm text-gray-600">
+                  {kpis.month_label} • {kpis.junk_pct}% junk (duplicates, franchise ads, expired)
+                </div>
+                <Link href="/cleaning-index" className="inline-block mt-2 text-emerald-700 hover:text-emerald-800 underline">
+                  View full report →
+                </Link>
               </div>
-              <div className="text-sm text-gray-600">
-                Search by location, price, cash flow • Updated daily
-              </div>
-              <Link href="/listings" className="inline-block mt-2 text-emerald-700 hover:text-emerald-800 underline">
-                Browse all opportunities →
-              </Link>
-            </div>
+            ) : (
+              <p className="text-gray-600">Monthly market audit. See which listings are real and where to find the originals.</p>
+            )}
           </div>
 
           {/* Why trust this */}
           <div className="rounded-2xl border p-5">
             <h3 className="font-semibold mb-1">Why trust this?</h3>
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-              <li>Daily automated data collection from verified sources</li>
-              <li>Advanced search & filtering capabilities</li>
-              <li>Direct links to original listings</li>
-              <li>Human-curated Top 10 weekly picks</li>
+              <li>Verified sources over marketplace noise</li>
+              <li>Deduped & filtered (no franchise funnels)</li>
+              <li>Human-curated Top 10 each week</li>
             </ul>
           </div>
         </section>
-
-        {/* Index KPIs section (if available) */}
-        {kpis && (
-          <section className="mt-8 rounded-2xl border p-5 bg-gray-50">
-            <h3 className="font-semibold mb-3">Market Analysis</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-xl font-bold text-emerald-600">
-                  {kpis.verified_real.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">Verified Real</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-gray-700">
-                  {kpis.total_listed.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">Total Listed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-red-600">
-                  {kpis.junk_pct}%
-                </div>
-                <div className="text-sm text-gray-600">Filtered Out</div>
-              </div>
-            </div>
-            <div className="mt-3 text-xs text-gray-500 text-center">
-              {kpis.month_label} • Last updated {new Date(kpis.last_updated).toLocaleDateString()}
-            </div>
-          </section>
-        )}
 
         <footer className="mt-16 text-center text-sm text-gray-500">
           Built for speed and signal. No fluff.
