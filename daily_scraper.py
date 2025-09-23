@@ -49,6 +49,8 @@ class BizBuySellScraper:
         
         proxy_url = os.getenv('PROXY_URL')
         if proxy_url:
+            # Strip any leading/trailing whitespace or newlines
+            proxy_url = proxy_url.strip()
             # Use `http://` or `https://` prefix
             if not proxy_url.startswith(('http://', 'https://')):
                 proxy_url = 'http://' + proxy_url
