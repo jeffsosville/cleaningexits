@@ -25,6 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# The main class for managing the database connection and insertion
 class DatabaseManager:
     def __init__(self, supabase_url: str, supabase_key: str):
         try:
@@ -221,6 +222,7 @@ class DatabaseManager:
         logger.info(f"Insert complete: {total_inserted} new, {total_skipped} skipped")
         return total_inserted > 0
 
+# The main scraping class, renamed and updated to work with your workflow
 class BizBuySellScraper:
     def __init__(self):
         # Use curl_cffi with impersonation
@@ -238,6 +240,20 @@ class BizBuySellScraper:
             'Sec-Fetch-Site': 'none',
         }
         self.token = None
+        
+        self.cleaning_keywords = ['cleaning', 'janitorial', 'custodial', 'sanitation', 'maintenance',
+                                  'carpet cleaning', 'window cleaning', 'commercial cleaning',
+                                  'residential cleaning', 'maid service', 'housekeeping',
+                                  'pressure washing', 'restoration', 'disinfection']
+
+        # NOTE: You must find the correct category IDs for cleaning businesses. 
+        # The following are placeholders.
+        self.cleaning_category_ids = [
+            # Example placeholder IDs
+            201, # For general cleaning services
+            301  # For specialized cleaning
+        ]
+
         self.get_auth_token()
 
     def get_auth_token(self):
@@ -251,10 +267,11 @@ class BizBuySellScraper:
                     logger.info(f"Retry {attempt + 1}/{max_retries} after {delay:.1f}s delay")
                     time.sleep(delay)
             
+                # Corrected URL for token acquisition
                 response = self.session.get(
-                    'https://www.bizbuysell.com/businesses-for-sale/new-york-ny/',
+                    'https://www.bizbuysell.com/new-york-businesses-for-sale/',
                     headers=self.headers,
-                    timeout=60, # Increased timeout
+                    timeout=60,
                     allow_redirects=True
                 )
             
@@ -309,7 +326,7 @@ class BizBuySellScraper:
                 'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
                 headers=api_headers,
                 json=test_payload,
-                timeout=60 # Increased timeout
+                timeout=60
             )
             
             if response.status_code == 200:
@@ -342,35 +359,16 @@ class BizBuySellScraper:
             'Referer': 'https://www.bizbuysell.com/',
         }
 
+        # Use a keyword search in the API payload for efficiency
         payload_template = {
             "bfsSearchCriteria": {
                 "siteId": 20,
                 "languageId": 10,
-                "categories": None,
-                "locations": None,
-                "excludeLocations": None,
-                "askingPriceMax": 0,
-                "askingPriceMin": 0,
+                "categories": self.cleaning_category_ids,
+                "keyword": "cleaning", 
                 "pageNumber": 1,
-                "keyword": None,
-                "cashFlowMin": 0,
-                "cashFlowMax": 0,
-                "grossIncomeMin": 0,
-                "grossIncomeMax": 0,
                 "daysListedAgo": 1,
-                "establishedAfterYear": 0,
-                "listingsWithNoAskingPrice": 0,
-                "homeBasedListings": 0,
-                "includeRealEstateForLease": 0,
-                "listingsWithSellerFinancing": 0,
-                "realEstateIncluded": 0,
-                "showRelocatableListings": False,
-                "relatedFranchises": 0,
-                "listingTypeIds": None,
-                "designationTypeIds": None,
-                "sortList": None,
-                "absenteeOwnerListings": 0,
-                "seoSearchType": None
+                "locations": ["New York, NY"] # <-- ADDED LOCATION FILTER
             }
         }
 
@@ -387,13 +385,17 @@ class BizBuySellScraper:
                     'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
                     headers=api_headers,
                     json=payload,
-                    timeout=60 # Increased timeout
+                    timeout=60
                 )
                 if response.status_code == 200:
                     data = response.json()
                     listings = data.get("value", {}).get("bfsSearchResult", {}).get("value", [])
-                    logger.info(f"Page {page_number}: {len(listings)} listings fetched.")
-                    return listings
+                    
+                    # Safety net filter: only keep listings where the location is in New York
+                    ny_listings = [l for l in listings if "ny" in l.get('location', '').lower() or l.get('region', '').upper() == 'NY']
+                    
+                    logger.info(f"Page {page_number}: {len(listings)} listings fetched, {len(ny_listings)} passed filter.")
+                    return ny_listings
                 else:
                     logger.warning(f"Page {page_number} failed: {response.status_code}")
             except Exception as e:
