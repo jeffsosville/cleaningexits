@@ -1,10 +1,3 @@
-Here is the complete, updated Python script. You **do not** need to change your GitHub Actions workflow file, as it is already configured to install `curl-cffi`.
-
-### **Updated Python Script (`daily_scraper.py`)**
-
-The main change is the switch from the standard `requests` library to `curl_cffi` to bypass the website's bot detection. The code is also refactored to use the more efficient batch insertion method as previously discussed, and the concurrency model is simplified.
-
-```python
 import os
 import json
 import hashlib
@@ -495,4 +488,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
