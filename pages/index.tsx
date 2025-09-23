@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
+// Server-side Supabase client (uses anon env; fine for simple public reads under RLS policies)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
@@ -17,93 +18,75 @@ type Top10 = {
   cashflow: number | null;
   ebitda: number | null;
   url: string | null;
-  picked_on: string | null;
+  picked_on: string | null; // kept for UI compatibility, but unused here
   notes: string | null;
 };
+
 type KPI = {
   month_label: string;
   total_listed: number;
   verified_real: number;
   junk_pct: number;
   last_updated: string;
-};
+} | null;
 
 const money = (n?: number | null) =>
-  !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export async function getServerSideProps() {
-  // 1) Try curated featured
-  const { data: featured, error: eFeat } = await supabase
-    .from("cleaning_top10_featured")
-    .select("header, city, state, price, revenue, cashflow, ebitda, url, picked_on, notes")
-    .order("picked_on", { ascending: false })
-    .limit(10);
-
-  // If we have curated rows, use them.
-  if ((featured?.length ?? 0) > 0 && !eFeat) {
-    // Optionally pull KPIs (non-blocking)
-    const { data: kpiRows } = await supabase
-      .from("cleaning_index_kpis_v1")
-      .select("month_label, total_listed, verified_real, junk_pct, last_updated")
-      .order("last_updated", { ascending: false })
-      .limit(1);
-
-    return {
-      props: {
-        top10: featured,
-        kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
-      },
-    };
-  }
-
-  // 2) Fallback to AUTO view (map its columns → homepage shape)
+  // Primary: AUTO view (no reliance on 'picked_on' etc.)
   const { data: auto, error: eAuto } = await supabase
     .from("cleaning_top10_auto")
-    .select("id, title, location, region, price, cashflow, ebitda, broker, url, description")
+    .select("id, title, location, region, price, cashflow, ebitda, url, description")
     .limit(10);
 
-  const mapped = (auto ?? []).map((r: any) => {
-    // split "City, ST" into parts if present
-    let city: string | null = null;
-    let state: string | null = null;
-    if (r.location && typeof r.location === "string" && r.location.includes(",")) {
-      const parts = r.location.split(",").map((s: string) => s.trim());
-      city = parts[0] || null;
-      state = parts[1] || r.region || null;
-    } else {
-      state = r.region || null;
-    }
-    return {
-      header: r.title ?? null,
-      city,
-      state,
-      price: r.price ?? null,
-      revenue: null,
-      cashflow: r.cashflow ?? null,
-      ebitda: r.ebitda ?? null,
-      url: r.url ?? null,
-      picked_on: null,
-      notes: r.description ?? null,
-    };
-  });
-
-  // KPIs (optional)
+  // Optional KPIs (best-effort)
   const { data: kpiRows } = await supabase
     .from("cleaning_index_kpis_v1")
     .select("month_label, total_listed, verified_real, junk_pct, last_updated")
     .order("last_updated", { ascending: false })
     .limit(1);
 
+  // Map AUTO rows to the UI Top10 shape
+  const mapped: Top10[] = (auto ?? []).map((r: any) => {
+    // Try to split "City, ST" if present in 'location'
+    let city: string | null = null;
+    let state: string | null = null;
+    if (r?.location && typeof r.location === "string" && r.location.includes(",")) {
+      const parts = r.location.split(",").map((s: string) => s.trim());
+      city = parts[0] || null;
+      state = (parts[1] as string) || r?.region || null;
+    } else {
+      state = r?.region || null;
+    }
+
+    return {
+      header: r?.title ?? null,
+      city,
+      state,
+      price: typeof r?.price === "number" ? r.price : (r?.price ? Number(r.price) : null),
+      revenue: null, // not provided by AUTO
+      cashflow: typeof r?.cashflow === "number" ? r.cashflow : (r?.cashflow ? Number(r.cashflow) : null),
+      ebitda: typeof r?.ebitda === "number" ? r.ebitda : (r?.ebitda ? Number(r.ebitda) : null),
+      url: r?.url ?? null,
+      picked_on: null,
+      notes: r?.description ?? null,
+    };
+  });
+
+  // If the view is empty or blocked by RLS, mapped will be []
+  // (You can add a secondary fallback here if you want.)
+
   return {
     props: {
-      top10: mapped,         // ← shows AUTO if featured is empty
-      kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
+      top10: mapped,
+      kpis: (kpiRows && kpiRows[0]) ? (kpiRows[0] as KPI) : null,
+      errorAuto: eAuto?.message || null,
     },
   };
 }
 
-
-export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null }) {
+export default function Home({ top10, kpis, errorAuto }: { top10: Top10[]; kpis: KPI; errorAuto?: string | null }) {
   return (
     <>
       <Head><title>Cleaning Exits — Top 10 & Index</title></Head>
@@ -133,7 +116,7 @@ export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null
           </div>
         </header>
 
-        {/* TOP 10 FIRST */}
+        {/* TOP 10 */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-semibold">Top 10 This Week</h2>
@@ -144,7 +127,13 @@ export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null
 
           <ol className="space-y-3">
             {(!top10 || top10.length === 0) && (
-              <div className="rounded-2xl border p-6 text-gray-600">No featured listings yet. Check back shortly.</div>
+              <div className="rounded-2xl border p-6 text-gray-600">
+                {errorAuto ? (
+                  <>Couldn’t load Top 10 (AUTO view). {errorAuto}</>
+                ) : (
+                  <>No listings to show yet. Check back shortly.</>
+                )}
+              </div>
             )}
 
             {top10?.map((d, i) => (
@@ -154,9 +143,11 @@ export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <a href={d.url ?? "#"} target="_blank" rel="noreferrer" className="text-lg font-semibold hover:underline">
-                        {d.header}
+                        {d.header ?? "Untitled"}
                       </a>
-                      <span className="text-gray-500">• {d.city}, {d.state}</span>
+                      {(d.city || d.state) && (
+                        <span className="text-gray-500">• {d.city ? `${d.city}, ` : ""}{d.state ?? ""}</span>
+                      )}
                     </div>
                     <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
                       <span>Price {money(d.price)}</span>
@@ -164,9 +155,6 @@ export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null
                       {d.revenue ? <span>Revenue {money(d.revenue)}</span> : null}
                     </div>
                     {d.notes && <p className="mt-2 text-sm text-gray-700">{d.notes}</p>}
-                  </div>
-                  <div className="hidden sm:block text-right text-xs text-gray-500">
-                    <div>Picked {d.picked_on ? new Date(d.picked_on as any).toLocaleDateString() : ""}</div>
                   </div>
                 </div>
               </li>
@@ -178,9 +166,8 @@ export default function Home({ top10, kpis }: { top10: Top10[]; kpis: KPI | null
           </div>
         </section>
 
-        {/* INFO BLOCKS MOVED BELOW TOP 10 */}
+        {/* Index teaser */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          {/* Index teaser */}
           <div className="rounded-2xl border p-5">
             <h3 className="font-semibold mb-1">The Cleaning Index</h3>
             {kpis ? (
