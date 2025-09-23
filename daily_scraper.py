@@ -1,257 +1,506 @@
-# cleaning_scraper.py
+import os
+import json
+import hashlib
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 from curl_cffi import requests
-import json, csv, time, os, random
-from colorama import Fore, Style, init
+from colorama import init
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Any
+from supabase import create_client, Client
+import logging
+import time
+import random
 
 # Initialize colorama
 init(autoreset=True)
 
-class BizBuySellCleaningScraper:
-    def __init__(self):
-        # Impersonate a real browser via curl_cffi
-        self.session = requests.Session(impersonate="chrome120")
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Origin": "https://www.bizbuysell.com",
-            "Referer": "https://www.bizbuysell.com/",
-            "Content-Type": "application/json",
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('scraper.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# The main class for managing the database connection and insertion
+class DatabaseManager:
+    def __init__(self, supabase_url: str, supabase_key: str):
+        try:
+            self.client: Client = create_client(supabase_url, supabase_key)
+            logger.info("Supabase client initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            raise
+
+    def safe_int(self, value: Any) -> Optional[int]:
+        if value is None or value == '' or value == 'None':
+            return None
+        try:
+            if isinstance(value, int):
+                return value
+            if isinstance(value, float):
+                return int(value)
+            if isinstance(value, str):
+                value = value.strip()
+                if not value or value.lower() in ['null', 'none', 'nan']:
+                    return None
+                return int(float(value))
+            return int(float(str(value)))
+        except (ValueError, TypeError, OverflowError):
+            return None
+
+    def safe_float(self, value: Any) -> Optional[float]:
+        if value is None or value == '' or value == 'None':
+            return None
+        try:
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                value = value.strip()
+                if not value or value.lower() in ['null', 'none', 'nan']:
+                    return None
+                return float(value)
+            return float(str(value))
+        except (ValueError, TypeError, OverflowError):
+            return None
+
+    def safe_str(self, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, (dict, list)):
+            return json.dumps(value)
+        str_val = str(value).strip()
+        return str_val if str_val else None
+
+    def transform_listing(self, listing: Dict[str, Any]) -> Dict[str, Any]:
+        list_number = self.safe_int(listing.get('listNumber'))
+        url_stub = self.safe_str(listing.get('urlStub'))
+        surrogate_key = hashlib.md5(f"{list_number}_{url_stub}".encode()).hexdigest()
+        
+        transformed = {
+            'header': self.safe_str(listing.get('header')),
+            'location': self.safe_str(listing.get('location')),
+            'locationCrumbs': self.safe_str(listing.get('locationCrumbs')),
+            'price': self.safe_float(listing.get('price')),
+            'description': self.safe_str(listing.get('description')),
+            'type': self.safe_int(listing.get('type')),
+            'img': self.safe_str(listing.get('img')),
+            'listNumber': self.safe_int(listing.get('listNumber')),
+            'specificId': self.safe_int(listing.get('specificId')),
+            'urlStub': self.safe_str(listing.get('urlStub')),
+            'cashFlow': self.safe_str(listing.get('cashFlow')),
+            'listingTypeId': self.safe_int(listing.get('listingTypeId')),
+            'ebitda': self.safe_str(listing.get('ebitda')),
+            'financingTypeId': self.safe_str(listing.get('financingTypeId')),
+            'leaseRateDuration': self.safe_str(listing.get('leaseRateDuration')),
+            'leaseRatePerSquareFoot': self.safe_str(listing.get('leaseRatePerSquareFoot')),
+            'searchOffset': self.safe_int(listing.get('searchOffset')),
+            'adLevelId': self.safe_int(listing.get('adLevelId')),
+            'siteSpecificId': self.safe_int(listing.get('siteSpecificId')),
+            'isDiamondReinforcement': self.safe_str(listing.get('isDiamondReinforcement')),
+            'brokerCompany': self.safe_str(listing.get('brokerCompany')),
+            'brokerIntroduction': self.safe_str(listing.get('brokerIntroduction')),
+            'brokerContactPhoto': self.safe_str(listing.get('brokerContactPhoto')),
+            'brokerContactFullName': self.safe_str(listing.get('brokerContactFullName')),
+            'isInlineAd': self.safe_str(listing.get('isInlineAd')),
+            'listingPriceReduced': self.safe_str(listing.get('listingPriceReduced')),
+            'contactInfo': self.safe_str(listing.get('contactInfo')),
+            'detailRequests': self.safe_str(listing.get('detailRequests')),
+            'diamondMetaData': self.safe_str(listing.get('diamondMetaData')),
+            'region': self.safe_str(listing.get('region')),
+            'hotProperty': self.safe_str(listing.get('hotProperty')),
+            'recentlyUpdated': self.safe_str(listing.get('recentlyUpdated')),
+            'recentlyAdded': self.safe_str(listing.get('recentlyAdded')),
+            'isInlineBroker': self.safe_str(listing.get('isInlineBroker')),
+            'brokerCompanyPhoto': self.safe_str(listing.get('brokerCompanyPhoto')),
+            'brokerCertifications': self.safe_str(listing.get('brokerCertifications')),
+            'realEstateIncludedInAskingPrice': self.safe_str(listing.get('realEstateIncludedInAskingPrice')),
+            'initialFee': self.safe_str(listing.get('initialFee')),
+            'initialCapital': self.safe_str(listing.get('initialCapital')),
+            'externalUrl': self.safe_str(listing.get('externalUrl')),
+            'auctionStartDate': self.safe_str(listing.get('auctionStartDate')),
+            'auctionEndDate': self.safe_str(listing.get('auctionEndDate')),
+            'auctionDateDisplay': self.safe_str(listing.get('auctionDateDisplay')),
+            'auctionPlacardHighlights': self.safe_str(listing.get('auctionPlacardHighlights')),
+            'account': self.safe_str(listing.get('account')),
+            'activeListingsCount': self.safe_str(listing.get('activeListingsCount')),
+            'soldListingsCount': self.safe_str(listing.get('soldListingsCount')),
+            'isFdResale': self.safe_str(listing.get('isFdResale')),
+            'userTypeId': self.safe_str(listing.get('userTypeId')),
+            'relatedSearchUrlStub': self.safe_str(listing.get('relatedSearchUrlStub')),
+            'expirationTypeId': self.safe_str(listing.get('expirationTypeId')),
+            'advertiserId': self.safe_str(listing.get('advertiserId')),
+            'placementTypeId': self.safe_str(listing.get('placementTypeId')),
+            'sponsorLevelId': self.safe_str(listing.get('sponsorLevelId')),
+            'categoryDetails': self.safe_str(listing.get('categoryDetails')),
+            'scraped_at': datetime.now(timezone.utc).isoformat(),
+            'surrogate_key': surrogate_key
         }
-        self.token = None
 
-        # Cleaning-related keywords for filtering
-        self.cleaning_keywords = [
-            "cleaning", "janitorial", "custodial", "sanitation", "maintenance",
-            "carpet cleaning", "window cleaning", "commercial cleaning",
-            "residential cleaning", "maid service", "housekeeping",
-            "pressure washing", "restoration", "disinfection"
+        # Add flattened nested fields
+        contact_info = listing.get('contactInfo', {}) or {}
+        if isinstance(contact_info, dict):
+            transformed['contactInfo.contactInfoPersonId'] = self.safe_str(contact_info.get('contactInfoPersonId'))
+            transformed['contactInfo.contactFullName'] = self.safe_str(contact_info.get('contactFullName'))
+            phone_info = contact_info.get('contactPhoneNumber', {}) or {}
+            if isinstance(phone_info, dict):
+                transformed['contactInfo.contactPhoneNumber.telephone'] = self.safe_str(phone_info.get('telephone'))
+                transformed['contactInfo.contactPhoneNumber.tpnPhone'] = self.safe_str(phone_info.get('tpnPhone'))
+                transformed['contactInfo.contactPhoneNumber.tpnPhoneExt'] = self.safe_str(phone_info.get('tpnPhoneExt'))
+            transformed['contactInfo.contactPhoto'] = self.safe_str(contact_info.get('contactPhoto'))
+            transformed['contactInfo.brokerCompany'] = self.safe_str(contact_info.get('brokerCompany'))
+            transformed['contactInfo.brokerProfileUrl'] = self.safe_str(contact_info.get('brokerProfileUrl'))
+
+        detail_requests = listing.get('detailRequests', {}) or {}
+        if isinstance(detail_requests, dict):
+            transformed['detailRequests.requestContactAvailableFunds'] = self.safe_str(detail_requests.get('requestContactAvailableFunds'))
+            transformed['detailRequests.requestContactZip'] = self.safe_str(detail_requests.get('requestContactZip'))
+            transformed['detailRequests.requestContactTimeFrame'] = self.safe_str(detail_requests.get('requestContactTimeFrame'))
+
+        diamond_meta = listing.get('diamondMetaData', {}) or {}
+        if isinstance(diamond_meta, dict):
+            transformed['diamondMetaData.bbsListNumber'] = self.safe_str(diamond_meta.get('bbsListNumber'))
+            transformed['diamondMetaData.headline'] = self.safe_str(diamond_meta.get('headline'))
+            transformed['diamondMetaData.askingPrice'] = self.safe_str(diamond_meta.get('askingPrice'))
+            transformed['diamondMetaData.adLevel'] = self.safe_str(diamond_meta.get('adLevel'))
+            transformed['diamondMetaData.bbsPrimaryBizTypeId'] = self.safe_str(diamond_meta.get('bbsPrimaryBizTypeId'))
+            transformed['diamondMetaData.checkboxAdTagline'] = self.safe_str(diamond_meta.get('checkboxAdTagline'))
+            transformed['diamondMetaData.bqPrimaryBizTypeId'] = self.safe_str(diamond_meta.get('bqPrimaryBizTypeId'))
+            transformed['diamondMetaData.bqListNumber'] = self.safe_str(diamond_meta.get('bqListNumber'))
+            transformed['diamondMetaData.bqPrimaryBizTypeName'] = self.safe_str(diamond_meta.get('bqPrimaryBizTypeName'))
+            transformed['diamondMetaData.bbsPrimaryBizTypeName'] = self.safe_str(diamond_meta.get('bbsPrimaryBizTypeName'))
+            transformed['diamondMetaData.location'] = self.safe_str(diamond_meta.get('location'))
+            transformed['diamondMetaData.locationSt'] = self.safe_str(diamond_meta.get('locationSt'))
+            transformed['diamondMetaData.regionId'] = self.safe_str(diamond_meta.get('regionId'))
+
+        return transformed
+
+    def insert_listings(self, listings: List[Dict[str, Any]]) -> bool:
+        if not listings:
+            logger.warning("No listings to insert")
+            return True
+        
+        unique_listings = {}
+        for listing in listings:
+            transformed = self.transform_listing(listing)
+            surrogate_key = transformed.get('surrogate_key')
+            if surrogate_key:
+                unique_listings[surrogate_key] = transformed
+        
+        logger.info(f"Deduplicated {len(listings)} to {len(unique_listings)} unique listings")
+        
+        batch_size = 100
+        total_inserted = 0
+        total_skipped = 0
+        
+        batch_to_insert = []
+        for transformed in unique_listings.values():
+            batch_to_insert.append(transformed)
+            if len(batch_to_insert) >= batch_size:
+                try:
+                    self.client.table('daily_listings').insert(batch_to_insert).execute()
+                    total_inserted += len(batch_to_insert)
+                    logger.info(f"Inserted a batch of {len(batch_to_insert)} listings.")
+                    batch_to_insert = []
+                except Exception as e:
+                    logger.error(f"Error inserting batch: {e}")
+                    total_skipped += len(batch_to_insert)
+                    batch_to_insert = []
+        
+        if batch_to_insert:
+            try:
+                self.client.table('daily_listings').insert(batch_to_insert).execute()
+                total_inserted += len(batch_to_insert)
+                logger.info(f"Inserted final batch of {len(batch_to_insert)} listings.")
+            except Exception as e:
+                logger.error(f"Error inserting final batch: {e}")
+                total_skipped += len(batch_to_insert)
+
+        logger.info(f"Insert complete: {total_inserted} new, {total_skipped} skipped")
+        return total_inserted > 0
+
+# The main scraping class, renamed and updated to work with your workflow
+class BizBuySellScraper:
+    def __init__(self):
+        # **UPDATED:** Use a session with a proxy
+        self.session = requests.Session(impersonate="safari_ios_17_0")
+        proxy_url = os.getenv('PROXY_URL')
+        if proxy_url:
+            self.session.proxies = {'http': proxy_url, 'https': proxy_url}
+            logger.info("Proxy configured for the scraper session.")
+
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
         ]
+        
+        self.headers = self.get_random_headers()
+        self.token = None
+        
+        self.cleaning_keywords = ['cleaning', 'janitorial', 'custodial', 'sanitation', 'maintenance',
+                                  'carpet cleaning', 'window cleaning', 'commercial cleaning',
+                                  'residential cleaning', 'maid service', 'housekeeping',
+                                  'pressure washing', 'restoration', 'disinfection']
 
-        # Placeholder category IDs — update when you discover real ones
-        self.cleaning_category_ids = [300, 301]
+        # NOTE: You must find the correct category IDs for cleaning businesses. 
+        # The following are placeholders.
+        self.cleaning_category_ids = [
+            # Example placeholder IDs
+            201, # For general cleaning services
+            301  # For specialized cleaning
+        ]
 
         self.get_auth_token()
 
-    def get_auth_token(self, max_retries: int = 3) -> None:
-        print(f"{Fore.CYAN}[*] Obtaining authentication token...")
-        for attempt in range(1, max_retries + 1):
-            try:
-                if attempt > 1:
-                    delay = random.uniform(2, 5)
-                    print(f"{Fore.YELLOW}… retry {attempt}/{max_retries} after {delay:.1f}s")
-                    time.sleep(delay)
-
-                r = self.session.get(
-                    "https://www.bizbuysell.com/businesses-for-sale/new-york-ny/",
-                    headers=self.headers, timeout=30, allow_redirects=True
-                )
-                r.raise_for_status()
-
-                # Common cookie names seen in the wild
-                for name in ["_track_tkn", "track_tkn", "auth_token", "token"]:
-                    token = self.session.cookies.get(name)
-                    if token:
-                        self.token = token
-                        print(f"{Fore.GREEN}[+] Token obtained")
-                        return
-
-                # Fallback: look in HTML
-                if "_track_tkn" in r.text:
-                    import re
-                    m = re.search(r'_track_tkn["\']?\s*[:=]\s*["\']?([^"\';\s]+)', r.text)
-                    if m:
-                        self.token = m.group(1)
-                        print(f"{Fore.GREEN}[+] Token extracted from HTML")
-                        return
-
-                print(f"{Fore.YELLOW}[!] No token found on attempt {attempt}")
-            except Exception as e:
-                print(f"{Fore.RED}[-] Token error (attempt {attempt}): {e}")
-
-        print(f"{Fore.RED}[-] All token attempts failed")
-
-    def is_cleaning_related(self, listing: Dict[str, Any]) -> bool:
-        fields = [
-            listing.get("header", ""),
-            listing.get("description", ""),
-            listing.get("businessDescription", ""),
-            listing.get("category", ""),
-            listing.get("subCategory", ""),
-            listing.get("businessType", ""),
-            listing.get("title", "")
-        ]
-        text = " ".join(str(x) for x in fields if x).lower()
-
-        if any(k in text for k in self.cleaning_keywords):
-            return True
-
-        cat_id = listing.get("categoryId") or listing.get("primaryCategoryId")
-        if cat_id and cat_id in self.cleaning_category_ids:
-            return True
-
-        return False
-
-    def _search(self, headers: Dict[str, str], payload_base: Dict[str, Any], pages: int) -> List[Dict[str, Any]]:
-        out = []
-        for pn in range(1, pages + 1):
-            payload = json.loads(json.dumps(payload_base))
-            payload["bfsSearchCriteria"]["pageNumber"] = pn
-            try:
-                r = self.session.post(
-                    "https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults",
-                    headers=headers, json=payload, timeout=30
-                )
-                if r.status_code != 200:
-                    print(f"{Fore.YELLOW}[!] Page {pn} status {r.status_code}")
-                    break
-
-                data = r.json()
-                page_listings = data.get("value", {}).get("bfsSearchResult", {}).get("value", [])
-                if not page_listings:
-                    break
-                out.extend(page_listings)
-                time.sleep(0.4)  # gentle rate limit
-            except Exception as e:
-                print(f"{Fore.RED}[-] Page {pn} error: {e}")
-                break
-        return out
-
-    def scrape_cleaning_listings(self, max_pages=100, workers=5, use_keyword_search=True) -> List[Dict[str, Any]]:
-        if not self.token:
-            print(f"{Fore.RED}[-] No token; cannot scrape.")
-            return []
-
-        api_headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Origin": "https://www.bizbuysell.com",
-            "Referer": "https://www.bizbuysell.com/",
+    def get_random_headers(self):
+        return {
+            'User-Agent': random.choice(self.user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
         }
 
-        print(f"{Fore.CYAN}[*] Scraping with workers={workers}, max_pages={max_pages}")
+    def get_auth_token(self):
+        logger.info("Obtaining authentication token...")
+        max_retries = 5 # Increased retries
+        
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    delay = random.uniform(3, 10) # Increased delay range
+                    logger.info(f"Retry {attempt + 1}/{max_retries} after {delay:.1f}s delay")
+                    time.sleep(delay)
+            
+                response = self.session.get(
+                    'https://www.bizbuysell.com/new-york-businesses-for-sale/',
+                    headers=self.get_random_headers(),
+                    timeout=60,
+                    allow_redirects=True
+                )
+            
+                response.raise_for_status()
+            
+                # Check cookies first
+                if '_track_tkn' in self.session.cookies:
+                    self.token = self.session.cookies['_track_tkn']
+                    logger.info("Authentication token obtained from cookies.")
+                    return
+            
+                # Fallback to scraping if cookie is not set
+                import re
+                token_match = re.search(r'_track_tkn["\']?\s*[:=]\s*["\']?([^"\';\s]+)', response.text)
+                if token_match:
+                    self.token = token_match.group(1)
+                    logger.info("Token extracted from page.")
+                    return
+            
+                logger.warning(f"No token found in attempt {attempt + 1}")
+            
+            except Exception as e:
+                logger.error(f"Error getting token (attempt {attempt + 1}): {e}")
+                if attempt == max_retries - 1:
+                    logger.error("All token attempts failed")
 
-        base_template = {
+    def test_api(self):
+        if not self.token:
+            return False
+        
+        api_headers = {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Origin': 'https://www.bizbuysell.com',
+            'Referer': 'https://www.bizbuysell.com/',
+        }
+        
+        test_payload = {
             "bfsSearchCriteria": {
-                "siteId": 20, "languageId": 10, "pageNumber": 1,
-                "categories": None, "locations": None, "excludeLocations": None,
-                "askingPriceMax": 0, "askingPriceMin": 0, "keyword": None,
-                "cashFlowMin": 0, "cashFlowMax": 0, "grossIncomeMin": 0, "grossIncomeMax": 0,
-                "daysListedAgo": 1, "establishedAfterYear": 0, "listingsWithNoAskingPrice": 0,
-                "homeBasedListings": 0, "includeRealEstateForLease": 0, "listingsWithSellerFinancing": 0,
-                "realEstateIncluded": 0, "showRelocatableListings": False, "relatedFranchises": 0,
-                "listingTypeIds": None, "designationTypeIds": None, "sortList": None, "absenteeOwnerListings": 0,
-                "seoSearchType": None
+                "siteId": 20,
+                "languageId": 10,
+                "pageNumber": 1,
+                "daysListedAgo": 1
+            }
+        }
+        
+        try:
+            response = self.session.post(
+                'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
+                headers=api_headers,
+                json=test_payload,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                logger.info("API test successful")
+                return True
+            else:
+                logger.error(f"API test failed: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"API test error: {e}")
+            return False
+
+    def scrape_listings(self, max_pages=100, workers=5):
+        if not self.token:
+            logger.error("No authentication token available")
+            return []
+
+        if not self.test_api():
+            logger.error("API test failed")
+            return []
+
+        logger.info(f"Starting to scrape {max_pages} pages with {workers} workers")
+
+        api_headers = {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Origin': 'https://www.bizbuysell.com',
+            'Referer': 'https://www.bizbuysell.com/',
+        }
+
+        # Use a keyword search in the API payload for efficiency
+        payload_template = {
+            "bfsSearchCriteria": {
+                "siteId": 20,
+                "languageId": 10,
+                "categories": self.cleaning_category_ids,
+                "keyword": "cleaning", 
+                "pageNumber": 1,
+                "daysListedAgo": 1,
+                "locations": ["New York, NY"] # <-- ADDED LOCATION FILTER
             }
         }
 
-        listings = []
-        seen = set()
+        all_listings = []
 
-        # 1) Keyword search
-        if use_keyword_search:
-            print(f"{Fore.CYAN}[*] Keyword search…")
-            for kw in ["cleaning", "janitorial", "custodial", "maid service"]:
-                t = json.loads(json.dumps(base_template))
-                t["bfsSearchCriteria"]["keyword"] = kw
-                chunk = self._search(api_headers, t, max_pages // 4 or 1)
-                for l in chunk:
-                    lid = f"{l.get('urlStub')}--{l.get('header')}"
-                    if lid and lid not in seen:
-                        seen.add(lid)
-                        listings.append(l)
-
-        # 2) Category search (if IDs are valid)
-        if self.cleaning_category_ids:
-            print(f"{Fore.CYAN}[*] Category search…")
-            t = json.loads(json.dumps(base_template))
-            t["bfsSearchCriteria"]["categories"] = self.cleaning_category_ids
-            chunk = self._search(api_headers, t, max_pages // 2 or 1)
-            for l in chunk:
-                lid = f"{l.get('urlStub')}--{l.get('header')}"
-                if lid and lid not in seen:
-                    seen.add(lid)
-                    listings.append(l)
-
-        # 3) General search w/ filter (fallback)
-        print(f"{Fore.CYAN}[*] General search + filter…")
-        def fetch_page(pn: int) -> List[Dict[str, Any]]:
-            t = json.loads(json.dumps(base_template))
-            t["bfsSearchCriteria"]["pageNumber"] = pn
+        def fetch_page(page_number):
+            payload = json.loads(json.dumps(payload_template))
+            payload["bfsSearchCriteria"]["pageNumber"] = page_number
+            
+            time.sleep(random.uniform(0.1, 0.5))
+            
             try:
-                r = self.session.post(
-                    "https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults",
-                    headers=api_headers, json=t, timeout=30
+                response = self.session.post(
+                    'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
+                    headers=api_headers,
+                    json=payload,
+                    timeout=60
                 )
-                if r.status_code != 200:
-                    return []
-                data = r.json()
-                raw = data.get("value", {}).get("bfsSearchResult", {}).get("value", [])
-                return [x for x in raw if self.is_cleaning_related(x)]
-            except Exception:
-                return []
+                if response.status_code == 200:
+                    data = response.json()
+                    listings = data.get("value", {}).get("bfsSearchResult", {}).get("value", [])
+                    
+                    # Safety net filter: only keep listings where the location is in New York
+                    ny_listings = [l for l in listings if "ny" in l.get('location', '').lower() or l.get('region', '').upper() == 'NY']
+                    
+                    logger.info(f"Page {page_number}: {len(listings)} listings fetched, {len(ny_listings)} passed filter.")
+                    return ny_listings
+                else:
+                    logger.warning(f"Page {page_number} failed: {response.status_code}")
+            except Exception as e:
+                logger.error(f"Error fetching page {page_number}: {e}")
+            return []
 
-        with ThreadPoolExecutor(max_workers=workers) as ex:
-            futures = [ex.submit(fetch_page, p) for p in range(1, max_pages + 1)]
-            for fut in as_completed(futures):
-                for l in (fut.result() or []):
-                    lid = f"{l.get('urlStub')}--{l.get('header')}"
-                    if lid and lid not in seen:
-                        seen.add(lid)
-                        listings.append(l)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(fetch_page, page) for page in range(1, max_pages + 1)]
+            for future in as_completed(futures):
+                page_listings = future.result()
+                if page_listings:
+                    all_listings.extend(page_listings)
 
-        print(f"{Fore.GREEN}[+] Done. Cleaning listings: {len(listings)}")
-        return listings
+        unique_listings = {f"{l.get('urlStub')}--{l.get('header')}": l for l in all_listings}
+        
+        logger.info(f"Scraping complete: {len(unique_listings)} unique listings found.")
+        return list(unique_listings.values())
 
-    def save_json(self, listings: List[Dict[str, Any]], filename="cleaning_business_listings.json") -> None:
-        out = {
-            "metadata": {
-                "total_listings": len(listings),
-                "search_keywords": self.cleaning_keywords,
-                "search_categories": self.cleaning_category_ids,
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            },
-            "listings": listings,
-        }
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(out, f, indent=4)
-        print(f"{Fore.GREEN}[+] Saved JSON → {filename}")
+class DailyScrapeAutomator:
+    def __init__(self, supabase_url: str, supabase_key: str):
+        self.scraper = BizBuySellScraper()
+        self.db = DatabaseManager(supabase_url, supabase_key)
+    
+    def run_daily_scrape(self, max_pages: int = 500, workers: int = 5, save_json: bool = True):
+        start_time = datetime.now()
+        logger.info(f"Starting daily scrape at {start_time}")
+        
+        try:
+            listings = self.scraper.scrape_listings(max_pages=max_pages, workers=workers)
+            
+            if not listings:
+                logger.warning("No listings found during scraping")
+                return False
+            
+            if save_json:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"bizbuysell_listings_{timestamp}.json"
+                try:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        json.dump(listings, f, indent=4)
+                    logger.info(f"Results saved to {filename}")
+                except Exception as e:
+                    logger.error(f"Error saving JSON: {e}")
+            
+            success = self.db.insert_listings(listings)
+            
+            end_time = datetime.now()
+            duration = end_time - start_time
+            
+            if success:
+                logger.info(f"Daily scrape completed successfully in {duration}")
+                logger.info(f"Processed {len(listings)} listings")
+                return True
+            else:
+                logger.error("Daily scrape failed during database insertion")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error in daily scrape process: {e}")
+            return False
 
-    def save_csv(self, listings: List[Dict[str, Any]], filename="cleaning_business_listings.csv") -> None:
-        if not listings:
-            print(f"{Fore.YELLOW}[!] No listings to write to CSV")
-            return
-        # Pick a sane subset of fields (add/remove as you like)
-        fields = [
-            "header", "urlStub", "location", "price", "cashFlow", "ebitda",
-            "listingTypeId", "adLevelId", "siteSpecificId",
-            "diamondMetaData", "category", "subCategory"
-        ]
-        # Flatten diamondMetaData to a string if present
-        def flat(row, key):
-            v = row.get(key)
-            if isinstance(v, (dict, list)):
-                return json.dumps(v, ensure_ascii=False)
-            return v
-        with open(filename, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fields)
-            writer.writeheader()
-            for l in listings:
-                writer.writerow({k: flat(l, k) for k in fields})
-        print(f"{Fore.GREEN}[+] Saved CSV  → {filename}")
+def main():
+    supabase_url = os.getenv('SUPABASE_URL')
+    supabase_key = os.getenv('SUPABASE_KEY')
+    
+    max_pages = int(os.getenv('MAX_PAGES', '500'))
+    workers = int(os.getenv('WORKERS', '5'))
+    
+    if not supabase_url or not supabase_key:
+        logger.error("Missing required environment variables: SUPABASE_URL and SUPABASE_KEY")
+        return
+    
+    logger.info(f"Configuration: MAX_PAGES={max_pages}, WORKERS={workers}")
+    
+    try:
+        automator = DailyScrapeAutomator(supabase_url, supabase_key)
+        success = automator.run_daily_scrape(
+            max_pages=max_pages,
+            workers=workers,
+            save_json=True
+        )
+        
+        if success:
+            logger.info("Daily automation completed successfully!")
+        else:
+            logger.error("Daily automation failed!")
+            exit(1)
+            
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}")
+        exit(1)
 
 if __name__ == "__main__":
-    print(f"{Fore.CYAN}{'='*60}")
-    print(f"{Fore.CYAN}{' '*15}BizBuySell Cleaning Business Scraper")
-    print(f"{Fore.CYAN}{'='*60}")
-
-    scraper = BizBuySellCleaningScraper()
-    listings = scraper.scrape_cleaning_listings(max_pages=100, workers=5, use_keyword_search=True)
-    scraper.save_json(listings, "cleaning_business_listings.json")
-    scraper.save_csv(listings, "cleaning_business_listings.csv")
-
-    print(f"{Fore.GREEN}[+] Complete. Found {len(listings)} cleaning listings.")
+    main()
