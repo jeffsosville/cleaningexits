@@ -3,7 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
-// Server-side Supabase client (uses anon env; fine for simple public reads under RLS policies)
+// Server-side Supabase client (public reads with anon key; ensure RLS permits select on the view)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
@@ -13,13 +13,13 @@ type Top10 = {
   header: string | null;
   city: string | null;
   state: string | null;
-  price: number | null;
-  revenue: number | null;
+  price: number | null;     // from asking_price
+  revenue: number | null;   // not in view, keep null for UI
   cashflow: number | null;
   ebitda: number | null;
   url: string | null;
-  picked_on: string | null; // kept for UI compatibility, but unused here
-  notes: string | null;
+  picked_on: string | null; // unused here; kept for UI shape
+  notes: string | null;     // from description
 };
 
 type KPI = {
@@ -33,11 +33,18 @@ type KPI = {
 const money = (n?: number | null) =>
   n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
+function toNum(v: any): number | null {
+  if (v == null) return null;
+  // Supabase numeric can arrive as string; coerce safely
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function getServerSideProps() {
-  // Primary: AUTO view (no reliance on 'picked_on' etc.)
+  // Primary source: cleaning_top10_auto (exact columns per your schema)
   const { data: auto, error: eAuto } = await supabase
     .from("cleaning_top10_auto")
-    .select("id, title, location, region, price, cashflow, ebitda, url, description")
+    .select("id, title, location, region, asking_price, cashflow, ebitda, broker, url, description")
     .limit(10);
 
   // Optional KPIs (best-effort)
@@ -47,39 +54,39 @@ export async function getServerSideProps() {
     .order("last_updated", { ascending: false })
     .limit(1);
 
-  // Map AUTO rows to the UI Top10 shape
-  const mapped: Top10[] = (auto ?? []).map((r: any) => {
-    // Try to split "City, ST" if present in 'location'
+  // Map rows to UI-friendly shape
+  const top10: Top10[] = (auto ?? []).map((r: any) => {
+    const header: string | null = r?.title ?? null;
+
+    // Split "City, ST" if present in location; else fall back to region as state
     let city: string | null = null;
     let state: string | null = null;
-    if (r?.location && typeof r.location === "string" && r.location.includes(",")) {
-      const parts = r.location.split(",").map((s: string) => s.trim());
+    const loc: string | null = r?.location ?? null;
+    if (loc && typeof loc === "string" && loc.includes(",")) {
+      const parts = loc.split(",").map((s: string) => s.trim());
       city = parts[0] || null;
-      state = (parts[1] as string) || r?.region || null;
+      state = parts[1] || (r?.region ?? null);
     } else {
-      state = r?.region || null;
+      state = r?.region ?? null;
     }
 
     return {
-      header: r?.title ?? null,
+      header,
       city,
       state,
-      price: typeof r?.price === "number" ? r.price : (r?.price ? Number(r.price) : null),
-      revenue: null, // not provided by AUTO
-      cashflow: typeof r?.cashflow === "number" ? r.cashflow : (r?.cashflow ? Number(r.cashflow) : null),
-      ebitda: typeof r?.ebitda === "number" ? r.ebitda : (r?.ebitda ? Number(r.ebitda) : null),
+      price: toNum(r?.asking_price),  // ← exact column name from your view
+      revenue: null,
+      cashflow: toNum(r?.cashflow),
+      ebitda: toNum(r?.ebitda),
       url: r?.url ?? null,
       picked_on: null,
       notes: r?.description ?? null,
     };
   });
 
-  // If the view is empty or blocked by RLS, mapped will be []
-  // (You can add a secondary fallback here if you want.)
-
   return {
     props: {
-      top10: mapped,
+      top10,
       kpis: (kpiRows && kpiRows[0]) ? (kpiRows[0] as KPI) : null,
       errorAuto: eAuto?.message || null,
     },
@@ -92,7 +99,7 @@ export default function Home({ top10, kpis, errorAuto }: { top10: Top10[]; kpis:
       <Head><title>Cleaning Exits — Top 10 & Index</title></Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* Hero + CTAs */}
+        {/* Hero */}
         <header className="text-center mb-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 text-sm">
             ✅ Verified cleaning & related service exits
@@ -116,7 +123,7 @@ export default function Home({ top10, kpis, errorAuto }: { top10: Top10[]; kpis:
           </div>
         </header>
 
-        {/* TOP 10 */}
+        {/* Top 10 */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-semibold">Top 10 This Week</h2>
@@ -187,7 +194,6 @@ export default function Home({ top10, kpis, errorAuto }: { top10: Top10[]; kpis:
             )}
           </div>
 
-          {/* Why trust this */}
           <div className="rounded-2xl border p-5">
             <h3 className="font-semibold mb-1">Why trust this?</h3>
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
