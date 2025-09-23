@@ -2,36 +2,65 @@ name: Daily Business Listings Automation
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # daily 2 AM UTC
-  workflow_dispatch:
+    - cron: "0 2 * * *"   # Run daily at 02:00 UTC
+  workflow_dispatch: {}   # Allow manual runs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-business-listings
+  cancel-in-progress: false
 
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 20
 
-      - name: Debug script being run
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show HEAD & script header
         run: |
           echo "=== HEAD commit ==="
           git rev-parse --short HEAD
-          echo "=== First 40 lines of script ==="
-          head -n 40 daily_scraper.py
+          echo "=== daily_scraper.py (first 60 lines) ==="
+          sed -n '1,60p' daily_scraper.py || true
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install curl-cffi==0.7.3 supabase==2.8.1 colorama==0.4.6 python-dotenv==1.0.1
+          pip install requests==2.32.3 urllib3==2.2.2 supabase==2.8.1 colorama==0.4.6 python-dotenv==1.0.1
 
       - name: Run daily scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          MAX_PAGES: '500'
-          WORKERS: '10'
+          MAX_PAGES: "500"
+          WORKERS: "5"   # keep conservative to reduce blocking
         run: python daily_scraper.py
 
+      - name: Upload scraper log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-log
+          path: scraper.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload JSON outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: listings-json
+          path: bizbuysell_listings_*.json
+          if-no-files-found: ignore
+          retention-days: 7
