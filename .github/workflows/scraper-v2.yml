@@ -1,45 +1,36 @@
-name: Daily Business Listings Automation
+name: Daily BizBuySell Scraper
 
 on:
-schedule:
-- cron: '0 2 * * *'
-workflow_dispatch:
+  # Schedule the workflow to run daily at 9:00 AM UTC
+  schedule:
+    - cron: '0 9 * * *'
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
-scrape-and-update:
-runs-on: [self-hosted, macOS]
+  scrape_and_save:
+    runs-on: ubuntu-latest
 
-env:
-  # point the toolcache/temp to places your user can write
-  RUNNER_TOOL_CACHE: ${{ github.workspace }}/.cache/tools
-  AGENT_TOOLSDIRECTORY: ${{ github.workspace }}/.cache/tools
-  RUNNER_TEMP: ${{ github.workspace }}/.cache/temp
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-steps:
-  - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-  - name: Prepare tool cache & temp
-    run: |
-      mkdir -p "$RUNNER_TOOL_CACHE" "$RUNNER_TEMP"
-      echo "Tool cache: $RUNNER_TOOL_CACHE"
-      echo "Temp: $RUNNER_TEMP"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-  - name: Set up Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: '3.11'
-      architecture: 'arm64'
-      cache: 'pip'
-
-  - name: Install dependencies
-    run: |
-      python -m pip install --upgrade pip
-      pip install --no-cache-dir --upgrade \
-        requests supabase==2.8.1 colorama==0.4.6 python-dotenv==1.0.1
-      pip install --no-cache-dir --no-binary :all: curl-cffi
-
-  - name: Run daily scraper
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      MAX_P
+      - name: Run daily scraper
+        run: python daily_scraper.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+          MAX_PAGES: 500
+          WORKERS: 5
