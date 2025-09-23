@@ -3,10 +3,9 @@ import json
 import hashlib
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-import requests  # Use standard requests instead of curl_cffi
+import requests
 from colorama import init
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Lock
 from supabase import create_client, Client
 import logging
 import time
@@ -193,31 +192,41 @@ class DatabaseManager:
         
         logger.info(f"Deduplicated {len(listings)} to {len(unique_listings)} unique listings")
         
+        # Batch insert for efficiency
+        batch_size = 100
         total_inserted = 0
         total_skipped = 0
         
-        for i, transformed in enumerate(unique_listings.values()):
-            try:
-                self.client.table('daily_listings').insert([transformed]).execute()
-                total_inserted += 1
-                
-                if (i + 1) % 50 == 0:
-                    logger.info(f"Progress: {i + 1}/{len(unique_listings)} processed")
-                    
-            except Exception as e:
-                # Skip any duplicate or error
-                total_skipped += 1
-                continue
+        batch_to_insert = []
+        for transformed in unique_listings.values():
+            batch_to_insert.append(transformed)
+            if len(batch_to_insert) >= batch_size:
+                try:
+                    self.client.table('daily_listings').insert(batch_to_insert).execute()
+                    total_inserted += len(batch_to_insert)
+                    logger.info(f"Inserted a batch of {len(batch_to_insert)} listings.")
+                    batch_to_insert = []
+                except Exception as e:
+                    logger.error(f"Error inserting batch: {e}")
+                    total_skipped += len(batch_to_insert)
+                    batch_to_insert = []
         
+        # Insert any remaining listings
+        if batch_to_insert:
+            try:
+                self.client.table('daily_listings').insert(batch_to_insert).execute()
+                total_inserted += len(batch_to_insert)
+                logger.info(f"Inserted final batch of {len(batch_to_insert)} listings.")
+            except Exception as e:
+                logger.error(f"Error inserting final batch: {e}")
+                total_skipped += len(batch_to_insert)
+
         logger.info(f"Insert complete: {total_inserted} new, {total_skipped} skipped")
         return total_inserted > 0
 
 class BizBuySellScraper:
     def __init__(self):
-        # Use standard requests with session pooling
         self.session = requests.Session()
-        
-        # More conservative headers to avoid detection
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -239,21 +248,19 @@ class BizBuySellScraper:
         
         for attempt in range(max_retries):
             try:
-                # Add random delay to avoid rate limiting
                 if attempt > 0:
                     delay = random.uniform(2, 5)
                     logger.info(f"Retry {attempt + 1}/{max_retries} after {delay:.1f}s delay")
                     time.sleep(delay)
-                
+            
                 response = self.session.get(
                     'https://www.bizbuysell.com/businesses-for-sale/new-york-ny/',
                     timeout=30,
                     allow_redirects=True
                 )
-                
+            
                 response.raise_for_status()
-                
-                # Look for token in cookies
+            
                 possible_tokens = ['_track_tkn', 'track_tkn', 'auth_token', 'token']
                 for token_name in possible_tokens:
                     token = self.session.cookies.get(token_name)
@@ -261,8 +268,7 @@ class BizBuySellScraper:
                         self.token = token
                         logger.info(f"Authentication token obtained: {token[:20]}...")
                         return
-                
-                # Look for token in page content
+            
                 if '_track_tkn' in response.text:
                     import re
                     token_match = re.search(r'_track_tkn["\']?\s*[:=]\s*["\']?([^"\';\s]+)', response.text)
@@ -270,9 +276,9 @@ class BizBuySellScraper:
                         self.token = token_match.group(1)
                         logger.info(f"Token extracted from page: {self.token[:20]}...")
                         return
-                
+            
                 logger.warning(f"No token found in attempt {attempt + 1}")
-                
+            
             except Exception as e:
                 logger.error(f"Error getting token (attempt {attempt + 1}): {e}")
                 if attempt == max_retries - 1:
@@ -282,7 +288,6 @@ class BizBuySellScraper:
         if not self.token:
             return False
         
-        # Update headers for API calls
         api_headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json',
@@ -319,7 +324,7 @@ class BizBuySellScraper:
             logger.error(f"API test error: {e}")
             return False
 
-    def scrape_listings(self, max_pages=100, workers=5):  # Reduced workers to be more conservative
+    def scrape_listings(self, max_pages=100, workers=5):
         if not self.token:
             logger.error("No authentication token available")
             return []
@@ -330,7 +335,6 @@ class BizBuySellScraper:
 
         logger.info(f"Starting to scrape {max_pages} pages with {workers} workers")
 
-        # API headers
         api_headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json',
@@ -372,14 +376,11 @@ class BizBuySellScraper:
         }
 
         all_listings = []
-        listing_ids = set()
-        lock = Lock()
 
         def fetch_page(page_number):
             payload = json.loads(json.dumps(payload_template))
             payload["bfsSearchCriteria"]["pageNumber"] = page_number
             
-            # Add small random delay to avoid overwhelming the server
             time.sleep(random.uniform(0.1, 0.5))
             
             try:
@@ -392,16 +393,8 @@ class BizBuySellScraper:
                 if response.status_code == 200:
                     data = response.json()
                     listings = data.get("value", {}).get("bfsSearchResult", {}).get("value", [])
-                    new_listings = []
-                    with lock:
-                        for listing in listings:
-                            listing_id = f"{listing.get('urlStub')}--{listing.get('header')}"
-                            if listing_id and listing_id not in listing_ids:
-                                listing_ids.add(listing_id)
-                                new_listings.append(listing)
-                    if new_listings:
-                        logger.info(f"Page {page_number}: {len(new_listings)} new listings")
-                    return new_listings
+                    logger.info(f"Page {page_number}: {len(listings)} listings fetched.")
+                    return listings
                 else:
                     logger.warning(f"Page {page_number} failed: {response.status_code}")
             except Exception as e:
@@ -415,8 +408,11 @@ class BizBuySellScraper:
                 if page_listings:
                     all_listings.extend(page_listings)
 
-        logger.info(f"Scraping complete: {len(all_listings)} unique listings")
-        return all_listings
+        # Deduplicate the full list after all pages have been fetched
+        unique_listings = {f"{l.get('urlStub')}--{l.get('header')}": l for l in all_listings}
+        
+        logger.info(f"Scraping complete: {len(unique_listings)} unique listings found.")
+        return list(unique_listings.values())
 
 class DailyScrapeAutomator:
     def __init__(self, supabase_url: str, supabase_key: str):
@@ -466,7 +462,7 @@ def main():
     supabase_key = os.getenv('SUPABASE_KEY')
     
     max_pages = int(os.getenv('MAX_PAGES', '500'))
-    workers = int(os.getenv('WORKERS', '5'))  # Reduced default workers
+    workers = int(os.getenv('WORKERS', '5'))
     
     if not supabase_url or not supabase_key:
         logger.error("Missing required environment variables: SUPABASE_URL and SUPABASE_KEY")
