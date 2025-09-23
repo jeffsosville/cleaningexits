@@ -1,33 +1,39 @@
-name: Daily Business Listings Automation
+# .github/workflows/cleaning-scraper.yml
+name: Cleaning Listings Scraper
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'   # Run daily at 2 AM UTC
-  workflow_dispatch:      # Allow manual runs
+    - cron: "0 2 * * *"   # 2 AM UTC daily
 
 jobs:
-  scrape-and-update:
+  run:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Show script head
+        run: |
+          echo "HEAD:" && git rev-parse --short HEAD
+          echo "Top of cleaning_scraper.py:"
+          head -n 40 cleaning_scraper.py
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
-      - name: Install dependencies
+      - name: Install dependencies (no cache)
         run: |
           python -m pip install --upgrade pip
-          pip install --no-cache-dir --upgrade requests curl-cffi==0.7.3 supabase==2.8.1 colorama==0.4.6 python-dotenv==1.0.1
+          pip install curl-cffi==0.7.3 colorama==0.4.6
 
-      - name: Run daily scraper
+      - name: Run scraper
         env:
+          # Not strictly required for this cleaning-only scraper,
+          # but leave here if you later push into Supabase.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          MAX_PAGES: "500"
-          WORKERS: "10"
-        run: python daily_scraper.py
+        run: |
+          python cleaning_scraper.py
+          echo "Artifacts:"
+          ls -lah *.json *.csv || true
