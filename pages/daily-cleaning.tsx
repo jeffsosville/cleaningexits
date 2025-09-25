@@ -129,28 +129,65 @@ const money = (n?: number | null) =>
   !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const { data, error } = await supabase
-    .from("daily_cleaning_today")              // ← use the curated view
-    .select("*")
-    .order("scraped_at", { ascending: false }) // newest first
-    .limit(60);                                 // belt-and-suspenders cap
+  // ---- inline helpers (no imports) ----
+  // Midnight today in America/New_York
+  const tz = "America/New_York";
+  const now = new Date();
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(now); // e.g. 2025-09-25
+
+  // Build a Date from the local midnight string, then convert to ISO
+  const [yyyy, mm, dd] = todayStr.split("-");
+  const midnightLocal = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
+  // Convert to ISO; the server will compare timestamps consistently
+  const midnightISO = midnightLocal.toISOString();
+
+  // include headers with "cleaning" or "janitorial"
+  const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
+  // exclude obvious misses (add to this as you see noise)
+  const EXCLUDES = ["%dry%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%", "%convenience%", "%grocery%", "%bakery%"];
+
+  // ---- query (schema-correct) ----
+  let q = supabase
+    .from("daily_listings")
+    .select("header, location, price, cashFlow, ebitda, description, externalUrl, img, brokerCompany, brokerContactFullName, scraped_at")
+    .or(includeOr)
+    .gte("scraped_at", midnightISO);
+
+  for (const x of EXCLUDES) q = q.not("header", "ilike", x);
+
+  const { data, error } = await q
+    .order("scraped_at", { ascending: false })
+    .limit(50);
+
+  // number parsing
+  const toNum = (v: any): number | null => {
+    if (v == null) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // map rows to your Card shape
+  const rows = (data ?? []).map((r: any) => ({
+    key: String(r.externalUrl ?? r.header ?? Math.random()),
+    title: r.header ?? null,
+    city_state: r.location ?? null,
+    asking_price: toNum(r.price),
+    cash_flow: toNum(r.cashFlow),
+    ebitda: toNum(r.ebitda),
+    summary: r.description ?? null,
+    url: r.externalUrl ?? null,
+    image_url: r.img ?? "/default-listing.jpg",
+    broker: r.brokerCompany ?? null,
+    broker_contact: r.brokerContactFullName ?? null,
+    scraped_at: r.scraped_at ?? null,
+  }));
 
   return {
     props: {
-      rows: (data ?? []).map((r: any) => ({
-        key: String(r.id ?? r.url ?? Math.random()),
-        title: r.title ?? null,
-        city_state: r.city_state ?? null,
-        asking_price: r.asking_price ?? null,
-        cash_flow: r.cash_flow ?? null,
-        ebitda: r.ebitda ?? null,
-        summary: r.summary ?? null,
-        url: r.url ?? null,
-        image_url: r.image_url ?? null,
-        broker: r.broker ?? null,
-        broker_contact: r.broker_contact ?? null,
-        scraped_at: r.scraped_at ?? null,
-      })),
+      rows,
       hadError: !!error,
       errMsg: error?.message ?? null,
     },
