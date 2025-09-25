@@ -46,14 +46,35 @@ function toNum(v: any): number | null {
 }
 
 export async function getServerSideProps() {
+  // ---- inline helpers (no imports needed) ----
+  const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
+  const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
+
+  // include titles with "cleaning" or "janitorial"
+  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%";
+
+  // exclude obvious false positives
+  const EXCLUDES = [
+    "%dry%",         // dry cleaning
+    "%insurance%",
+    "%franchise%",
+    "%restaurant%",
+    "%pharmacy%",
+    "%convenience%",
+    "%grocery%",
+    "%bakery%",
+  ];
+
+  // ---- query ----
   let q = supabase
     .from("daily_listings")
     .select("title, city_state, asking_price, cash_flow, ebitda, url, summary")
     .or(includeOr)
     .gte("scraped_at", days90agoISO);
 
-  // apply excludes
-  EXCLUDES.forEach(x => { q = q.not("title", "ilike", x); });
+  for (const x of EXCLUDES) {
+    q = q.not("title", "ilike", x);
+  }
 
   const { data, error } = await q
     .order("cash_flow", { ascending: false, nullsFirst: false })
@@ -64,23 +85,37 @@ export async function getServerSideProps() {
 
   const top10 = (data ?? []).map((r: any) => {
     let city: string | null = null, state: string | null = null;
-    const loc = r?.city_state ?? null;
-    if (loc && loc.includes(",")) { const [c,s] = loc.split(",").map((s:string)=>s.trim()); city=c; state=s; }
+    const loc: string | null = r?.city_state ?? null;
+    if (loc && loc.includes(",")) {
+      const [c, s] = loc.split(",").map((s: string) => s.trim());
+      city = c || null; state = s || null;
+    } else {
+      state = loc ?? null;
+    }
+    const toNum = (v: any) => (v == null ? null : Number(v));
     return {
       header: r?.title ?? null,
-      city, state,
-      price: r?.asking_price ?? null,
+      city,
+      state,
+      price: toNum(r?.asking_price),
       revenue: null,
-      cashflow: r?.cash_flow ?? null,
-      ebitda: r?.ebitda ?? null,
+      cashflow: toNum(r?.cash_flow),
+      ebitda: toNum(r?.ebitda),
       url: r?.url ?? null,
       picked_on: null,
       notes: r?.summary ?? null,
     };
   });
 
-  return { props: { top10, kpis: null, errorAuto: error?.message ?? null } };
+  return {
+    props: {
+      top10,
+      kpis: null,
+      errorAuto: error?.message || null,
+    },
+  };
 }
+
 
 
 
