@@ -46,40 +46,42 @@ function toNum(v: any): number | null {
 }
 
 export async function getServerSideProps() {
-  // Query AUTO view with correct column names
+  // Pull from the AUTO Top 10 view (columns: rank, id, title, city_state, asking_price, cash_flow, ebitda, description, url, image_url, broker, broker_contact, scraped_at)
   const { data: auto, error: eAuto } = await supabase
     .from("cleaning_top10_auto")
-    .select("id, title, location, region, asking_price, cashflow, ebitda, broker, url, description")
+    .select("id, title, city_state, asking_price, cash_flow, ebitda, description, url")
+    .order("rank", { ascending: true })   // ensure 1..10
     .limit(10);
 
-  // KPI snapshot (optional)
+  // Optional KPIs (best-effort)
   const { data: kpiRows } = await supabase
     .from("cleaning_index_kpis_v1")
     .select("month_label, total_listed, verified_real, junk_pct, last_updated")
     .order("last_updated", { ascending: false })
     .limit(1);
 
-  // Normalize into UI shape
-  const top10: Top10[] = (auto ?? []).map((r: any) => {
-    const header = r?.title ?? null;
-
+  // Map rows to UI-friendly shape expected by the page
+  const top10 = (auto ?? []).map((r: any) => {
+    // split "City, ST" if present
     let city: string | null = null;
     let state: string | null = null;
-    if (r?.location && typeof r.location === "string" && r.location.includes(",")) {
-      const parts = r.location.split(",").map((s: string) => s.trim());
+    const loc: string | null = r?.city_state ?? null;
+    if (loc && loc.includes(",")) {
+      const parts = loc.split(",").map((s: string) => s.trim());
       city = parts[0] || null;
-      state = parts[1] || r?.region || null;
+      state = parts[1] || null;
     } else {
-      state = r?.region ?? null;
+      state = loc ?? null;
     }
+    const toNum = (v: any) => (v == null ? null : Number(v));
 
     return {
-      header,
+      header: r?.title ?? null,
       city,
       state,
-      price: toNum(r?.asking_price), // map asking_price → price
+      price: toNum(r?.asking_price),
       revenue: null,
-      cashflow: toNum(r?.cashflow),
+      cashflow: toNum(r?.cash_flow),     // NOTE: cash_flow (with underscore)
       ebitda: toNum(r?.ebitda),
       url: r?.url ?? null,
       picked_on: null,
@@ -90,11 +92,12 @@ export async function getServerSideProps() {
   return {
     props: {
       top10,
-      kpis: (kpiRows && kpiRows[0]) ? (kpiRows[0] as KPI) : null,
+      kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
       errorAuto: eAuto?.message || null,
     },
   };
 }
+
 
 export default function Home({
   top10,
