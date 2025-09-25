@@ -46,65 +46,61 @@ function toNum(v: any): number | null {
 }
 
 export async function getServerSideProps() {
-  // ---- inline helpers ----
+  // Last 90 days
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
   const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  // include titles with "cleaning" or "janitorial" — use the real column name: header
+  // Filters
   const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
-
-  // exclude obvious false positives
   const EXCLUDES = [
-    "%dry%",         // dry cleaning
-    "%insurance%",
-    "%franchise%",
-    "%restaurant%",
-    "%pharmacy%",
-    "%convenience%",
-    "%grocery%",
-    "%bakery%",
+    "%dry%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
+    "%convenience%", "%grocery%", "%bakery%"
   ];
 
-  // ---- query against daily_listings using header ----
+  // Query
   let q = supabase
     .from("daily_listings")
-    // grab a superset; we'll map below
-    .select("header, city_state, asking_price, price, cash_flow, cashFlow, ebitda, EBITDA, url, external_url, summary, description, scraped_at")
+    .select("header, location, price, cashFlow, ebitda, description, externalUrl, img, brokerCompany, brokerContactFullName, scraped_at")
     .or(includeOr)
     .gte("scraped_at", days90agoISO);
 
   for (const x of EXCLUDES) q = q.not("header", "ilike", x);
 
   const { data, error } = await q
-    // rank: cash_flow, then ebitda, then asking_price, then recency
-    .order("cash_flow", { ascending: false, nullsFirst: false })
+    .order("cashFlow", { ascending: false, nullsFirst: false })
     .order("ebitda", { ascending: false, nullsFirst: false })
-    .order("asking_price", { ascending: false, nullsFirst: false })
+    .order("price", { ascending: false, nullsFirst: false })
     .order("scraped_at", { ascending: false })
     .limit(10);
 
-  // map rows to your Top10 shape, tolerating alternate column names
-  const toNum = (v: any) => (v == null ? null : Number(v));
+  // Map into your Top10 type
+  const toNum = (v: any) => {
+    if (!v) return null;
+    const n = Number(v.toString().replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  };
+
   const top10 = (data ?? []).map((r: any) => {
-    const loc: string | null = r?.city_state ?? null;
+    // Split "City, ST" into city + state
     let city: string | null = null, state: string | null = null;
-    if (loc && loc.includes(",")) {
-      const [c, s] = loc.split(",").map((s: string) => s.trim());
+    if (r.location && r.location.includes(",")) {
+      const [c, s] = r.location.split(",").map((s: string) => s.trim());
       city = c || null; state = s || null;
     } else {
-      state = loc ?? null;
+      state = r.location ?? null;
     }
+
     return {
-      header: r?.header ?? null,                                // <-- from header
+      header: r.header ?? null,
       city,
       state,
-      price: toNum(r?.asking_price ?? r?.price),                // handle either
+      price: toNum(r.price),
       revenue: null,
-      cashflow: toNum(r?.cash_flow ?? r?.cashFlow),             // handle either
-      ebitda: toNum(r?.ebitda ?? r?.EBITDA),                    // handle either
-      url: r?.url ?? r?.external_url ?? null,
+      cashflow: toNum(r.cashFlow),
+      ebitda: toNum(r.ebitda),
+      url: r.externalUrl ?? null,
       picked_on: null,
-      notes: r?.summary ?? r?.description ?? null,
+      notes: r.description ?? null,
     };
   });
 
