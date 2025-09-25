@@ -46,57 +46,42 @@ function toNum(v: any): number | null {
 }
 
 export async function getServerSideProps() {
-  // Pull from the AUTO Top 10 view (columns: rank, id, title, city_state, asking_price, cash_flow, ebitda, description, url, image_url, broker, broker_contact, scraped_at)
-  const { data: auto, error: eAuto } = await supabase
-    .from("cleaning_top10_auto")
-    .select("id, title, city_state, asking_price, cash_flow, ebitda, description, url")
-    .order("rank", { ascending: true })   // ensure 1..10
+  let q = supabase
+    .from("daily_listings")
+    .select("title, city_state, asking_price, cash_flow, ebitda, url, summary")
+    .or(includeOr)
+    .gte("scraped_at", days90agoISO);
+
+  // apply excludes
+  EXCLUDES.forEach(x => { q = q.not("title", "ilike", x); });
+
+  const { data, error } = await q
+    .order("cash_flow", { ascending: false, nullsFirst: false })
+    .order("ebitda", { ascending: false, nullsFirst: false })
+    .order("asking_price", { ascending: false, nullsFirst: false })
+    .order("scraped_at", { ascending: false })
     .limit(10);
 
-  // Optional KPIs (best-effort)
-  const { data: kpiRows } = await supabase
-    .from("cleaning_index_kpis_v1")
-    .select("month_label, total_listed, verified_real, junk_pct, last_updated")
-    .order("last_updated", { ascending: false })
-    .limit(1);
-
-  // Map rows to UI-friendly shape expected by the page
-  const top10 = (auto ?? []).map((r: any) => {
-    // split "City, ST" if present
-    let city: string | null = null;
-    let state: string | null = null;
-    const loc: string | null = r?.city_state ?? null;
-    if (loc && loc.includes(",")) {
-      const parts = loc.split(",").map((s: string) => s.trim());
-      city = parts[0] || null;
-      state = parts[1] || null;
-    } else {
-      state = loc ?? null;
-    }
-    const toNum = (v: any) => (v == null ? null : Number(v));
-
+  const top10 = (data ?? []).map((r: any) => {
+    let city: string | null = null, state: string | null = null;
+    const loc = r?.city_state ?? null;
+    if (loc && loc.includes(",")) { const [c,s] = loc.split(",").map((s:string)=>s.trim()); city=c; state=s; }
     return {
       header: r?.title ?? null,
-      city,
-      state,
-      price: toNum(r?.asking_price),
+      city, state,
+      price: r?.asking_price ?? null,
       revenue: null,
-      cashflow: toNum(r?.cash_flow),     // NOTE: cash_flow (with underscore)
-      ebitda: toNum(r?.ebitda),
+      cashflow: r?.cash_flow ?? null,
+      ebitda: r?.ebitda ?? null,
       url: r?.url ?? null,
       picked_on: null,
-      notes: r?.description ?? null,
+      notes: r?.summary ?? null,
     };
   });
 
-  return {
-    props: {
-      top10,
-      kpis: (kpiRows && kpiRows[0]) ? kpiRows[0] : null,
-      errorAuto: eAuto?.message || null,
-    },
-  };
+  return { props: { top10, kpis: null, errorAuto: error?.message ?? null } };
 }
+
 
 
 export default function Home({
