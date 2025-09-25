@@ -129,75 +129,42 @@ const money = (n?: number | null) =>
   !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  // 1) Primary: your curated "today" view
   const { data, error } = await supabase
     .from("daily_cleaning_today")
-    .select("id, title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at")
+    .select(
+      "title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at"
+    )
     .order("scraped_at", { ascending: false })
     .limit(50);
 
-  let rows: any[] = data ?? [];
+  const rows = (data ?? []).map((r: any) => ({
+    // stable key without relying on an id column
+    key: String(
+      r.url ??
+      `${r.title ?? ""}|${r.city_state ?? ""}|${r.scraped_at ?? ""}`
+    ),
+    title: r.title ?? null,
+    city_state: r.city_state ?? null,
+    asking_price: r.asking_price ?? null,
+    cash_flow: r.cash_flow ?? null,
+    ebitda: r.ebitda ?? null,
+    summary: r.summary ?? null,
+    url: r.url ?? null,
+    image_url: r.image_url ?? "/default-listing.jpg",
+    broker: r.broker ?? null,
+    broker_contact: r.broker_contact ?? null,
+    scraped_at: r.scraped_at ?? null,
+  }));
 
-  // 2) Fallback (optional): if the curated view is empty, grab last 24h from base table
-  if ((!rows || rows.length === 0)) {
-    const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
-    const EXCLUDES = ["%dry%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%", "%convenience%", "%grocery%", "%bakery%"];
-
-    let q = supabase
-      .from("daily_listings")
-      .select("header, location, price, cashFlow, ebitda, description, externalUrl, img, brokerCompany, brokerContactFullName, scraped_at")
-      .or(includeOr)
-      .gte("scraped_at", sinceISO);
-
-    for (const x of EXCLUDES) q = q.not("header", "ilike", x);
-
-    const fb = await q.order("scraped_at", { ascending: false }).limit(50);
-    const toNum = (v: any): number | null => {
-      if (v == null) return null;
-      if (typeof v === "number" && Number.isFinite(v)) return v;
-      const n = Number(String(v).replace(/[^0-9.-]/g, ""));
-      return Number.isFinite(n) ? n : null;
-    };
-
-    rows = (fb.data ?? []).map((r: any) => ({
-      id: null,
-      title: r.header ?? null,
-      city_state: r.location ?? null,
-      asking_price: toNum(r.price),
-      cash_flow: toNum(r.cashFlow),
-      ebitda: toNum(r.ebitda),
-      summary: r.description ?? null,
-      url: r.externalUrl ?? null,
-      image_url: r.img ?? "/default-listing.jpg",
-      broker: r.brokerCompany ?? null,
-      broker_contact: r.brokerContactFullName ?? null,
-      scraped_at: r.scraped_at ?? null,
-    }));
-  }
-
-  // shape to your Card type
   return {
     props: {
-      rows: rows.map((r: any) => ({
-        key: String(r.id ?? r.url ?? Math.random()),
-        title: r.title ?? null,
-        city_state: r.city_state ?? null,
-        asking_price: r.asking_price ?? null,
-        cash_flow: r.cash_flow ?? null,
-        ebitda: r.ebitda ?? null,
-        summary: r.summary ?? null,
-        url: r.url ?? null,
-        image_url: r.image_url ?? "/default-listing.jpg",
-        broker: r.broker ?? null,
-        broker_contact: r.broker_contact ?? null,
-        scraped_at: r.scraped_at ?? null,
-      })),
+      rows,
       hadError: !!error,
       errMsg: error?.message ?? null,
     },
   };
 };
+
 
 
 
