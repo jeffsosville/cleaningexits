@@ -46,12 +46,12 @@ function toNum(v: any): number | null {
 }
 
 export async function getServerSideProps() {
-  // ---- inline helpers (no imports needed) ----
+  // ---- inline helpers ----
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
   const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  // include titles with "cleaning" or "janitorial"
-  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%";
+  // include titles with "cleaning" or "janitorial" — use the real column name: header
+  const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
 
   // exclude obvious false positives
   const EXCLUDES = [
@@ -65,45 +65,46 @@ export async function getServerSideProps() {
     "%bakery%",
   ];
 
-  // ---- query ----
+  // ---- query against daily_listings using header ----
   let q = supabase
     .from("daily_listings")
-    .select("title, city_state, asking_price, cash_flow, ebitda, url, summary")
+    // grab a superset; we'll map below
+    .select("header, city_state, asking_price, price, cash_flow, cashFlow, ebitda, EBITDA, url, external_url, summary, description, scraped_at")
     .or(includeOr)
     .gte("scraped_at", days90agoISO);
 
-  for (const x of EXCLUDES) {
-    q = q.not("title", "ilike", x);
-  }
+  for (const x of EXCLUDES) q = q.not("header", "ilike", x);
 
   const { data, error } = await q
+    // rank: cash_flow, then ebitda, then asking_price, then recency
     .order("cash_flow", { ascending: false, nullsFirst: false })
     .order("ebitda", { ascending: false, nullsFirst: false })
     .order("asking_price", { ascending: false, nullsFirst: false })
     .order("scraped_at", { ascending: false })
     .limit(10);
 
+  // map rows to your Top10 shape, tolerating alternate column names
+  const toNum = (v: any) => (v == null ? null : Number(v));
   const top10 = (data ?? []).map((r: any) => {
-    let city: string | null = null, state: string | null = null;
     const loc: string | null = r?.city_state ?? null;
+    let city: string | null = null, state: string | null = null;
     if (loc && loc.includes(",")) {
       const [c, s] = loc.split(",").map((s: string) => s.trim());
       city = c || null; state = s || null;
     } else {
       state = loc ?? null;
     }
-    const toNum = (v: any) => (v == null ? null : Number(v));
     return {
-      header: r?.title ?? null,
+      header: r?.header ?? null,                                // <-- from header
       city,
       state,
-      price: toNum(r?.asking_price),
+      price: toNum(r?.asking_price ?? r?.price),                // handle either
       revenue: null,
-      cashflow: toNum(r?.cash_flow),
-      ebitda: toNum(r?.ebitda),
-      url: r?.url ?? null,
+      cashflow: toNum(r?.cash_flow ?? r?.cashFlow),             // handle either
+      ebitda: toNum(r?.ebitda ?? r?.EBITDA),                    // handle either
+      url: r?.url ?? r?.external_url ?? null,
       picked_on: null,
-      notes: r?.summary ?? null,
+      notes: r?.summary ?? r?.description ?? null,
     };
   });
 
@@ -115,6 +116,7 @@ export async function getServerSideProps() {
     },
   };
 }
+
 
 
 
