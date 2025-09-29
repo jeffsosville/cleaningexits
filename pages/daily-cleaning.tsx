@@ -129,38 +129,108 @@ const money = (n?: number | null) =>
   !n ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const { data, error } = await supabase
-    .from("daily_cleaning_today")
-    .select(
-      "title, city_state, asking_price, cash_flow, ebitda, summary, url, image_url, broker, broker_contact, scraped_at"
-    )
-    .order("scraped_at", { ascending: false })
-    .limit(50);
+  // Helper: start of "today" in America/New_York
+  const startOfTodayET = (() => {
+    const now = new Date();
+    // Break out ET components using Intl (works in Node without extra deps)
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]));
+    // Construct YYYY-MM-DDT00:00:00 in ET, then let Date parse as local and we adjust to UTC by adding timezone via toLocaleString
+    const etMidnight = new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00`);
+    // Convert that ET midnight to an ISO string representing UTC time of ET midnight
+    const z = new Date(etMidnight.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    return z.toISOString();
+  })();
 
-  const rows = (data ?? []).map((r: any) => ({
-    // stable key without relying on an id column
-    key: String(
-      r.url ??
-      `${r.title ?? ""}|${r.city_state ?? ""}|${r.scraped_at ?? ""}`
-    ),
-    title: r.title ?? null,
-    city_state: r.city_state ?? null,
-    asking_price: r.asking_price ?? null,
-    cash_flow: r.cash_flow ?? null,
-    ebitda: r.ebitda ?? null,
-    summary: r.summary ?? null,
-    url: r.url ?? null,
-    image_url: r.image_url ?? "/default-listing.jpg",
-    broker: r.broker ?? null,
-    broker_contact: r.broker_contact ?? null,
-    scraped_at: r.scraped_at ?? null,
-  }));
+  // Also grab a safety window for ingestion timing (last 36h)
+  const cutoff36hISO = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+
+  // Pull from the table your scraper writes to (NOT a view)
+  const { data, error } = await supabase
+    .from("daily_cleaning_raw")
+    .select(`
+      id,
+      title,
+      city_state,
+      asking_price,
+      cash_flow,
+      ebitda,
+      summary,
+      url,
+      image_url,
+      broker,
+      broker_contact,
+      scraped_at
+    `)
+    // fetch a generous window to avoid TZ edge cases
+    .gte("scraped_at", cutoff36hISO)
+    .order("scraped_at", { ascending: false })
+    .limit(200);
+
+  // If we got nothing (or an error), bail early with your current UX
+  if (error || !data) {
+    return {
+      props: {
+        rows: [],
+        hadError: !!error,
+        errMsg: error?.message ?? null,
+      },
+    };
+  }
+
+  // Filter to "today in ET" on the server
+  const isTodayET = (ts: string) => {
+    const dET = new Date(new Date(ts).toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const todayET = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+    return (
+      dET.getFullYear() === todayET.getFullYear() &&
+      dET.getMonth() === todayET.getMonth() &&
+      dET.getDate() === todayET.getDate()
+    );
+  };
+
+  // Optional: quick allowlist/blocklist guardrails in code (lightweight, tweak as needed)
+  const allow = /(clean|janitor|maid|housekeep|custodial|window|carpet|tile|grout|pressure\s*wash|power\s*wash)/i;
+  const block = /(advertis|marketing|promo(tional)?|printing|printer|screen\s*print|embroid|apparel|sign\b|signage|seo\b|web\s*design|graphic\s*design)/i;
+
+  const rows = data
+    .filter(r => isTodayET(r.scraped_at))
+    .filter(r => {
+      const t = (r.title ?? "");
+      const s = (r.summary ?? "");
+      const ok = allow.test(t) || allow.test(s);
+      const bad = block.test(t) || block.test(s);
+      return ok && !bad;
+    })
+    .map(r => ({
+      key: String(r.url ?? r.id ?? Math.random()),
+      title: r.title ?? null,
+      city_state: r.city_state ?? null,
+      asking_price: r.asking_price ?? null,
+      cash_flow: r.cash_flow ?? null,
+      ebitda: r.ebitda ?? null,
+      summary: r.summary ?? null,
+      url: r.url ?? null,
+      image_url: r.image_url ?? "/default-listing.jpg",
+      broker: r.broker ?? null,
+      broker_contact: r.broker_contact ?? null,
+      scraped_at: r.scraped_at ?? null,
+    }));
 
   return {
     props: {
       rows,
-      hadError: !!error,
-      errMsg: error?.message ?? null,
+      hadError: false,
+      errMsg: null,
     },
   };
 };
