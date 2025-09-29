@@ -114,60 +114,70 @@ const BLOCK = new RegExp(
   "i"
 );
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  // Pull a generous window (48h) to avoid timezone/cron drift
-  const cutoffISO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+export const getServerSideProps: GetServerSideProps = async () => {
+  // Compute ET midnight (then convert to a UTC ISO for the DB filter)
+  const now = new Date();
+  const nowET = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const etMidnightLocal = new Date(
+    nowET.getFullYear(),
+    nowET.getMonth(),
+    nowET.getDate(), // 00:00:00 local ET
+    0, 0, 0, 0
+  );
+  const etMidnightUTCISO = new Date(
+    etMidnightLocal.toLocaleString("en-US", { timeZone: "UTC" })
+  ).toISOString();
 
+  // Pull ONLY rows scraped since ET midnight — pushes the filter into SQL
   const { data, error } = await supabase
     .from("daily_cleaning_raw")
     .select(
       "id,title,city_state,asking_price,cash_flow,ebitda,summary,url,image_url,broker,broker_contact,scraped_at"
     )
-    .gte("scraped_at", cutoffISO)
+    .gte("scraped_at", etMidnightUTCISO)
     .order("scraped_at", { ascending: false })
     .limit(500);
 
   if (error || !data) {
-    return {
-      props: {
-        rows: [],
-        hadError: true,
-        errMsg: error?.message ?? "Failed to query daily_cleaning_raw",
-      },
-    };
+    return { props: { rows: [], hadError: true, errMsg: error?.message ?? "Query failed" } };
   }
 
-  // De-dupe by url then id
-  const seen = new Set<string>();
-  const dedupeKey = (r: Row) =>
-    r.url ? `u:${r.url}` : r.id ? `i:${r.id}` : `r:${Math.random()}`;
+  // Strict text filters (keep these minimal; tune as needed)
+  const ALLOW = /\b(clean(?:ing|ers?)|janitorial|maid(?:\s*service)?|housekeep(?:ing)?|custodial|window\s*clean(?:ing|ers?)|carpet\s*clean(?:ing|ers?)|tile(?:\s*and\s*grout)?\s*clean(?:ing)?|grout\s*clean(?:ing)?|gutter\s*clean(?:ing)?|pressure\s*wash(?:ing)?|power\s*wash(?:ing)?|soft\s*wash(?:ing)?)\b/i;
+  const BLOCK = /(advertis|marketing|promo(?:tional)?|branding|printing|printer|screen\s*print|embroid|apparel|\bsign(?:age)?\b|\bseo\b|web\s*design|graphic\s*design|\bconstruction\b|\bcontractor\b|\bremodel\b|\brestoration\b|\broof(?:ing)?\b|\bplumb(?:ing|er)\b|\bhvac\b|\belectrical\b|\bstained\s*glass\b|\bglass\b(?!\s*clean)|\bsecurity\b|\bcatering\b|\blandscap|\blawn\b|\bpest\b|\bpainting\b)/i;
 
-  const filtered = data
-    // keep "today" in America/New_York
-    .filter((r) => r.scraped_at && isTodayET(r.scraped_at))
-    // content filters
+  // De-dupe by url -> id
+  const seen = new Set<string>();
+  const rows = data
     .filter((r) => {
       const text = `${r.title ?? ""}\n${r.summary ?? ""}`;
-      if (!ALLOW.test(text)) return false;
-      if (BLOCK.test(text)) return false;
-      return true;
+      return ALLOW.test(text) && !BLOCK.test(text);
     })
-    // de-dupe
     .filter((r) => {
-      const k = dedupeKey(r);
+      const k = r.url ? `u:${r.url}` : r.id ? `i:${r.id}` : "";
+      if (!k) return true;
       if (seen.has(k)) return false;
       seen.add(k);
       return true;
-    });
+    })
+    .map((r) => ({
+      key: String(r.url ?? r.id ?? Math.random()),
+      title: r.title ?? null,
+      city_state: r.city_state ?? null,
+      asking_price: r.asking_price ?? null,
+      cash_flow: r.cash_flow ?? null,
+      ebitda: r.ebitda ?? null,
+      summary: r.summary ?? null,
+      url: r.url ?? null,
+      image_url: r.image_url ?? "/default-listing.jpg",
+      broker: r.broker ?? null,
+      broker_contact: r.broker_contact ?? null,
+      scraped_at: r.scraped_at ?? null,
+    }));
 
-  return {
-    props: {
-      rows: filtered,
-      hadError: false,
-      errMsg: null,
-    },
-  };
+  return { props: { rows, hadError: false, errMsg: null } };
 };
+
 
 export default function DailyCleaning({ rows, hadError, errMsg }: Props) {
   const todayET = toET(new Date()).toLocaleDateString("en-US", {
