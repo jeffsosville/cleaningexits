@@ -1,98 +1,67 @@
 // pages/api/sign-nda.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 
-/**
- * Env: set this in .env.local (fallback provided for convenience)
- * NEXT_PUBLIC_SUPABASE_URL=https://<your-ref>.supabase.co
- */
 const FN_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") +
   "/functions/v1/nda-sign-v2";
 
-type SignNDARequest = {
-  tenant_id: string;
-  listing_id: string;
-  signer_name: string;
-  signer_email: string;
-};
-
-type SignNDASuccess = {
-  ok: true;
-  version?: string;
-  nda_id: string;
-  sha256: string;
-  deal_link: string;
-  expires_at: string;
-  pdf_url?: string | null;
-};
-
-type SignNDAError = {
-  error: string;
-  code?: string | number;
-  status?: number;
-};
-
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<SignNDASuccess | SignNDAError>
+  res: NextApiResponse
 ) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed", code: 405 });
+    return res.status(405).json({ error: "Method not allowed" });
   }
+
+  console.log("=== NDA SIGN API DEBUG ===");
+  console.log("FN_URL:", FN_URL);
+  console.log("Request body:", req.body);
 
   if (!FN_URL || !FN_URL.startsWith("https://")) {
     return res.status(500).json({
-      error:
-        "Supabase function URL is not configured. Set NEXT_PUBLIC_SUPABASE_URL in .env.local",
-      code: "MISSING_FN_URL",
-    });
-  }
-
-  // Basic payload validation (keep it simple)
-  const body = (req.body || {}) as Partial<SignNDARequest>;
-  const missing = ["tenant_id", "listing_id", "signer_name", "signer_email"].filter(
-    (k) => !(body as any)[k]
-  );
-  if (missing.length) {
-    return res.status(400).json({
-      error: `Missing required fields: ${missing.join(", ")}`,
-      code: "BAD_REQUEST",
+      error: "NEXT_PUBLIC_SUPABASE_URL not configured"
     });
   }
 
   try {
+    console.log("Calling Edge Function...");
+    
     const r = await fetch(FN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Pass through exactly what we got (already validated)
-      body: JSON.stringify(body),
+      body: JSON.stringify(req.body),
     });
 
-    // Try JSON first; if not JSON, capture raw text
-    let data: any;
-    let raw = "";
-    try {
-      data = await r.json();
-    } catch {
-      raw = await r.text();
-      data = { error: raw || "Non-JSON error from Supabase Function" };
-    }
+    console.log("Edge Function status:", r.status);
+    console.log("Edge Function headers:", Object.fromEntries(r.headers.entries()));
 
-    if (!r.ok) {
-      // Normalize error into a simple string
-      const msg =
-        typeof data?.error === "string" ? data.error : JSON.stringify(data);
-      return res.status(r.status).json({
-        error: msg,
-        code: data?.code ?? "FN_ERROR",
-        status: r.status,
+    const text = await r.text();
+    console.log("Edge Function raw response:", text);
+
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Failed to parse JSON, raw text:", text);
+      return res.status(500).json({ 
+        error: "Invalid response from Edge Function",
+        raw: text
       });
     }
 
-    // Success: forward the function response as-is
-    return res.status(200).json(data as SignNDASuccess);
+    if (!r.ok) {
+      console.error("Edge Function error:", data);
+      return res.status(r.status).json(data);
+    }
+
+    console.log("Success:", data);
+    return res.status(200).json(data);
+
   } catch (err: any) {
-    const msg = typeof err?.message === "string" ? err.message : String(err);
-    return res.status(500).json({ error: msg, code: "PROXY_ERROR" });
+    console.error("Proxy error:", err);
+    return res.status(500).json({ 
+      error: err.message,
+      stack: err.stack
+    });
   }
 }
