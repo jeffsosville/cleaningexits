@@ -20,3 +20,9 @@
     "typescript": "^5.0.4"
   }
 }
+"dependencies": {
+  "formidable": "^3.5.1"
+},
+"devDependencies": {
+  "@types/formidable": "^3.4.5"
+}
