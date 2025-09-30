@@ -43,11 +43,12 @@ Deno.serve(async (req) => {
         .insert({ tenant_id, listing_id, template_version: "v0", sha256: "skip" })
         .select("id")
         .single();
-      if (error) throw error;
-      (body as any).nda_id = data!.id as string;
-    } catch (e) {
-      return E("B_INSERT_NDAS", e);
-    }
+      {result.error ? (
+  <p style={{ color: "red", whiteSpace: "pre-wrap" }}>
+    <strong>Error Details:</strong><br/>
+    {JSON.stringify(result, null, 2)}
+  </p>
+) : (
 
     // C) Insert signature metadata
     try {
