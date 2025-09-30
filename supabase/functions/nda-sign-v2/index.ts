@@ -1,9 +1,7 @@
 // supabase/functions/nda-sign-v2/index.ts
-// Ultra-minimal NDA + HARD DEBUG (no PDF, no storage)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 
 const VERSION = "nda-sign-v2-dbg-min-01";
-
 const PROJECT_URL = Deno.env.get("PROJECT_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")!;
 const DEAL_BASE = (Deno.env.get("PUBLIC_DEAL_BASE") ?? "https://deals.example.com/deal-v2").replace(/\/$/, "");
@@ -16,6 +14,7 @@ function J(body: unknown, status = 200) {
     headers: { "content-type": "application/json" },
   });
 }
+
 function E(stage: string, e: unknown, status = 500) {
   const msg = typeof (e as any)?.message === "string" ? (e as any).message : String(e);
   const code = (e as any)?.code ?? (e as any)?.name ?? "unknown";
@@ -31,9 +30,10 @@ Deno.serve(async (req) => {
     } catch (e) {
       return E("A_PARSE_BODY", e, 400);
     }
+
     const { tenant_id, listing_id, signer_name, signer_email } = body ?? {};
     if (!tenant_id || !listing_id || !signer_name || !signer_email) {
-      return E("A_VALIDATE", new Error("Missing required fields: tenant_id, listing_id, signer_name, signer_email"), 400);
+      return E("A_VALIDATE", new Error("Missing required fields"), 400);
     }
 
     // B) Insert bare NDA row
@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
         .insert({ tenant_id, listing_id, template_version: "v0", sha256: "skip" })
         .select("id")
         .single();
-      {result.error ? (
-  <p style={{ color: "red", whiteSpace: "pre-wrap" }}>
-    <strong>Error Details:</strong><br/>
-    {JSON.stringify(result, null, 2)}
-  </p>
-) : (
+      
+      if (error) throw error;
+      body.nda_id = data!.id as string;
+    } catch (e) {
+      return E("B_INSERT_NDAS", e);
+    }
 
     // C) Insert signature metadata
     try {
