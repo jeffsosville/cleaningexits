@@ -5,6 +5,8 @@ const FN_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") +
   "/functions/v1/nda-sign-v2";
 
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -15,53 +17,47 @@ export default async function handler(
 
   console.log("=== NDA SIGN API DEBUG ===");
   console.log("FN_URL:", FN_URL);
-  console.log("Request body:", req.body);
+  console.log("Has SERVICE_KEY:", !!SERVICE_KEY);
 
-  if (!FN_URL || !FN_URL.startsWith("https://")) {
+  if (!FN_URL || !SERVICE_KEY) {
     return res.status(500).json({
-      error: "NEXT_PUBLIC_SUPABASE_URL not configured"
+      error: "Missing configuration"
     });
   }
 
   try {
-    console.log("Calling Edge Function...");
-    
     const r = await fetch(FN_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SERVICE_KEY}`
+      },
       body: JSON.stringify(req.body),
     });
 
-    console.log("Edge Function status:", r.status);
-    console.log("Edge Function headers:", Object.fromEntries(r.headers.entries()));
-
     const text = await r.text();
-    console.log("Edge Function raw response:", text);
+    console.log("Response:", text);
 
     let data: any;
     try {
       data = JSON.parse(text);
     } catch {
-      console.error("Failed to parse JSON, raw text:", text);
       return res.status(500).json({ 
-        error: "Invalid response from Edge Function",
+        error: "Invalid response",
         raw: text
       });
     }
 
     if (!r.ok) {
-      console.error("Edge Function error:", data);
       return res.status(r.status).json(data);
     }
 
-    console.log("Success:", data);
     return res.status(200).json(data);
 
   } catch (err: any) {
     console.error("Proxy error:", err);
     return res.status(500).json({ 
-      error: err.message,
-      stack: err.stack
+      error: err.message
     });
   }
 }
