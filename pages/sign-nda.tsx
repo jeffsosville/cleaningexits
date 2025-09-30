@@ -53,22 +53,14 @@ export default function SignNDA() {
         </button>
       </form>
 
-      {result && (
-        <div style={{ marginTop: "2rem" }}>
-          {result.error ? (
-            <p style={{ color: "red" }}>Error: {result.error}</p>
-          ) : (
-            <div>
-              <p><strong>NDA ID:</strong> {result.nda_id}</p>
-              <p><strong>SHA256:</strong> {result.sha256}</p>
-              <p><strong>Deal Room Link:</strong> <a href={result.deal_link}>{result.deal_link}</a></p>
-              {result.pdf_url && (
-                <p><a href={result.pdf_url} target="_blank" rel="noreferrer">View Signed PDF</a></p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+     {result && (
+  <div style={{ marginTop: "2rem" }}>
+    {result.error ? (
+      <p style={{ color: "red", whiteSpace: "pre-wrap" }}>
+        Error: {typeof result.error === "string" ? result.error : JSON.stringify(result)}
+      </p>
+    ) : (
+      // ... success block unchanged ...
+    )}
+  </div>
+)}
