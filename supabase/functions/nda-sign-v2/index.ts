@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 const VERSION = "nda-sign-v2-dbg-min-01";
 const PROJECT_URL = Deno.env.get("PROJECT_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")!;
-const DEAL_BASE = (Deno.env.get("PUBLIC_DEAL_BASE") ?? "https://deals.example.com/deal-v2").replace(/\/$/, "");
+const DEAL_BASE = Deno.env.get("PUBLIC_DEAL_BASE") ?? "https://www.cleaningexits.com/deals";
 
 const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY);
 
