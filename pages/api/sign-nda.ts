@@ -14,15 +14,27 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await r.json();
+    // try to parse json; if it fails, capture raw text
+    let data: any;
+    let raw = "";
+    try {
+      data = await r.json();
+    } catch {
+      raw = await r.text();
+      data = { error: raw || "Non-JSON error from function" };
+    }
 
     if (!r.ok) {
-      return res.status(r.status).json({ error: data.error || "NDA signing failed" });
+      const msg =
+        typeof data?.error === "string"
+          ? data.error
+          : JSON.stringify(data);
+      return res.status(r.status).json({ error: msg, code: data?.code });
     }
 
     return res.status(200).json(data);
-  } catch (err) {
-    console.error("sign-nda error:", err);
-    return res.status(500).json({ error: "Unexpected server error" });
+  } catch (err: any) {
+    const msg = typeof err?.message === "string" ? err.message : String(err);
+    return res.status(500).json({ error: msg });
   }
 }
