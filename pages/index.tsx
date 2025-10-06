@@ -42,6 +42,12 @@ const money = (n?: number | null) =>
         maximumFractionDigits: 0,
       });
 
+function toNum(v: any): number | null {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Safe base64 encoder
 function toB64(u: string) {
   try {
@@ -55,10 +61,12 @@ function toB64(u: string) {
 }
 
 export async function getServerSideProps() {
+  // Last 90 days
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
   const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
+  // Example: filter to cleaning/related
+  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%";
   const EXCLUDES = [
     "%dry%",
     "%insurance%",
@@ -71,52 +79,35 @@ export async function getServerSideProps() {
   ];
 
   let q = supabase
-    .from("daily_listings")
+    .from("listings")
     .select(
-      "header, location, price, cashFlow, ebitda, description, externalUrl, img, brokerCompany, brokerContactFullName, scraped_at"
+      "id, title, price, revenue, cash_flow, description, listing_url, image_url, city, state, scraped_at"
     )
     .or(includeOr)
-    .gte("scraped_at", days90agoISO);
+    .gte("scraped_at", days90agoISO)
+    .eq("is_active", true);
 
-  for (const x of EXCLUDES) q = q.not("header", "ilike", x);
+  for (const x of EXCLUDES) q = q.not("title", "ilike", x);
 
   const { data, error } = await q
-    .order("cashFlow", { ascending: false, nullsFirst: false })
-    .order("ebitda", { ascending: false, nullsFirst: false })
+    .order("cash_flow", { ascending: false, nullsFirst: false })
+    .order("revenue", { ascending: false, nullsFirst: false })
     .order("price", { ascending: false, nullsFirst: false })
     .order("scraped_at", { ascending: false })
     .limit(10);
 
-  const toNumLocal = (v: any) => {
-    if (!v) return null;
-    const n = Number(v.toString().replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  };
-
-  const top10 = (data ?? []).map((r: any) => {
-    let city: string | null = null,
-      state: string | null = null;
-    if (r.location && r.location.includes(",")) {
-      const [c, s] = r.location.split(",").map((s: string) => s.trim());
-      city = c || null;
-      state = s || null;
-    } else {
-      state = r.location ?? null;
-    }
-
-    return {
-      header: r.header ?? null,
-      city,
-      state,
-      price: toNumLocal(r.price),
-      revenue: null,
-      cashflow: toNumLocal(r.cashFlow),
-      ebitda: toNumLocal(r.ebitda),
-      url: r.externalUrl ?? null,
-      picked_on: null,
-      notes: r.description ?? null,
-    };
-  });
+  const top10 = (data ?? []).map((r: any) => ({
+    header: r.title ?? null,
+    city: r.city ?? null,
+    state: r.state ?? null,
+    price: toNum(r.price),
+    revenue: toNum(r.revenue),
+    cashflow: toNum(r.cash_flow),
+    ebitda: null, // not in schema
+    url: r.listing_url ?? null,
+    picked_on: null,
+    notes: r.description ?? null,
+  }));
 
   return {
     props: {
@@ -246,7 +237,7 @@ export default function Home({
             {(!top10 || top10.length === 0) && (
               <div className="rounded-2xl border p-6 text-gray-600">
                 {errorAuto ? (
-                  <>Couldn’t load Top 10 (AUTO view). {errorAuto}</>
+                  <>Couldn’t load Top 10. {errorAuto}</>
                 ) : (
                   <>No listings to show yet. Check back shortly.</>
                 )}
@@ -283,10 +274,7 @@ export default function Home({
                         <span>Price {money(d.price)}</span>
                         {d.cashflow ? (
                           <span>Cash flow {money(d.cashflow)}</span>
-                        ) : d.ebitda ? (
-                          <span>EBITDA {money(d.ebitda as any)}</span>
-                        ) : null}
-                        {d.revenue ? (
+                        ) : d.revenue ? (
                           <span>Revenue {money(d.revenue)}</span>
                         ) : null}
                       </div>
@@ -316,8 +304,7 @@ export default function Home({
                   {kpis.total_listed.toLocaleString()} listed
                 </div>
                 <div className="text-sm text-gray-600">
-                  {kpis.month_label} • {kpis.junk_pct}% junk (duplicates,
-                  franchise ads, expired)
+                  {kpis.month_label} • {kpis.junk_pct}% junk
                 </div>
                 <Link
                   href="/cleaning-index"
