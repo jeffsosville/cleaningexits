@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client (server-side; anon key okay if RLS grants SELECT on the view)
+// Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
@@ -14,7 +14,7 @@ type Top10 = {
   header: string | null;
   city: string | null;
   state: string | null;
-  price: number | null; // mapped from asking_price
+  price: number | null;
   revenue: number | null;
   cashflow: number | null;
   ebitda: number | null;
@@ -42,34 +42,22 @@ const money = (n?: number | null) =>
         maximumFractionDigits: 0,
       });
 
-function toNum(v: any): number | null {
-  if (v == null) return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-// Helper to base64-encode the external URL for the gated route
+// Safe base64 encoder
 function toB64(u: string) {
   try {
-    // Node (SSR)
-    // eslint-disable-next-line no-undef
-    return Buffer.from(u, "utf8").toString("base64");
-  } catch {
-    // Browser fallback
-    try {
-      return btoa(unescape(encodeURIComponent(u)));
-    } catch {
-      return "";
+    if (typeof window === "undefined") {
+      return Buffer.from(u, "utf8").toString("base64"); // SSR
     }
+    return btoa(unescape(encodeURIComponent(u))); // Browser
+  } catch {
+    return "";
   }
 }
 
 export async function getServerSideProps() {
-  // Last 90 days
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
   const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  // Filters
   const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%";
   const EXCLUDES = [
     "%dry%",
@@ -82,7 +70,6 @@ export async function getServerSideProps() {
     "%bakery%",
   ];
 
-  // Query
   let q = supabase
     .from("daily_listings")
     .select(
@@ -100,7 +87,6 @@ export async function getServerSideProps() {
     .order("scraped_at", { ascending: false })
     .limit(10);
 
-  // Map into your Top10 type
   const toNumLocal = (v: any) => {
     if (!v) return null;
     const n = Number(v.toString().replace(/[^0-9.-]/g, ""));
@@ -108,7 +94,6 @@ export async function getServerSideProps() {
   };
 
   const top10 = (data ?? []).map((r: any) => {
-    // Split "City, ST" into city + state
     let city: string | null = null,
       state: string | null = null;
     if (r.location && r.location.includes(",")) {
@@ -151,7 +136,6 @@ export default function Home({
   kpis: KPI;
   errorAuto?: string | null;
 }) {
-  // HERO email subscribe state/handler
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -258,4 +242,112 @@ export default function Home({
             </Link>
           </div>
 
-          <ol classNam
+          <ol className="space-y-3">
+            {(!top10 || top10.length === 0) && (
+              <div className="rounded-2xl border p-6 text-gray-600">
+                {errorAuto ? (
+                  <>Couldn’t load Top 10 (AUTO view). {errorAuto}</>
+                ) : (
+                  <>No listings to show yet. Check back shortly.</>
+                )}
+              </div>
+            )}
+
+            {top10?.map((d, i) => {
+              const href = d.url ? `/listing/${toB64(d.url)}` : "#";
+              return (
+                <li
+                  key={i}
+                  className="rounded-2xl border p-4 hover:shadow-sm transition"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 mt-1 h-8 w-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Link
+                          href={href}
+                          className="text-lg font-semibold hover:underline"
+                        >
+                          {d.header ?? "Untitled"}
+                        </Link>
+                        {(d.city || d.state) && (
+                          <span className="text-gray-500">
+                            • {d.city ? `${d.city}, ` : ""}
+                            {d.state ?? ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
+                        <span>Price {money(d.price)}</span>
+                        {d.cashflow ? (
+                          <span>Cash flow {money(d.cashflow)}</span>
+                        ) : d.ebitda ? (
+                          <span>EBITDA {money(d.ebitda as any)}</span>
+                        ) : null}
+                        {d.revenue ? (
+                          <span>Revenue {money(d.revenue)}</span>
+                        ) : null}
+                      </div>
+                      {d.notes && (
+                        <p className="mt-2 text-sm text-gray-700">{d.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="mt-4 text-sm text-gray-500">
+            Updated weekly. Verified — no franchises, no lead-gen.
+          </div>
+        </section>
+
+        {/* Index teaser */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div className="rounded-2xl border p-5">
+            <h3 className="font-semibold mb-1">The Cleaning Index</h3>
+            {kpis ? (
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">
+                  {kpis.verified_real.toLocaleString()} real /{" "}
+                  {kpis.total_listed.toLocaleString()} listed
+                </div>
+                <div className="text-sm text-gray-600">
+                  {kpis.month_label} • {kpis.junk_pct}% junk (duplicates,
+                  franchise ads, expired)
+                </div>
+                <Link
+                  href="/cleaning-index"
+                  className="inline-block mt-2 text-emerald-700 hover:text-emerald-800 underline"
+                >
+                  View full report →
+                </Link>
+              </div>
+            ) : (
+              <p className="text-gray-600">
+                Monthly market audit. See which listings are real and where to
+                find the originals.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border p-5">
+            <h3 className="font-semibold mb-1">Why trust this?</h3>
+            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+              <li>Verified sources over marketplace noise</li>
+              <li>Deduped & filtered (no franchise funnels)</li>
+              <li>Human-curated Top 10 each week</li>
+            </ul>
+          </div>
+        </section>
+
+        <footer className="mt-16 text-center text-sm text-gray-500">
+          Built for speed and signal. No fluff.
+        </footer>
+      </main>
+    </>
+  );
+}
