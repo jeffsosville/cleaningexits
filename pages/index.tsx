@@ -73,8 +73,7 @@ export async function getServerSideProps() {
       "id, title, price, revenue, cash_flow, description, listing_url, image_url, city, state, scraped_at"
     )
     .or(includeOr)
-    .gte("scraped_at", days90agoISO)
-    .eq("is_active", true);
+    .gte("scraped_at", days90agoISO);
 
   for (const x of EXCLUDES) q = q.not("title", "ilike", x);
 
