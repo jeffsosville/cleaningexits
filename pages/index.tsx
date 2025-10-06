@@ -11,6 +11,7 @@ const supabase = createClient(
 );
 
 type Top10 = {
+  id: string;
   header: string | null;
   city: string | null;
   state: string | null;
@@ -46,18 +47,6 @@ function toNum(v: any): number | null {
   if (v == null) return null;
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-// Safe base64 encoder
-function toB64(u: string) {
-  try {
-    if (typeof window === "undefined") {
-      return Buffer.from(u, "utf8").toString("base64"); // SSR
-    }
-    return btoa(unescape(encodeURIComponent(u))); // Browser
-  } catch {
-    return "";
-  }
 }
 
 export async function getServerSideProps() {
@@ -97,13 +86,14 @@ export async function getServerSideProps() {
     .limit(10);
 
   const top10 = (data ?? []).map((r: any) => ({
+    id: String(r.id),
     header: r.title ?? null,
     city: r.city ?? null,
     state: r.state ?? null,
     price: toNum(r.price),
     revenue: toNum(r.revenue),
     cashflow: toNum(r.cash_flow),
-    ebitda: null, // not in schema
+    ebitda: null,
     url: r.listing_url ?? null,
     picked_on: null,
     notes: r.description ?? null,
@@ -147,7 +137,7 @@ export default function Home({
         setSubscribed(true);
       } catch (err) {
         console.error(err);
-        alert("Sorry—couldn’t save your email. Try again?");
+        alert("Sorry—couldn't save your email. Try again?");
       } finally {
         setSubmitting(false);
       }
@@ -193,7 +183,7 @@ export default function Home({
           <div className="mt-8 max-w-xl mx-auto">
             {subscribed ? (
               <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900 text-center">
-                ✓ You’re in! We’ll send new cleaning businesses weekly.
+                ✓ You're in! We'll send new cleaning businesses weekly.
               </div>
             ) : (
               <form onSubmit={handleHeroSubscribe} className="flex gap-3">
@@ -237,7 +227,7 @@ export default function Home({
             {(!top10 || top10.length === 0) && (
               <div className="rounded-2xl border p-6 text-gray-600">
                 {errorAuto ? (
-                  <>Couldn’t load Top 10. {errorAuto}</>
+                  <>Couldn't load Top 10. {errorAuto}</>
                 ) : (
                   <>No listings to show yet. Check back shortly.</>
                 )}
@@ -245,7 +235,7 @@ export default function Home({
             )}
 
             {top10?.map((d, i) => {
-              const href = d.url ? `/listing/${toB64(d.url)}` : "#";
+              const href = `/listing/${d.id}?from=top10`;
               return (
                 <li
                   key={i}
