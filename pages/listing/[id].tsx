@@ -143,6 +143,28 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
 
       <main className="mx-auto max-w-3xl px-4 py-8">
         {/* Title + location */}
+        import Link from "next/link";
+
+// ...
+
+<main className="mx-auto max-w-3xl px-4 py-8">
+  <div className="mb-4">
+    <Link
+      href="/"
+      className="inline-flex items-center text-emerald-700 hover:text-emerald-900"
+    >
+      ← Back to Listings
+    </Link>
+  </div>
+
+  {/* Title + location */}
+  <h1 className="text-3xl font-bold">{listing.header ?? "Listing"}</h1>
+  {(listing.city || listing.state) && (
+    <div className="text-gray-600 mt-1">
+      {[listing.city, listing.state].filter(Boolean).join(", ")}
+    </div>
+  )}
+
         <h1 className="text-3xl font-bold">{listing.header ?? "Listing"}</h1>
         {(listing.city || listing.state) && (
           <div className="text-gray-600 mt-1">
