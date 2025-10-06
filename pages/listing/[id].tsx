@@ -1,241 +1,328 @@
-// pages/listing/[id].tsx
+// pages/index.tsx
 import Head from "next/head";
 import Link from "next/link";
-import { GetServerSideProps } from "next";
-import { useCallback, useMemo, useState } from "react";
-import { supabase as clientSupabase } from "../../lib/supabaseClient";
+import { useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-type Listing = {
+// Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+);
+
+type Top10 = {
   id: string;
   header: string | null;
   city: string | null;
   state: string | null;
   price: number | null;
   revenue: number | null;
-  cash_flow: number | null;
-  notes: string | null;
+  cashflow: number | null;
+  ebitda: number | null;
   url: string | null;
-  image_url: string | null;
-  broker_id?: string | null;
+  picked_on: string | null;
+  notes: string | null;
 };
 
-function money(n?: number | null) {
-  return n == null
+type KPI =
+  | {
+      month_label: string;
+      total_listed: number;
+      verified_real: number;
+      junk_pct: number;
+      last_updated: string;
+    }
+  | null;
+
+const money = (n?: number | null) =>
+  n == null
     ? "—"
     : n.toLocaleString("en-US", {
         style: "currency",
         currency: "USD",
         maximumFractionDigits: 0,
       });
+
+function toNum(v: any): number | null {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const id = ctx.params?.id as string | undefined;
-  if (!id) return { notFound: true };
+export async function getServerSideProps() {
+  // Last 90 days
+  const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
+  const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-  );
+  // Example: filter to cleaning/related
+  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%";
+  const EXCLUDES = [
+    "%dry%",
+    "%insurance%",
+    "%franchise%",
+    "%restaurant%",
+    "%pharmacy%",
+    "%convenience%",
+    "%grocery%",
+    "%bakery%",
+  ];
 
-  // Query with correct column names matching your actual table
-  const { data, error } = await supabase
+  let q = supabase
     .from("listings")
-    .select("id, header, city, state, price, revenue, cash_flow, notes, url, image_url, broker_id")
-    .eq("id", id)
-    .eq("is_active", true)
-    .maybeSingle();
+    .select(
+      "id, title, price, revenue, cash_flow, description, listing_url, image_url, city, state, scraped_at"
+    )
+    .or(includeOr)
+    .gte("scraped_at", days90agoISO);
 
-  if (error || !data) {
-    console.error("Query error:", error);
-    return { notFound: true };
-  }
+  for (const x of EXCLUDES) q = q.not("title", "ilike", x);
 
-  const listing: Listing = {
-    id: String(data.id),
-    header: data.header ?? null,
-    city: data.city ?? null,
-    state: data.state ?? null,
-    price: data.price ?? null,
-    revenue: data.revenue ?? null,
-    cash_flow: data.cash_flow ?? null,
-    notes: data.notes ?? null,
-    url: data.url ?? null,
-    image_url: data.image_url ?? null,
-    broker_id: data.broker_id ?? null,
+  const { data, error } = await q
+    .order("cash_flow", { ascending: false, nullsFirst: false })
+    .order("revenue", { ascending: false, nullsFirst: false })
+    .order("price", { ascending: false, nullsFirst: false })
+    .order("scraped_at", { ascending: false })
+    .limit(10);
+
+  const top10 = (data ?? []).map((r: any) => ({
+    id: String(r.id),
+    header: r.title ?? null,
+    city: r.city ?? null,
+    state: r.state ?? null,
+    price: toNum(r.price),
+    revenue: toNum(r.revenue),
+    cashflow: toNum(r.cash_flow),
+    ebitda: null,
+    url: r.listing_url ?? null,
+    picked_on: null,
+    notes: r.description ?? null,
+  }));
+
+  return {
+    props: {
+      top10,
+      kpis: null as KPI,
+      errorAuto: error?.message || null,
+    },
   };
+}
 
-  const from = (ctx.query?.from as string) || "";
-
-  return { props: { listing, from } };
-};
-
-export default function ListingDetail({
-  listing,
-  from,
+export default function Home({
+  top10,
+  kpis,
+  errorAuto,
 }: {
-  listing: Listing;
-  from?: string;
+  top10: Top10[];
+  kpis: KPI;
+  errorAuto?: string | null;
 }) {
-  const [gateEmail, setGateEmail] = useState("");
-  const [unlocking, setUnlocking] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
-  const back = useMemo(() => {
-    switch (from) {
-      case "top10":
-        return { href: "/", label: "← Back to Top 10" };
-      case "daily":
-        return { href: "/daily-cleaning", label: "← Back to Today's Listings" };
-      case "index":
-        return { href: "/cleaning-index", label: "← Back to the Index" };
-      default:
-        return { href: "/", label: "← Back to Home" };
-    }
-  }, [from]);
-
-  const handleEmailSubmit = useCallback(
+  const handleHeroSubscribe = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!gateEmail) return;
-      setUnlocking(true);
+      if (!email) return;
+      setSubmitting(true);
       try {
-        await clientSupabase
+        const { error } = await supabase
           .from("email_subscriptions")
           .upsert(
-            [
-              {
-                email: gateEmail,
-                source: "listing_gate",
-                created_at: new Date().toISOString(),
-              },
-            ],
+            [{ email, source: "hero", created_at: new Date().toISOString() }],
             { onConflict: "email" }
           );
-
-        await clientSupabase.from("listing_contact_unlocks").insert([
-          {
-            email: gateEmail,
-            listing_id: listing.id,
-            occurred_at: new Date().toISOString(),
-          },
-        ]);
-
-        setUnlocked(true);
+        if (error) throw error;
+        setSubscribed(true);
       } catch (err) {
         console.error(err);
-        alert("Couldn't unlock. Please try again.");
+        alert("Sorry—couldn't save your email. Try again?");
       } finally {
-        setUnlocking(false);
+        setSubmitting(false);
       }
     },
-    [gateEmail, listing.id]
+    [email]
   );
 
   return (
     <>
       <Head>
-        <title>{listing.header ?? "Listing"} — Cleaning Exits</title>
+        <title>Cleaning Exits — Top 10 & Index</title>
       </Head>
 
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-4">
-          <Link
-            href={back.href}
-            className="inline-flex items-center text-emerald-700 hover:text-emerald-900"
-          >
-            {back.label}
-          </Link>
-        </div>
-
-        {listing.image_url && (
-          <img
-            src={listing.image_url}
-            alt={listing.header ?? ""}
-            className="w-full h-64 object-cover rounded-xl mb-6"
-          />
-        )}
-
-        <h1 className="text-3xl font-bold">{listing.header ?? "Listing"}</h1>
-        {(listing.city || listing.state) && (
-          <div className="text-gray-600 mt-1">
-            {[listing.city, listing.state].filter(Boolean).join(", ")}
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* Hero */}
+        <header className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 text-sm">
+            ✅ Verified cleaning & related service exits
           </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-700">
-          <span>Price {money(listing.price)}</span>
-          {listing.cash_flow ? (
-            <span>Cash flow {money(listing.cash_flow)}</span>
-          ) : null}
-          {listing.revenue ? <span>Revenue {money(listing.revenue)}</span> : null}
-        </div>
-
-        {listing.notes && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-3">Description</h2>
-            <p className="text-gray-800 whitespace-pre-line">{listing.notes}</p>
+          <h1 className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight">
+            Cleaning Exits
+          </h1>
+          <p className="mt-3 text-gray-600 max-w-2xl mx-auto">
+            Find real, actionable cleaning & related service listings. Weekly
+            curated Top 10 + a monthly audited Cleaning Index.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/daily-cleaning"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 transition"
+            >
+              View Today&apos;s Listings
+            </Link>
+            <Link
+              href="/cleaning-index"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition"
+            >
+              Explore the Index
+            </Link>
           </div>
-        )}
 
-        {!unlocked && (
-          <div className="max-w-2xl mx-auto my-8 p-8 bg-gray-50 border-2 border-gray-200 rounded-lg">
-            <h2 className="text-2xl font-bold mb-2">Get Broker Contact Info</h2>
-            <p className="text-gray-600 mb-6">
-              Enter your email to see the broker&apos;s contact details for this listing.
-              We&apos;ll also send you new cleaning businesses as they&apos;re listed.
+          {/* Big email signup */}
+          <div className="mt-8 max-w-xl mx-auto">
+            {subscribed ? (
+              <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900 text-center">
+                ✓ You're in! We'll send new cleaning businesses weekly.
+              </div>
+            ) : (
+              <form onSubmit={handleHeroSubscribe} className="flex gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-lg"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {submitting ? "Subscribing…" : "Subscribe"}
+                </button>
+              </form>
+            )}
+            <p className="text-sm text-gray-500 mt-2 text-center">
+              Get new cleaning businesses in your inbox weekly. ✓ No spam ·
+              Unsubscribe anytime
             </p>
-
-            <form onSubmit={handleEmailSubmit} className="flex gap-3">
-              <input
-                type="email"
-                value={gateEmail}
-                onChange={(e) => setGateEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-lg"
-                required
-              />
-              <button
-                type="submit"
-                disabled={unlocking}
-                className="px-8 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {unlocking ? "Unlocking…" : "View Contact"}
-              </button>
-            </form>
-
-            <p className="text-sm text-gray-500 mt-3">✓ No spam · Unsubscribe anytime</p>
           </div>
-        )}
+        </header>
 
-        {unlocked && (
-          <>
-            <div className="max-w-2xl mx-auto my-4 rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-              ✓ Saved! We&apos;ll email you when new businesses match your criteria.
-            </div>
+        {/* Top 10 */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-semibold">Top 10 This Week</h2>
+            <Link
+              href="/top10"
+              className="text-sm text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
+            >
+              See details →
+            </Link>
+          </div>
 
-            <section className="max-w-2xl mx-auto space-y-2 mt-6">
-              {listing.url && (
-                <div className="pt-1">
-                  <a
-                    className="inline-block px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
-                    href={listing.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View Original Listing →
-                  </a>
+          <ol className="space-y-3">
+            {(!top10 || top10.length === 0) && (
+              <div className="rounded-2xl border p-6 text-gray-600">
+                {errorAuto ? (
+                  <>Couldn't load Top 10. {errorAuto}</>
+                ) : (
+                  <>No listings to show yet. Check back shortly.</>
+                )}
+              </div>
+            )}
+
+            {top10?.map((d, i) => {
+              const href = `/listing/${d.id}?from=top10`;
+              return (
+                <li
+                  key={i}
+                  className="rounded-2xl border p-4 hover:shadow-sm transition"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 mt-1 h-8 w-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Link
+                          href={href}
+                          className="text-lg font-semibold hover:underline"
+                        >
+                          {d.header ?? "Untitled"}
+                        </Link>
+                        {(d.city || d.state) && (
+                          <span className="text-gray-500">
+                            • {d.city ? `${d.city}, ` : ""}
+                            {d.state ?? ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
+                        <span>Price {money(d.price)}</span>
+                        {d.cashflow ? (
+                          <span>Cash flow {money(d.cashflow)}</span>
+                        ) : d.revenue ? (
+                          <span>Revenue {money(d.revenue)}</span>
+                        ) : null}
+                      </div>
+                      {d.notes && (
+                        <p className="mt-2 text-sm text-gray-700">{d.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="mt-4 text-sm text-gray-500">
+            Updated weekly. Verified — no franchises, no lead-gen.
+          </div>
+        </section>
+
+        {/* Index teaser */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div className="rounded-2xl border p-5">
+            <h3 className="font-semibold mb-1">The Cleaning Index</h3>
+            {kpis ? (
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">
+                  {kpis.verified_real.toLocaleString()} real /{" "}
+                  {kpis.total_listed.toLocaleString()} listed
                 </div>
-              )}
-              {listing.broker_id && (
                 <div className="text-sm text-gray-600">
-                  Broker record: <span className="font-mono">{listing.broker_id}</span>
+                  {kpis.month_label} • {kpis.junk_pct}% junk
                 </div>
-              )}
-            </section>
-          </>
-        )}
+                <Link
+                  href="/cleaning-index"
+                  className="inline-block mt-2 text-emerald-700 hover:text-emerald-800 underline"
+                >
+                  View full report →
+                </Link>
+              </div>
+            ) : (
+              <p className="text-gray-600">
+                Monthly market audit. See which listings are real and where to
+                find the originals.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border p-5">
+            <h3 className="font-semibold mb-1">Why trust this?</h3>
+            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+              <li>Verified sources over marketplace noise</li>
+              <li>Deduped & filtered (no franchise funnels)</li>
+              <li>Human-curated Top 10 each week</li>
+            </ul>
+          </div>
+        </section>
+
+        <footer className="mt-16 text-center text-sm text-gray-500">
+          Built for speed and signal. No fluff.
+        </footer>
       </main>
     </>
   );
