@@ -1,9 +1,10 @@
 // pages/listing/[id].tsx
 import Head from "next/head";
+import Link from "next/link";
 import { GetServerSideProps } from "next";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { supabase as clientSupabase } from "../../lib/supabaseClient"; // browser-side
-import { createClient } from "@supabase/supabase-js"; // for SSR fetch
+import { createClient } from "@supabase/supabase-js"; // SSR-only
 
 type Listing = {
   id: string;
@@ -31,7 +32,6 @@ function money(n?: number | null) {
 
 function decodeIdToUrl(id: string): string | null {
   try {
-    // Base64 path param → original URL
     return Buffer.from(decodeURIComponent(id), "base64").toString("utf8");
   } catch {
     return null;
@@ -44,7 +44,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   const listingUrl = decodeIdToUrl(id);
 
-  // SSR Supabase client
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
@@ -54,7 +53,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   let error: any = null;
 
   if (listingUrl) {
-    // Preferred: look up by URL
     ({ data, error } = await supabase
       .from("listings")
       .select(
@@ -63,7 +61,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       .eq("listing_url", listingUrl)
       .maybeSingle());
   } else {
-    // Fallback: treat param as DB id/uuid
     ({ data, error } = await supabase
       .from("listings")
       .select(
@@ -89,13 +86,35 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     broker_id: data.broker_id ?? null,
   };
 
-  return { props: { listing } };
+  // pass through the ?from param so the back link is smart
+  const from = (ctx.query?.from as string) || "";
+
+  return { props: { listing, from } };
 };
 
-export default function ListingDetail({ listing }: { listing: Listing }) {
+export default function ListingDetail({
+  listing,
+  from,
+}: {
+  listing: Listing;
+  from?: string;
+}) {
   const [gateEmail, setGateEmail] = useState("");
   const [unlocking, setUnlocking] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+
+  const back = useMemo(() => {
+    switch (from) {
+      case "top10":
+        return { href: "/top10", label: "← Back to Top 10" };
+      case "daily":
+        return { href: "/daily-cleaning", label: "← Back to Today’s Listings" };
+      case "index":
+        return { href: "/cleaning-index", label: "← Back to the Index" };
+      default:
+        return { href: "/", label: "← Back to Listings" };
+    }
+  }, [from]);
 
   const handleEmailSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -103,19 +122,21 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
       if (!gateEmail) return;
       setUnlocking(true);
       try {
-        // Save subscriber
-        await clientSupabase.from("email_subscriptions").upsert(
-          [
-            {
-              email: gateEmail,
-              source: "listing_gate",
-              created_at: new Date().toISOString(),
-            },
-          ],
-          { onConflict: "email" }
-        );
+        // Save/Upsert subscriber
+        await clientSupabase
+          .from("email_subscriptions")
+          .upsert(
+            [
+              {
+                email: gateEmail,
+                source: "listing_gate",
+                created_at: new Date().toISOString(),
+              },
+            ],
+            { onConflict: "email" }
+          );
 
-        // Log unlock event
+        // Log unlock event (add a 'source' column in SQL if you want to store `from`)
         await clientSupabase.from("listing_contact_unlocks").insert([
           {
             email: gateEmail,
@@ -142,29 +163,17 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
       </Head>
 
       <main className="mx-auto max-w-3xl px-4 py-8">
+        {/* Back link */}
+        <div className="mb-4">
+          <Link
+            href={back.href}
+            className="inline-flex items-center text-emerald-700 hover:text-emerald-900"
+          >
+            {back.label}
+          </Link>
+        </div>
+
         {/* Title + location */}
-        import Link from "next/link";
-
-// ...
-
-<main className="mx-auto max-w-3xl px-4 py-8">
-  <div className="mb-4">
-    <Link
-      href="/"
-      className="inline-flex items-center text-emerald-700 hover:text-emerald-900"
-    >
-      ← Back to Listings
-    </Link>
-  </div>
-
-  {/* Title + location */}
-  <h1 className="text-3xl font-bold">{listing.header ?? "Listing"}</h1>
-  {(listing.city || listing.state) && (
-    <div className="text-gray-600 mt-1">
-      {[listing.city, listing.state].filter(Boolean).join(", ")}
-    </div>
-  )}
-
         <h1 className="text-3xl font-bold">{listing.header ?? "Listing"}</h1>
         {(listing.city || listing.state) && (
           <div className="text-gray-600 mt-1">
@@ -175,7 +184,9 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
         {/* Quick stats */}
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-700">
           <span>Price {money(listing.price)}</span>
-          {listing.cash_flow ? <span>Cash flow {money(listing.cash_flow)}</span> : null}
+          {listing.cash_flow ? (
+            <span>Cash flow {money(listing.cash_flow)}</span>
+          ) : null}
           {listing.revenue ? <span>Revenue {money(listing.revenue)}</span> : null}
         </div>
 
@@ -220,7 +231,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
           </div>
         )}
 
-        {/* After submit: confirmation + broker/contact section */}
+        {/* After submit: confirmation + contact */}
         {unlocked && (
           <>
             <div className="max-w-2xl mx-auto my-4 rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
@@ -228,9 +239,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
             </div>
 
             <section className="max-w-2xl mx-auto space-y-2 mt-6">
-              {/* You don't have broker contact columns on listings yet.
-                  If/when you add them (e.g., broker_email, broker_phone),
-                  render them here. For now, link to the original listing. */}
               {listing.url && (
                 <div className="pt-1">
                   <a
@@ -243,7 +251,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                   </a>
                 </div>
               )}
-              {/* Optional: show a placeholder or broker_id if present */}
               {listing.broker_id && (
                 <div className="text-sm text-gray-600">
                   Broker record: <span className="font-mono">{listing.broker_id}</span>
