@@ -57,13 +57,8 @@ function formatDate(iso?: string | null) {
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const includeOr = `
-    title.ilike.%cleaning%,
-    title.ilike.%janitorial%,
-    title.ilike.%maid%,
-    title.ilike.%carpet%,
-    title.ilike.%window%
-  `;
+  const includeOr =
+    "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%carpet%,title.ilike.%window%";
 
   const excludes = [
     "%dry%",
@@ -82,7 +77,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
       "id, title, city, state, price, cash_flow, revenue, description, listing_url, image_url, scraped_at",
       { count: "exact" }
     )
-    .or(includeOr);
+    .or(includeOr); // <- single line, no wrapping parens
 
   for (const x of excludes) {
     q = q.not("title", "ilike", x);
@@ -120,6 +115,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
 
   return { props: { listings, hadError: false } };
 };
+
 
 export default function CleaningIndex({ listings, hadError, errMsg }: Props) {
   return (
