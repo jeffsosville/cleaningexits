@@ -72,12 +72,55 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const page = Math.max(1, Number(pageParam || 1)) || 1;
 
   // Prefer the view if you have it; otherwise you can switch this to 'listings' with your filters
-  const q = supabase
-    .from("cleaning_listings_cards")
-    .select(
-      "id, header, city, state, price, cash_flow, revenue, notes, url, image_url, scraped_at, recently_added, recently_updated",
-      { count: "exact" }
-    )
+  let q = supabase
+  .from("listings")
+  .select(
+    "id, title, city, state, price, cash_flow, revenue, description, listing_url, image_url, scraped_at",
+    { count: "exact" }
+  )
+  .or(`
+    title.ilike.%cleaning%,
+    title.ilike.%janitorial%,
+    title.ilike.%maid%,
+    title.ilike.%carpet%,
+    title.ilike.%window%
+  `);
+
+// Exclude junk/franchise terms
+const excludes = [
+  "%dry%",
+  "%insurance%",
+  "%franchise%",
+  "%restaurant%",
+  "%pharmacy%",
+  "%convenience%",
+  "%grocery%",
+  "%bakery%",
+];
+for (const x of excludes) {
+  q = q.not("title", "ilike", x);
+}
+
+const { data, error, count } = await q
+  .order("scraped_at", { ascending: false })
+  .limit(50);
+
+const listings = (data ?? []).map((r: any) => ({
+  id: r.id,
+  header: r.title,
+  city: r.city,
+  state: r.state,
+  price: r.price,
+  cash_flow: r.cash_flow,
+  revenue: r.revenue,
+  notes: r.description,
+  url: r.listing_url,
+  image_url: r.image_url,
+  scraped_at: r.scraped_at,
+  recently_added: null,
+  recently_updated: null,
+}));
+
     .order("scraped_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
