@@ -1,3 +1,4 @@
+import { supabase } from "../lib/supabaseClient";
 export async function getServerSideProps() {
   // Last 90 days
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
