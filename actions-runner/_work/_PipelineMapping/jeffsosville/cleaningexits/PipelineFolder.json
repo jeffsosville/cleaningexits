@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "jeffsosville/cleaningexits",
+  "pipelineDirectory": "cleaningexits",
+  "workspaceDirectory": "cleaningexits/cleaningexits",
+  "repositories": {
+    "jeffsosville/cleaningexits": {
+      "repositoryPath": "cleaningexits/cleaningexits",
+      "lastRunOn": "09/23/2025 14:52:41 -04:00"
+    }
+  },
+  "lastRunOn": "09/23/2025 16:05:44 -04:00"
+}
