@@ -170,15 +170,7 @@ export default function Home({
 
         {/* Top 10 */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-semibold">Top 10 This Week</h2>
-            <Link
-              href="/top10"
-              className="text-sm text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
-            >
-              See details →
-            </Link>
-          </div>
+           <h2 className="text-xl font-semibold mb-3">Top 10 This Week</h2>
 
           <ol className="space-y-3">
             {(!top10 || top10.length === 0) && (
