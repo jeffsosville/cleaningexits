@@ -99,27 +99,20 @@ export default function CleaningIndex({ listings }: { listings: Card[] }) {
               key={`${l.id ?? "demo"}-${idx}`}
               className="rounded-2xl border p-4 shadow-sm hover:shadow-md transition"
             >
-              <div className="flex gap-4">
-                <img
-                  src={l.image_url ?? "/default-listing.jpg"}
-                  alt={l.title ?? ""}
-                  className="w-24 h-24 object-cover rounded-lg bg-gray-100"
-                />
-                <div className="flex-1">
-                  <a
-                    href={l.url ?? "#"}
-                    target={l.url ? "_blank" : "_self"}
-                    rel="noreferrer"
-                    className="font-semibold text-lg hover:underline"
-                  >
-                    {l.title ?? "Untitled listing"}
-                  </a>
-                  <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
-                  <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-x-3 gap-y-1">
-                    <span>Price {fmtMoney(l.asking_price)}</span>
-                    {l.cash_flow && <span>Cash Flow {fmtMoney(l.cash_flow)}</span>}
-                    {l.ebitda && <span>EBITDA {fmtMoney(Number(l.ebitda))}</span>}
-                  </div>
+              <div className="flex-1">
+                
+                  href={l.url ?? "#"}
+                  target={l.url ? "_blank" : "_self"}
+                  rel="noreferrer"
+                  className="font-semibold text-lg hover:underline"
+                >
+                  {l.title ?? "Untitled listing"}
+                </a>
+                <div className="text-sm text-gray-500">{l.city_state ?? "—"}</div>
+                <div className="text-sm mt-1 text-gray-700 flex flex-wrap gap-x-3 gap-y-1">
+                  <span>Price {fmtMoney(l.asking_price)}</span>
+                  {l.cash_flow && <span>Cash Flow {fmtMoney(l.cash_flow)}</span>}
+                  {l.ebitda && <span>EBITDA {fmtMoney(Number(l.ebitda))}</span>}
                 </div>
               </div>
 
@@ -141,7 +134,7 @@ export default function CleaningIndex({ listings }: { listings: Card[] }) {
         <p className="mt-10 text-center text-sm text-gray-500">
           Verified — no franchises, no lead-gen. Want the curated list?{" "}
           <Link href="/" className="underline text-emerald-700">
-            See this week’s Top 10
+            See this week's Top 10
           </Link>
           .
         </p>
