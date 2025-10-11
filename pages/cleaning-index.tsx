@@ -66,7 +66,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 export default function CleaningIndex({ listings }: { listings: Card[] }) {
   return (
-    <>
+    <div>
       <Head>
         <title>Cleaning Exits — The Cleaning Index</title>
       </Head>
@@ -139,6 +139,6 @@ export default function CleaningIndex({ listings }: { listings: Card[] }) {
           .
         </p>
       </main>
-    </>
+    <div>
   );
 }
