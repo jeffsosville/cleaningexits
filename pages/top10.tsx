@@ -41,8 +41,10 @@ const money = (n?: number | null) =>
       });
 
 export const getServerSideProps: GetServerSideProps = async () => {
+  // Include cleaning-related terms
   const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%,title.ilike.%window cleaning%,title.ilike.%carpet cleaning%,title.ilike.%pressure wash%,title.ilike.%power wash%";
   
+  // Exclude non-cleaning businesses
   const EXCLUDES = [
     "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
     "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
@@ -51,6 +53,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     "%glass%", "%electrical%"
   ];
 
+  // Get count first
   let countQuery = supabase
     .from("listings")
     .select("id", { count: "exact", head: true })
@@ -63,6 +66,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
   const { count } = await countQuery;
 
+  // Get all listings (we'll add pagination later)
   let q = supabase
     .from("listings")
     .select("id, title, city, state, location, price, cash_flow, revenue, description, listing_url, broker_account, scraped_at")
@@ -75,7 +79,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
   const { data, error } = await q
     .order("scraped_at", { ascending: false })
-    .limit(1000);
+    .limit(1000); // Start with 1000, we'll add pagination later
 
   if (error || !data) {
     return { 
@@ -125,6 +129,7 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
       </Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* Header */}
         <header className="mb-6">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             Cleaning Index
@@ -142,11 +147,12 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
           </div>
           {hadError && (
             <p className="mt-3 text-sm text-red-600">
-              Could not load listings. {errMsg ?? "Check connection and permissions."}
+              Couldn't load listings. {errMsg ?? "Check connection and permissions."}
             </p>
           )}
         </header>
 
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="rounded-xl border p-4">
             <div className="text-2xl font-bold">{totalCount.toLocaleString()}</div>
@@ -164,6 +170,7 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
           </div>
         </div>
 
+        {/* Body */}
         {listings.length === 0 ? (
           <p className="text-gray-600">
             No listings found. This might be a filtering or database issue.
@@ -179,7 +186,7 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        
+                        <a
                           href={listing.listing_url ?? "#"}
                           target={listing.listing_url ? "_blank" : "_self"}
                           rel="noreferrer"
