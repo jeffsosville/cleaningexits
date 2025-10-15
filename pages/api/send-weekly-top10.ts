@@ -37,7 +37,6 @@ function generateEmailHTML(top10: Listing[], weekOf: string, unsubscribeToken: s
         <div style="background: #059669; color: white; border-radius: 50%; width: 36px; height: 36px; min-width: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; margin-top: 2px;">
           ${i + 1}
         </div>
-        
         <div style="flex: 1;">
           <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #111827;">
             <a href="${listing.listing_url || '#'}" style="color: #059669; text-decoration: none;">
