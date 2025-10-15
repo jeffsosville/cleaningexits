@@ -34,9 +34,10 @@ function generateEmailHTML(top10: Listing[], weekOf: string, unsubscribeToken: s
   const listingsHTML = top10.map((listing, i) => `
     <div style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
       <div style="display: flex; gap: 16px; align-items: start;">
-        <div style="background: #059669; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">
+        <div style="background: #059669; color: white; border-radius: 50%; width: 36px; height: 36px; min-width: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; margin-top: 2px;">
           ${i + 1}
         </div>
+        
         <div style="flex: 1;">
           <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #111827;">
             <a href="${listing.listing_url || '#'}" style="color: #059669; text-decoration: none;">
