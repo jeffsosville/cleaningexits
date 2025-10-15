@@ -121,12 +121,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // TEMP: Skip auth check for testing
-  console.log('Auth header received:', req.headers.authorization);
-  console.log('CRON_SECRET from env:', process.env.CRON_SECRET);
-  console.log('Expected:', `Bearer ${process.env.CRON_SECRET}`);
-  
-  // Comment out auth check temporarily
+  // Auth disabled for manual sends - re-enable when setting up automated cron
   /*
   const { authorization } = req.headers;
   if (authorization !== `Bearer ${process.env.CRON_SECRET}`) {
