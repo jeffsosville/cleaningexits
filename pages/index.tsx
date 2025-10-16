@@ -225,4 +225,95 @@ export default function Home({
                       {d.cash_flow && (
                         <div>
                           <span className="text-gray-500">Cash flow</span>{" "}
-                          <span cl
+                          <span className="text-emerald-600">{money(d.cash_flow)}</span>
+                        </div>
+                      )}
+                      {d.revenue && (
+                        <div>
+                          <span className="text-gray-500">Revenue</span>{" "}
+                          <span className="text-gray-900">{money(d.revenue)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {d.why_hot && (
+                      <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r mb-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg">🔥</span>
+                          <div className="text-sm text-gray-700">
+                            <span className="font-semibold text-gray-900">Why it&apos;s hot:</span> {d.why_hot}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {d.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {d.description}
+                      </p>
+                    )}
+
+                    <Link
+                      href={d.listing_id ? `/listing/${d.listing_id}` : d.listing_url ?? "#"}
+                      className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold text-sm"
+                    >
+                      View Details →
+                    </Link>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p className="font-semibold">Updated weekly</p>
+            <p>Verified • No franchises • No lead-gen</p>
+          </div>
+        </section>
+
+        {/* Trust Sections */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+          <div className="rounded-2xl border border-gray-200 p-6 bg-white">
+            <h3 className="font-bold text-lg mb-2">The Cleaning Index</h3>
+            <p className="text-gray-600 mb-4">
+              Browse all 847 verified cleaning business listings. See which are real and where to find them.
+            </p>
+            <Link
+              href="/cleaning-index"
+              className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold"
+            >
+              View full index →
+            </Link>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 p-6 bg-white">
+            <h3 className="font-bold text-lg mb-2">Why Trust CleaningExits?</h3>
+            <ul className="text-sm text-gray-600 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Verified sources over marketplace noise</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Deduped & filtered (no franchise funnels)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Human-curated Top 10 each week</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Direct broker relationships</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <footer className="mt-16 text-center text-sm text-gray-500 border-t pt-8">
+          <p className="font-semibold">Built for speed and signal. No fluff.</p>
+          <p className="mt-2">© 2025 Cleaning Exits</p>
+        </footer>
+      </main>
+    </>
+  );
+}
