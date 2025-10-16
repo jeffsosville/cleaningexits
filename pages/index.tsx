@@ -94,7 +94,7 @@ export default function Home({
     <>
       <Head>
         <title>Cleaning Exits — 847 Verified Commercial Cleaning Businesses For Sale</title>
-        <meta name="description" content="No franchises. No maid services. No BS. We scrape 800+ brokers daily so you don't waste time on junk listings." />
+        <meta name="description" content="No franchises. No maid services. No BS. We scrape 800+ brokers daily to save you time." />
       </Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
