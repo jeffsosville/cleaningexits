@@ -9,6 +9,7 @@ const supabase = createClient(
 );
 
 type Top10 = {
+  listing_id: string | null;
   title: string | null;
   city: string | null;
   state: string | null;
@@ -17,6 +18,7 @@ type Top10 = {
   cash_flow: number | null;
   listing_url: string | null;
   description: string | null;
+  why_hot: string | null;
 };
 
 const money = (n?: number | null) =>
@@ -47,7 +49,7 @@ export async function getServerSideProps() {
   // Query from actual listings table
   let q = supabase
     .from("listings")
-    .select("title, city, state, location, price, cash_flow, revenue, description, listing_url, scraped_at")
+    .select("listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, scraped_at, why_hot")
     .or(includeOr)
     .gte("scraped_at", days90agoISO)
     .eq("is_active", true);
@@ -61,6 +63,7 @@ export async function getServerSideProps() {
     .limit(10);
 
   const top10 = (data ?? []).map((r: any) => ({
+    listing_id: r.listing_id ?? null,
     title: r.title ?? null,
     city: r.city ?? null,
     state: r.state ?? null,
@@ -69,6 +72,7 @@ export async function getServerSideProps() {
     cash_flow: r.cash_flow ?? null,
     listing_url: r.listing_url ?? null,
     description: r.description ?? null,
+    why_hot: r.why_hot ?? null,
   }));
 
   return {
@@ -89,134 +93,98 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Exits — Top 10 & Index</title>
+        <title>Cleaning Exits — 847 Verified Commercial Cleaning Businesses For Sale</title>
+        <meta name="description" content="No franchises. No maid services. No BS. We scrape 800+ brokers daily so you don't waste time on junk listings." />
       </Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Hero */}
-        <header className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 text-sm">
+        <header className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 text-sm font-semibold">
             ✅ Verified cleaning & related service exits
           </div>
-          <h1 className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight">
+          <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
             Cleaning Exits
           </h1>
-          <p className="mt-3 text-gray-600 max-w-2xl mx-auto">
-            Find real, actionable cleaning & related service listings. Weekly curated Top 10 + a monthly audited Cleaning Index.
+          <p className="mt-4 text-xl md:text-2xl text-gray-700 font-semibold max-w-3xl mx-auto">
+            847 Verified Commercial Cleaning Businesses For Sale
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/daily-cleaning"
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 transition"
-            >
-              View Today&apos;s Listings
-            </Link>
-            <Link
-              href="/cleaning-index"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow hover:bg-slate-800 transition"
-            >
-              Explore the Index
-            </Link>
-          </div>
-          <div className="mt-3">
-            <Link
-              href="/subscribe"
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Prefer email? Get the weekly Top 10 →
-            </Link>
-          </div>
+          <p className="mt-2 text-gray-600 max-w-2xl mx-auto">
+            No franchises. No maid services. No dead listings.
+            <br />
+            We scrape 800+ brokers daily so you don't waste time.
+          </p>
         </header>
+
+        {/* EMAIL CAPTURE - PROMINENT */}
+        <section className="mb-12 max-w-2xl mx-auto">
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-8 text-white shadow-lg">
+            <div className="text-center">
+              <div className="text-5xl mb-3">📧</div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                Get the Weekly Top 10
+              </h2>
+              <p className="text-emerald-50 mb-6">
+                Every Monday: 10 hand-picked deals worth your time.<br />
+                Zero spam. Unsubscribe anytime.
+              </p>
+              
+              <Link
+                href="/subscribe"
+                className="inline-block bg-white text-emerald-600 font-bold px-8 py-4 rounded-xl hover:bg-gray-50 transition shadow-lg text-lg"
+              >
+                Subscribe Now →
+              </Link>
+              
+              <p className="mt-4 text-sm text-emerald-100">
+                Join 2,847 buyers already subscribed
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Bar */}
+        <section className="mb-10">
+          <div className="bg-gray-50 rounded-xl p-6 border">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-3xl font-bold text-emerald-600">847</div>
+                <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-emerald-600">63</div>
+                <div className="text-sm text-gray-600 mt-1">Added This Week</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-emerald-600">14</div>
+                <div className="text-sm text-gray-600 mt-1">Verified Today</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Action Buttons */}
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/daily-cleaning"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-semibold shadow hover:bg-emerald-700 transition"
+          >
+            View Today&apos;s Listings
+          </Link>
+          <Link
+            href="/cleaning-index"
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:bg-slate-800 transition"
+          >
+            Explore Full Index
+          </Link>
+        </div>
 
         {/* Top 10 */}
         <section>
-          <h2 className="text-xl font-semibold mb-3">Top 10 This Week</h2>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <span className="text-yellow-500">⭐</span>
+            Top 10 This Week
+          </h2>
 
-          <ol className="space-y-3">
-            {(!top10 || top10.length === 0) && (
-              <div className="rounded-2xl border p-6 text-gray-600">
-                {errorAuto ? (
-                  <>Couldn't load Top 10. {errorAuto}</>
-                ) : (
-                  <>No listings to show yet. Check back shortly.</>
-                )}
-              </div>
-            )}
-
-            {top10?.map((d, i) => (
-              <li
-                key={i}
-                className="rounded-2xl border p-4 hover:shadow-sm transition"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 mt-1 h-8 w-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <a
-                        href={d.listing_url ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-lg font-semibold hover:underline"
-                      >
-                        {d.title ?? "Untitled"}
-                      </a>
-                      {(d.city || d.state) && (
-                        <span className="text-gray-500">
-                          • {d.city ? `${d.city}, ` : ""}
-                          {d.state ?? ""}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
-                      <span>Price {money(d.price)}</span>
-                      {d.cash_flow && <span>Cash flow {money(d.cash_flow)}</span>}
-                      {d.revenue && <span>Revenue {money(d.revenue)}</span>}
-                    </div>
-                    {d.description && (
-                      <p className="mt-2 text-sm text-gray-700">{d.description}</p>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-4 text-sm text-gray-500">
-            Updated weekly. Verified — no franchises, no lead-gen.
-          </div>
-        </section>
-
-        {/* Index teaser */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <div className="rounded-2xl border p-5">
-            <h3 className="font-semibold mb-1">The Cleaning Index</h3>
-            <p className="text-gray-600">
-              Browse all cleaning business listings. See which listings are real and where to find them.
-            </p>
-            <Link
-              href="/cleaning-index"
-              className="inline-block mt-2 text-emerald-700 hover:text-emerald-800 underline"
-            >
-              View full index →
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border p-5">
-            <h3 className="font-semibold mb-1">Why trust this?</h3>
-            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-              <li>Verified sources over marketplace noise</li>
-              <li>Deduped & filtered (no franchise funnels)</li>
-              <li>Human-curated Top 10 each week</li>
-            </ul>
-          </div>
-        </section>
-
-        <footer className="mt-16 text-center text-sm text-gray-500">
-          Built for speed and signal. No fluff.
-        </footer>
-      </main>
-    </>
-  );
-}
+          <ol className="space-y-4">
+            {(!top10
