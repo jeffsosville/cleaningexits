@@ -111,29 +111,24 @@ export default function Home({
           </p>
         </header>
 
-        {/* EMAIL CAPTURE - PROMINENT */}
-        <section className="mb-12 max-w-2xl mx-auto">
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-8 md:p-10 text-white shadow-xl">
-            <div className="text-center">
-              <div className="text-5xl mb-4">📧</div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                Get the Weekly Top 10
-              </h2>
-              <p className="text-emerald-50 mb-6 text-lg">
-                Every Monday: 10 hand-picked deals worth your time.<br />
-                Zero spam. Unsubscribe anytime.
-              </p>
+        {/* EMAIL CAPTURE - COMPACT 1/2 INCH */}
+        <section className="mb-8">
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-3 text-white shadow-md max-w-4xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📧</span>
+                <div>
+                  <h2 className="text-base font-bold">Get the Weekly Top 10</h2>
+                  <p className="text-xs text-emerald-50">Every Monday. Zero spam.</p>
+                </div>
+              </div>
               
               <Link
                 href="/subscribe"
-                className="inline-block bg-white text-emerald-600 font-bold px-8 py-4 rounded-xl hover:bg-gray-50 transition shadow-lg text-lg"
+                className="bg-white text-emerald-600 font-semibold px-5 py-2 rounded-lg hover:bg-gray-50 transition text-sm whitespace-nowrap"
               >
-                Subscribe Now →
+                Subscribe →
               </Link>
-              
-              <p className="mt-5 text-sm text-emerald-100 font-semibold">
-                ✓ Join 2,847 buyers already subscribed
-              </p>
             </div>
           </div>
         </section>
