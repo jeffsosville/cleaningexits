@@ -95,6 +95,8 @@ export default function Home({
         <meta name="description" content="No franchises. No maid services. No BS. We scrape 800+ brokers daily to save you time." />
       </Head>
 
+      <Header />
+
       <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Hero */}
         <header className="text-center mb-10">
@@ -305,12 +307,9 @@ export default function Home({
             </ul>
           </div>
         </section>
-
-        <footer className="mt-16 text-center text-sm text-gray-500 border-t pt-8">
-          <p className="font-semibold">Built for speed and signal. No fluff.</p>
-          <p className="mt-2">© 2025 Cleaning Exits</p>
-        </footer>
       </main>
+
+      <Footer />
     </>
   );
 }
