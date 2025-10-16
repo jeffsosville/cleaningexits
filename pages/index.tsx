@@ -107,7 +107,7 @@ export default function Home({
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
             No franchises. No maid services. No dead listings.<br />
-            We scrape 800+ brokers daily so you don&apos;t waste time.
+            We scrape 2000+ brokers daily so you don&apos;t waste time.
           </p>
         </header>
 
@@ -172,7 +172,7 @@ export default function Home({
         {/* Top 10 */}
         <section>
           <h2 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-2">
-            <span className="text-yellow-500">⭐</span>
+            <span className="text-yellow-500"></span>
             Top <span className="text-yellow-500">10</span> This Week
           </h2>
 
