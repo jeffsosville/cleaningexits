@@ -31,14 +31,11 @@ const money = (n?: number | null) =>
       });
 
 export async function getServerSideProps() {
-  // Last 90 days
   const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
   const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
 
-  // Include cleaning-related terms
   const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%";
   
-  // Exclude non-cleaning businesses
   const EXCLUDES = [
     "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
     "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
@@ -46,7 +43,6 @@ export async function getServerSideProps() {
     "%pest%", "%security%", "%catering%"
   ];
 
-  // Query from actual listings table
   let q = supabase
     .from("listings")
     .select("listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, scraped_at, why_hot")
@@ -106,25 +102,24 @@ export default function Home({
           <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
             Cleaning Exits
           </h1>
-          <p className="mt-4 text-xl md:text-2xl text-gray-700 font-semibold max-w-3xl mx-auto">
-            847 Verified Commercial Cleaning Businesses For Sale
+          <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
+            847 Verified Commercial Cleaning Businesses
           </p>
-          <p className="mt-2 text-gray-600 max-w-2xl mx-auto">
-            No franchises. No maid services. No dead listings.
-            <br />
-            We scrape 800+ brokers daily so you don't waste time.
+          <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
+            No franchises. No maid services. No dead listings.<br />
+            We scrape 800+ brokers daily so you don&apos;t waste time.
           </p>
         </header>
 
         {/* EMAIL CAPTURE - PROMINENT */}
         <section className="mb-12 max-w-2xl mx-auto">
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-8 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-8 md:p-10 text-white shadow-xl">
             <div className="text-center">
-              <div className="text-5xl mb-3">📧</div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+              <div className="text-5xl mb-4">📧</div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">
                 Get the Weekly Top 10
               </h2>
-              <p className="text-emerald-50 mb-6">
+              <p className="text-emerald-50 mb-6 text-lg">
                 Every Monday: 10 hand-picked deals worth your time.<br />
                 Zero spam. Unsubscribe anytime.
               </p>
@@ -136,8 +131,8 @@ export default function Home({
                 Subscribe Now →
               </Link>
               
-              <p className="mt-4 text-sm text-emerald-100">
-                Join 2,847 buyers already subscribed
+              <p className="mt-5 text-sm text-emerald-100 font-semibold">
+                ✓ Join 2,847 buyers already subscribed
               </p>
             </div>
           </div>
@@ -145,18 +140,18 @@ export default function Home({
 
         {/* Stats Bar */}
         <section className="mb-10">
-          <div className="bg-gray-50 rounded-xl p-6 border">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-3xl font-bold text-emerald-600">847</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">847</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-emerald-600">63</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">63</div>
                 <div className="text-sm text-gray-600 mt-1">Added This Week</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-emerald-600">14</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">14</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Today</div>
               </div>
             </div>
@@ -164,16 +159,16 @@ export default function Home({
         </section>
 
         {/* Action Buttons */}
-        <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
+        <div className="mb-12 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/daily-cleaning"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-semibold shadow hover:bg-emerald-700 transition"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-semibold shadow-md hover:bg-emerald-700 transition"
           >
             View Today&apos;s Listings
           </Link>
           <Link
             href="/cleaning-index"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:bg-slate-800 transition"
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow-md hover:bg-slate-800 transition"
           >
             Explore Full Index
           </Link>
@@ -181,10 +176,53 @@ export default function Home({
 
         {/* Top 10 */}
         <section>
-          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-2">
             <span className="text-yellow-500">⭐</span>
-            Top 10 This Week
+            Top <span className="text-yellow-500">10</span> This Week
           </h2>
 
           <ol className="space-y-4">
-            {(!top10
+            {(!top10 || top10.length === 0) && (
+              <div className="rounded-2xl border p-6 text-gray-600">
+                {errorAuto ? (
+                  <>Couldn&apos;t load Top 10. {errorAuto}</>
+                ) : (
+                  <>No listings to show yet. Check back shortly.</>
+                )}
+              </div>
+            )}
+
+            {top10?.map((d, i) => (
+              <li
+                key={i}
+                className="rounded-2xl border border-gray-200 p-5 hover:shadow-md hover:border-emerald-200 transition"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 mt-1 h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+                      <Link
+                        href={d.listing_id ? `/listing/${d.listing_id}` : d.listing_url ?? "#"}
+                        className="text-lg md:text-xl font-bold hover:text-emerald-600 transition"
+                      >
+                        {d.title ?? "Untitled"}
+                      </Link>
+                    </div>
+
+                    {(d.city || d.state) && (
+                      <div className="text-gray-600 text-sm mb-3">
+                        📍 {d.city ? `${d.city}, ` : ""}{d.state ?? ""}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-4 mb-3 text-sm font-semibold">
+                      <div>
+                        <span className="text-gray-500">Price</span>{" "}
+                        <span className="text-gray-900">{money(d.price)}</span>
+                      </div>
+                      {d.cash_flow && (
+                        <div>
+                          <span className="text-gray-500">Cash flow</span>{" "}
+                          <span cl
