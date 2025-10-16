@@ -2,6 +2,8 @@
 import Head from "next/head";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
