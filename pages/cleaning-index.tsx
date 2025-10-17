@@ -56,7 +56,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
   // Get total count
   let countQuery = supabase
     .from("listings")
-    .select("id", { count: "exact", head: true })
+    .select("listing_id", { count: "exact", head: true })
     .or(includeOr)
     .eq("is_active", true);
 
@@ -69,7 +69,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
   // Get all listings
   let q = supabase
     .from("listings")
-    .select("id, title, city, state, location, price, cash_flow, revenue, description, listing_url, broker_account, scraped_at")
+    .select("listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, broker_account, scraped_at")
     .or(includeOr)
     .eq("is_active", true);
 
@@ -93,7 +93,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
   }
 
   const listings = data.map((r) => ({
-    id: r.id,
+    listing_id: r.listing_id ?? null,
     title: r.title ?? null,
     city: r.city ?? null,
     state: r.state ?? null,
@@ -166,14 +166,14 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
             <div className="space-y-3">
               {listings.map((listing) => (
                 <div
-                  key={listing.id}
+                  key={listing.listing_id}
                   className="rounded-2xl border p-4 hover:shadow-sm transition"
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <Link
-                          href={`/listing/${listing.id}`}
+                          href={listing.listing_id ? `/listing/${listing.listing_id}` : listing.listing_url ?? "#"}
                           className="text-lg font-semibold hover:underline text-emerald-700"
                         >
                           {listing.title ?? "Untitled"}
