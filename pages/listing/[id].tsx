@@ -175,6 +175,164 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               )}
 
+              {/* TOP 10 ENHANCED SECTIONS - Only show if featured_rank exists */}
+              {listing.featured_rank && (
+                <>
+                  {/* Valuation Analysis */}
+                  {listing.cash_flow && (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 p-6 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">📊</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 mb-3">Valuation Analysis</h3>
+                          <div className="space-y-3 text-gray-700">
+                            <p className="text-sm">
+                              Based on industry multiples for cleaning businesses of this size:
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Conservative (3.5x)</div>
+                                <div className="text-lg font-bold text-gray-900">
+                                  {money(listing.cash_flow * 3.5)}
+                                </div>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Likely Range (4.0x)</div>
+                                <div className="text-lg font-bold text-emerald-600">
+                                  {money(listing.cash_flow * 4.0)}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              *Actual asking price may vary. Multiples depend on client quality, 
+                              growth, systems, and market conditions.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SBA Financing Calculator */}
+                  {listing.cash_flow && (
+                    <div className="bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 p-6 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">💰</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 mb-3">SBA Financing Calculator</h3>
+                          <div className="space-y-3 text-gray-700">
+                            <p className="text-sm">
+                              With 90% SBA financing at an estimated asking price of{' '}
+                              <strong>{money(listing.cash_flow * 4.0)}</strong>:
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Down Payment (10%)</div>
+                                <div className="text-lg font-bold text-gray-900">
+                                  {money(listing.cash_flow * 4.0 * 0.10)}
+                                </div>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Monthly Payment*</div>
+                                <div className="text-lg font-bold text-gray-900">
+                                  {money((listing.cash_flow * 4.0 * 0.90 * 0.08 / 12) + (listing.cash_flow * 4.0 * 0.90 / 120))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white p-3 rounded-lg">
+                              <div className="text-xs text-gray-600 mb-1">Cash Flow After Debt Service</div>
+                              <div className="text-xl font-bold text-emerald-600">
+                                {money(listing.cash_flow - ((listing.cash_flow * 4.0 * 0.90 * 0.08 / 12) + (listing.cash_flow * 4.0 * 0.90 / 120)) * 12)}
+                                <span className="text-sm text-gray-600 font-normal"> /year</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              *Assumes 8% interest rate, 10-year term. Your rate may vary.{' '}
+                              <Link href="/contact" className="text-emerald-600 hover:underline font-semibold">
+                                Need SBA financing? Contact us.
+                              </Link>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Key Questions to Ask */}
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 p-6 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">❓</div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 mb-3">Key Questions to Ask</h3>
+                        <div className="space-y-2 text-gray-700">
+                          <p className="text-sm mb-3">
+                            Before making an offer, dig deep on these critical areas:
+                          </p>
+                          <ul className="space-y-2 text-sm">
+                            <li className="flex items-start gap-2">
+                              <span className="text-purple-600 font-bold">•</span>
+                              <span><strong>Client concentration:</strong> What % of revenue comes from top 3 clients?</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-purple-600 font-bold">•</span>
+                              <span><strong>Contract terms:</strong> Average length? Renewal rates? Termination clauses?</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-purple-600 font-bold">•</span>
+                              <span><strong>Employee situation:</strong> Turnover rate? Key employees staying?</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-purple-600 font-bold">•</span>
+                              <span><strong>Systems & documentation:</strong> Are processes documented? Transferable?</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-purple-600 font-bold">•</span>
+                              <span><strong>Why selling?</strong> Get the real story - retirement, relocation, or problems?</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ROI Potential */}
+                  {listing.cash_flow && (
+                    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 p-6 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">📈</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 mb-3">Growth Potential</h3>
+                          <div className="space-y-3 text-gray-700 text-sm">
+                            <p>
+                              If you can grow this business by just <strong>10% annually</strong> while 
+                              maintaining margins, here's what it could be worth in 3 years:
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Year 3 Cash Flow</div>
+                                <div className="text-lg font-bold text-gray-900">
+                                  {money(listing.cash_flow * 1.331)} {/* 1.1^3 */}
+                                </div>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Potential Value (4.5x)</div>
+                                <div className="text-lg font-bold text-emerald-600">
+                                  {money(listing.cash_flow * 1.331 * 4.5)}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              Ways to grow: Add complementary services, cross-sell existing clients, 
+                              expand territory, implement technology for efficiency.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
               {/* Curator's Note */}
               {listing.curator_note && (
                 <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
