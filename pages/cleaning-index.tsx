@@ -10,7 +10,7 @@ const supabase = createClient(
 );
 
 type Listing = {
-  id: number;
+  listing_id: string | null;
   title: string | null;
   city: string | null;
   state: string | null;
