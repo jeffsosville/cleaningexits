@@ -92,7 +92,7 @@ export default function Home({
     <>
       <Head>
         <title>Cleaning Exits — 847 Verified Commercial Cleaning Businesses For Sale</title>
-        <meta name="description" content="No franchises. No maid services. No BS. We scrape 800+ brokers daily to save you time." />
+        <meta name="description" content="No franchises. No maid services. No BS." />
       </Head>
 
       <Header />
@@ -100,9 +100,6 @@ export default function Home({
       <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Hero */}
         <header className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 text-sm font-semibold">
-            ✅ Verified cleaning & related service exits
-          </div>
           <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
             Cleaning Exits
           </h1>
@@ -110,21 +107,17 @@ export default function Home({
             847 Verified Commercial Cleaning Businesses
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
-            No franchises. No maid services. No dead listings.<br />
-            We scrape 2000+ brokers daily so you don&apos;t waste time.
+            No franchises. No maid services. No dead listings.
           </p>
         </header>
 
-        {/* EMAIL CAPTURE - COMPACT 1/2 INCH */}
+        {/* EMAIL CAPTURE - COMPACT */}
         <section className="mb-8">
           <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-3 text-white shadow-md max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📧</span>
-                <div>
-                  <h2 className="text-base font-bold">Get the Weekly Top 10</h2>
-                  <p className="text-xs text-emerald-50">Every Monday. Zero spam.</p>
-                </div>
+              <div>
+                <h2 className="text-base font-bold">Get the Weekly Top 10</h2>
+                <p className="text-xs text-emerald-50">Every Monday. Zero spam.</p>
               </div>
               
               <Link
@@ -176,7 +169,6 @@ export default function Home({
         {/* Top 10 */}
         <section>
           <h2 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-2">
-            <span className="text-yellow-500"></span>
             Top <span className="text-yellow-500">10</span> This Week
           </h2>
 
