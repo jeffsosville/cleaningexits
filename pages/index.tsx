@@ -116,7 +116,7 @@ export default function Home({
           <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-3 text-white shadow-md max-w-4xl mx-auto">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold">Get the Weekly Top 10</h2>
+                <h2 className="text-base font-bold">Weekly Top 10</h2>
                 <p className="text-xs text-emerald-50">Every Monday. Zero spam.</p>
               </div>
               
