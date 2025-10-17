@@ -22,6 +22,47 @@ export default function Resources() {
             Everything you need to know about buying and selling commercial cleaning businesses.
           </p>
 
+          {/* LATEST INSIGHTS SECTION */}
+          <div className="mb-12 pb-12 border-b-2 border-gray-200">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <span className="text-emerald-600">📰</span>
+              Latest Insights
+            </h2>
+            
+            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl p-6 border-2 border-emerald-200">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded-full">
+                    NEW
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">
+                    <Link href="/resources/utah-janitorial-deal" className="hover:text-emerald-600">
+                      This Week's Deal: Why the Utah Janitorial Company is Hot
+                    </Link>
+                  </h3>
+                  <p className="text-gray-700 mb-3">
+                    A deep-dive analysis of a 7-year-old commercial janitorial company generating 
+                    $2.5M in revenue and $600K in cash flow. We break down the valuation, financing, 
+                    risks, and why this Class A property cleaner is one of the best deals we've seen 
+                    this quarter.
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                    <span>📅 October 17, 2025</span>
+                    <span>⏱️ 12 min read</span>
+                  </div>
+                  <Link 
+                    href="/resources/utah-janitorial-deal"
+                    className="inline-block px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition text-sm"
+                  >
+                    Read Full Analysis →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-8">
             {/* For Buyers */}
             <div>
