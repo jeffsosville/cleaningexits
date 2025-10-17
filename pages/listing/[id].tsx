@@ -198,38 +198,14 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </p>
               </div>
 
-              {/* Additional Details */}
+              {/* Additional Details - BROKER INFO REMOVED */}
               <div className="bg-white p-6 rounded-lg border">
                 <h3 className="font-bold text-gray-900 mb-4 text-lg">Details</h3>
                 <dl className="grid grid-cols-2 gap-4">
-                  {listing.business_type && (
-                    <>
-                      <dt className="text-gray-600">Business Type</dt>
-                      <dd className="font-semibold text-gray-900">{listing.business_type}</dd>
-                    </>
-                  )}
                   {listing.category && (
                     <>
                       <dt className="text-gray-600">Category</dt>
                       <dd className="font-semibold text-gray-900">{listing.category}</dd>
-                    </>
-                  )}
-                  {listing.established_year && (
-                    <>
-                      <dt className="text-gray-600">Established</dt>
-                      <dd className="font-semibold text-gray-900">{listing.established_year}</dd>
-                    </>
-                  )}
-                  {listing.employees && (
-                    <>
-                      <dt className="text-gray-600">Employees</dt>
-                      <dd className="font-semibold text-gray-900">{listing.employees}</dd>
-                    </>
-                  )}
-                  {listing.broker_account && (
-                    <>
-                      <dt className="text-gray-600">Broker</dt>
-                      <dd className="font-semibold text-gray-900">#{listing.broker_account}</dd>
                     </>
                   )}
                   {listing.scraped_at && (
