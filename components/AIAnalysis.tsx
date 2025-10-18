@@ -1,3 +1,4 @@
+// components/AIAnalysis.tsx
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -69,7 +70,7 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
       });
       
       if (response.ok) {
-        // Poll for results
+        // Poll for results every 3 seconds
         const pollInterval = setInterval(async () => {
           const { data } = await supabase
             .from('analyses')
@@ -183,22 +184,24 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
           {expanded && (
             <div className="space-y-4 pt-4 border-t border-violet-200">
               {/* Applied Adjustments */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Applied Adjustments</h4>
-                <div className="space-y-2">
-                  {analysis.applied_adjustments.map((adj, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded-lg text-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-900">{adj.factor}</span>
-                        <span className={`font-bold ${adj.delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {adj.delta > 0 ? '+' : ''}{adj.delta.toFixed(1)}×
-                        </span>
+              {analysis.applied_adjustments.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Applied Adjustments</h4>
+                  <div className="space-y-2">
+                    {analysis.applied_adjustments.map((adj, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-gray-900">{adj.factor}</span>
+                          <span className={`font-bold ${adj.delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {adj.delta > 0 ? '+' : ''}{adj.delta.toFixed(1)}×
+                          </span>
+                        </div>
+                        <p className="text-gray-600">{adj.rationale}</p>
                       </div>
-                      <p className="text-gray-600">{adj.rationale}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Risk Assessment */}
               {analysis.risk_table.length > 0 && (
