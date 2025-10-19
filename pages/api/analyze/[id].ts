@@ -174,6 +174,7 @@ IMPORTANT:
       .from('analyses')
       .insert({
         listing_id: id,
+        model: 'gpt-4-turbo-preview',
         ai_summary: analysis.ai_summary,
         base_multiple: analysis.base_multiple,
         adjusted_multiple: analysis.adjusted_multiple,
