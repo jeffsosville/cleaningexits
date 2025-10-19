@@ -21,12 +21,33 @@ type Analysis = {
   }>;
   risk_table: Array<{
     category: string;
-    finding: string;
+    finding?: string;
+    risk?: string;
     severity: 'Low' | 'Medium' | 'High';
+    mitigation?: string;
   }>;
   confidence: number;
   confidence_reasons?: string[];
   created_at: string;
+  extended_analysis?: {
+    deal_snapshot?: any;
+    why_hot?: string;
+    revenue_analysis?: any;
+    client_portfolio?: any;
+    operations_analysis?: any;
+    growth_opportunities?: Array<{
+      opportunity: string;
+      rationale: string;
+      potential_impact: string;
+    }>;
+    risk_factors?: Array<{
+      category: string;
+      risk: string;
+      severity: 'Low' | 'Medium' | 'High';
+      mitigation: string;
+    }>;
+    valuation_analysis?: any;
+  };
 };
 
 const money = (n: number) =>
@@ -40,7 +61,7 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchAnalysis();
@@ -70,7 +91,6 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
       });
       
       if (response.ok) {
-        // Poll for results every 3 seconds
         const pollInterval = setInterval(async () => {
           const { data } = await supabase
             .from('analyses')
@@ -87,7 +107,6 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
           }
         }, 3000);
 
-        // Stop polling after 2 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
           setGenerating(false);
@@ -97,6 +116,10 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
       console.error('Generate error:', error);
       setGenerating(false);
     }
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
   if (loading) {
@@ -132,6 +155,7 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
     );
   }
 
+  const ext = analysis.extended_analysis;
   const severityColor = {
     Low: 'text-emerald-700 bg-emerald-100',
     Medium: 'text-yellow-700 bg-yellow-100',
@@ -153,6 +177,19 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
           {/* Summary */}
           <p className="text-sm text-gray-700 mb-4">{analysis.ai_summary}</p>
 
+          {/* Why It's Hot - New Section */}
+          {ext?.why_hot && (
+            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mb-4">
+              <div className="flex items-start gap-2">
+                <span className="text-xl">🔥</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-1">Why This Is Hot</h4>
+                  <p className="text-sm text-gray-700">{ext.why_hot}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Valuation Range */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white p-4 rounded-lg">
@@ -172,75 +209,240 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
             </div>
           </div>
 
-          {/* Expand/Collapse Button */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-sm text-violet-600 hover:text-violet-700 font-semibold mb-4"
-          >
-            {expanded ? '▼ Hide Details' : '▶ Show Full Analysis'}
-          </button>
+          {/* Main Sections - Expandable */}
+          <div className="space-y-2 mb-4">
+            {/* Revenue Analysis */}
+            {ext?.revenue_analysis && (
+              <div className="bg-white rounded-lg border border-violet-200">
+                <button
+                  onClick={() => toggleSection('revenue')}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-violet-50 transition"
+                >
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    💰 Revenue Analysis
+                  </span>
+                  <span className="text-violet-600">
+                    {expandedSections.revenue ? '▼' : '▶'}
+                  </span>
+                </button>
+                {expandedSections.revenue && (
+                  <div className="px-4 pb-4 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-gray-600">Total Revenue:</span>
+                        <span className="font-semibold ml-2">{money(ext.revenue_analysis.total_revenue)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">SDE:</span>
+                        <span className="font-semibold ml-2">{money(ext.revenue_analysis.sde)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Margin:</span>
+                        <span className="font-semibold ml-2">{ext.revenue_analysis.margin_percentage}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Recurring:</span>
+                        <span className="font-semibold ml-2">{ext.revenue_analysis.recurring_percentage}</span>
+                      </div>
+                    </div>
+                    {ext.revenue_analysis.key_insights && (
+                      <div className="mt-3">
+                        <div className="font-semibold text-gray-900 mb-1">Key Insights:</div>
+                        <ul className="space-y-1">
+                          {ext.revenue_analysis.key_insights.map((insight: string, i: number) => (
+                            <li key={i} className="text-gray-700">• {insight}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Expanded Details */}
-          {expanded && (
-            <div className="space-y-4 pt-4 border-t border-violet-200">
-              {/* Applied Adjustments */}
-              {analysis.applied_adjustments.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Applied Adjustments</h4>
-                  <div className="space-y-2">
-                    {analysis.applied_adjustments.map((adj, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-lg text-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-gray-900">{adj.factor}</span>
-                          <span className={`font-bold ${adj.delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {adj.delta > 0 ? '+' : ''}{adj.delta.toFixed(1)}×
-                          </span>
+            {/* Client Portfolio */}
+            {ext?.client_portfolio && (
+              <div className="bg-white rounded-lg border border-violet-200">
+                <button
+                  onClick={() => toggleSection('clients')}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-violet-50 transition"
+                >
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    👥 Client Portfolio
+                  </span>
+                  <span className="text-violet-600">
+                    {expandedSections.clients ? '▼' : '▶'}
+                  </span>
+                </button>
+                {expandedSections.clients && (
+                  <div className="px-4 pb-4 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-gray-600">Total Clients:</span>
+                        <span className="font-semibold ml-2">{ext.client_portfolio.total_clients}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Retention:</span>
+                        <span className="font-semibold ml-2">{ext.client_portfolio.retention_rate}</span>
+                      </div>
+                    </div>
+                    {ext.client_portfolio.client_types && (
+                      <div>
+                        <span className="text-gray-600">Client Types:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {ext.client_portfolio.client_types.map((type: string, i: number) => (
+                            <span key={i} className="bg-violet-100 text-violet-700 px-2 py-1 rounded text-xs font-semibold">
+                              {type}
+                            </span>
+                          ))}
                         </div>
-                        <p className="text-gray-600">{adj.rationale}</p>
+                      </div>
+                    )}
+                    {ext.client_portfolio.key_insights && (
+                      <div className="mt-3">
+                        <div className="font-semibold text-gray-900 mb-1">Key Insights:</div>
+                        <ul className="space-y-1">
+                          {ext.client_portfolio.key_insights.map((insight: string, i: number) => (
+                            <li key={i} className="text-gray-700">• {insight}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Operations Analysis */}
+            {ext?.operations_analysis && (
+              <div className="bg-white rounded-lg border border-violet-200">
+                <button
+                  onClick={() => toggleSection('operations')}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-violet-50 transition"
+                >
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    ⚙️ Operations
+                  </span>
+                  <span className="text-violet-600">
+                    {expandedSections.operations ? '▼' : '▶'}
+                  </span>
+                </button>
+                {expandedSections.operations && (
+                  <div className="px-4 pb-4 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-gray-600">Owner Involvement:</span>
+                        <span className="font-semibold ml-2">{ext.operations_analysis.owner_involvement}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Employees:</span>
+                        <span className="font-semibold ml-2">{ext.operations_analysis.employee_count}</span>
+                      </div>
+                    </div>
+                    {ext.operations_analysis.key_insights && (
+                      <div className="mt-3">
+                        <div className="font-semibold text-gray-900 mb-1">Key Insights:</div>
+                        <ul className="space-y-1">
+                          {ext.operations_analysis.key_insights.map((insight: string, i: number) => (
+                            <li key={i} className="text-gray-700">• {insight}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Growth Opportunities */}
+            {ext?.growth_opportunities && ext.growth_opportunities.length > 0 && (
+              <div className="bg-white rounded-lg border border-violet-200">
+                <button
+                  onClick={() => toggleSection('growth')}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-violet-50 transition"
+                >
+                  <span className="font-semibold text-gray-900 flex items-center gap-2">
+                    📈 Growth Opportunities
+                  </span>
+                  <span className="text-violet-600">
+                    {expandedSections.growth ? '▼' : '▶'}
+                  </span>
+                </button>
+                {expandedSections.growth && (
+                  <div className="px-4 pb-4 space-y-3 text-sm">
+                    {ext.growth_opportunities.map((opp, i) => (
+                      <div key={i} className="bg-emerald-50 p-3 rounded-lg">
+                        <div className="font-semibold text-emerald-900 mb-1">{opp.opportunity}</div>
+                        <div className="text-gray-700 mb-1">{opp.rationale}</div>
+                        <div className="text-xs text-emerald-700 font-semibold">{opp.potential_impact}</div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
+          </div>
 
-              {/* Risk Assessment */}
-              {analysis.risk_table.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Risk Assessment</h4>
-                  <div className="space-y-2">
-                    {analysis.risk_table.map((risk, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-lg text-sm flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 mb-1">{risk.category}</div>
-                          <p className="text-gray-600">{risk.finding}</p>
-                        </div>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${severityColor[risk.severity]}`}>
-                          {risk.severity}
-                        </span>
-                      </div>
-                    ))}
+          {/* Applied Adjustments */}
+          {analysis.applied_adjustments.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold text-gray-900 mb-2">Applied Adjustments</h4>
+              <div className="space-y-2">
+                {analysis.applied_adjustments.map((adj, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-gray-900">{adj.factor}</span>
+                      <span className={`font-bold ${adj.delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {adj.delta > 0 ? '+' : ''}{adj.delta.toFixed(1)}×
+                      </span>
+                    </div>
+                    <p className="text-gray-600">{adj.rationale}</p>
                   </div>
-                </div>
-              )}
-
-              {/* Confidence Reasons */}
-              {analysis.confidence_reasons && analysis.confidence_reasons.length > 0 && (
-                <div className="bg-yellow-50 p-3 rounded-lg">
-                  <h4 className="text-xs font-semibold text-yellow-800 mb-1">Analysis Limitations</h4>
-                  <ul className="text-xs text-yellow-700 space-y-1">
-                    {analysis.confidence_reasons.map((reason, idx) => (
-                      <li key={idx}>• {reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Timestamp */}
-              <div className="text-xs text-gray-500 text-center">
-                Analyzed on {new Date(analysis.created_at).toLocaleDateString()} • Powered by Sosville AI
+                ))}
               </div>
             </div>
           )}
+
+          {/* Risk Assessment */}
+          {(analysis.risk_table.length > 0 || (ext?.risk_factors && ext.risk_factors.length > 0)) && (
+            <div className="mb-4">
+              <h4 className="font-semibold text-gray-900 mb-2">Risk Assessment</h4>
+              <div className="space-y-2">
+                {/* Show extended risk_factors if available, otherwise fall back to risk_table */}
+                {(ext?.risk_factors || analysis.risk_table).map((risk, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded-lg text-sm flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">{risk.category}</div>
+                      <p className="text-gray-600 mb-1">{risk.risk || risk.finding}</p>
+                      {risk.mitigation && (
+                        <p className="text-xs text-gray-500 italic">Mitigation: {risk.mitigation}</p>
+                      )}
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${severityColor[risk.severity]}`}>
+                      {risk.severity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Confidence Reasons */}
+          {analysis.confidence_reasons && analysis.confidence_reasons.length > 0 && (
+            <div className="bg-yellow-50 p-3 rounded-lg mb-4">
+              <h4 className="text-xs font-semibold text-yellow-800 mb-1">Analysis Limitations</h4>
+              <ul className="text-xs text-yellow-700 space-y-1">
+                {analysis.confidence_reasons.map((reason, idx) => (
+                  <li key={idx}>• {reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Timestamp */}
+          <div className="text-xs text-gray-500 text-center">
+            Analyzed on {new Date(analysis.created_at).toLocaleDateString()} • Powered by Sosville AI
+          </div>
         </div>
       </div>
     </div>
