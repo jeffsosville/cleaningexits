@@ -190,25 +190,6 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
             </div>
           )}
 
-          {/* Valuation Range */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-white p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">AI Valuation Range</div>
-              <div className="text-xl font-bold text-violet-600">
-                {money(analysis.valuation_low)} - {money(analysis.valuation_high)}
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Adjusted Multiple</div>
-              <div className="text-xl font-bold text-gray-900">
-                {analysis.adjusted_multiple.toFixed(1)}× SDE
-              </div>
-              <div className="text-xs text-gray-500">
-                (Base: {analysis.base_multiple.toFixed(1)}×)
-              </div>
-            </div>
-          </div>
-
           {/* Main Sections - Expandable */}
           <div className="space-y-2 mb-4">
             {/* Revenue Analysis */}
@@ -408,7 +389,6 @@ export default function AIAnalysis({ listingId }: { listingId: string }) {
             <div className="mb-4">
               <h4 className="font-semibold text-gray-900 mb-2">Risk Assessment</h4>
               <div className="space-y-2">
-                {/* Show extended risk_factors if available, otherwise fall back to risk_table */}
                 {(ext?.risk_factors || analysis.risk_table).map((risk, idx) => (
                   <div key={idx} className="bg-white p-3 rounded-lg text-sm flex items-start justify-between">
                     <div className="flex-1">
