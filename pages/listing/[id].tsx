@@ -176,50 +176,8 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               )}
 
-              {/* AI Valuation Analysis - SHOW FOR ALL LISTINGS */}
+              {/* Valuation Analysis - Automated */}
               <ValuationAnalysis listingId={listing.listing_id} />
-
-              {/* TOP 10 ENHANCED SECTIONS - Only show if featured_rank exists */}
-              {listing.featured_rank && (
-                <>
-                  {/* Valuation Analysis */}
-                  {listing.cash_flow && (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 p-6 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <div className="text-2xl">📊</div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-gray-900 mb-3">Valuation Analysis</h3>
-                          <div className="space-y-3 text-gray-700">
-                            <p className="text-sm">
-                              Based on industry multiples for cleaning businesses of this size:
-                            </p>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="bg-white p-3 rounded-lg">
-                                <div className="text-xs text-gray-600 mb-1">Conservative (3.5x)</div>
-                                <div className="text-lg font-bold text-gray-900">
-                                  {money(listing.cash_flow * 3.5)}
-                                </div>
-                              </div>
-                              <div className="bg-white p-3 rounded-lg">
-                                <div className="text-xs text-gray-600 mb-1">Likely Range (4.0x)</div>
-                                <div className="text-lg font-bold text-emerald-600">
-                                  {money(listing.cash_flow * 4.0)}
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              *Actual asking price may vary. Multiples depend on client quality, 
-                              growth, systems, and market conditions.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Rest of TOP 10 sections... */}
-                </>
-              )}
 
               {/* Curator's Note */}
               {listing.curator_note && (
@@ -243,11 +201,132 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                   {listing.description || 'No description available.'}
                 </p>
               </div>
+
+              {/* Additional Business Details */}
+              <div className="grid grid-cols-2 gap-4">
+                {listing.established_year && (
+                  <div className="bg-white p-4 rounded-lg border">
+                    <div className="text-sm text-gray-600 mb-1">Established</div>
+                    <div className="text-lg font-bold text-gray-900">{listing.established_year}</div>
+                  </div>
+                )}
+                
+                {listing.employees && (
+                  <div className="bg-white p-4 rounded-lg border">
+                    <div className="text-sm text-gray-600 mb-1">Employees</div>
+                    <div className="text-lg font-bold text-gray-900">{listing.employees}</div>
+                  </div>
+                )}
+                
+                {listing.business_type && (
+                  <div className="bg-white p-4 rounded-lg border">
+                    <div className="text-sm text-gray-600 mb-1">Business Type</div>
+                    <div className="text-lg font-bold text-gray-900">{listing.business_type}</div>
+                  </div>
+                )}
+                
+                {listing.category && (
+                  <div className="bg-white p-4 rounded-lg border">
+                    <div className="text-sm text-gray-600 mb-1">Category</div>
+                    <div className="text-lg font-bold text-gray-900">{listing.category}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Broker Info */}
+              {listing.broker_account && (
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="text-sm text-gray-600 mb-1">Listed By</div>
+                  <div className="font-semibold text-gray-900">{listing.broker_account}</div>
+                </div>
+              )}
+
+              {/* View Original Listing */}
+              <div className="flex gap-3">
+                <a
+                  href={listing.listing_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition"
+                >
+                  View Original Listing →
+                </a>
+              </div>
             </div>
 
             {/* Right Column - CTA Sidebar */}
             <div className="lg:col-span-1">
-              {/* Sidebar content... */}
+              <div className="bg-white rounded-lg border p-6 sticky top-6">
+                <h3 className="font-bold text-gray-900 mb-4">Interested in this business?</h3>
+                
+                {!showBrokerContact ? (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Get broker contact details and receive updates on similar listings.
+                    </p>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      onClick={handleEmailCapture}
+                      disabled={submitting || !email}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50"
+                    >
+                      {submitting ? 'Processing...' : 'Get Broker Details'}
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      We'll never spam you. Unsubscribe anytime.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-emerald-900 mb-2">✓ Contact Information</h4>
+                    <p className="text-sm text-emerald-800 mb-3">
+                      Check your email for broker details and next steps.
+                    </p>
+                    <a
+                      href={listing.listing_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition"
+                    >
+                      View on Broker Site
+                    </a>
+                  </div>
+                )}
+
+                <div className="mt-6 pt-6 border-t">
+                  <h4 className="font-semibold text-gray-900 mb-3">Why Cleaning Exits?</h4>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600">✓</span>
+                      <span>Verified cleaning businesses only</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600">✓</span>
+                      <span>No franchises or lead-gen</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600">✓</span>
+                      <span>Direct broker relationships</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600">✓</span>
+                      <span>Automated valuation analysis</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {listing.verified_date && (
+                  <div className="mt-6 pt-6 border-t text-xs text-gray-500">
+                    Verified on {new Date(listing.verified_date).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </main>
