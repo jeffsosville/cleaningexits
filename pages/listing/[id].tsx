@@ -177,7 +177,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
               )}
 
               {/* AI Valuation Analysis - SHOW FOR ALL LISTINGS */}
-              <AIAnalysis listingId={listing.listing_id} />
+              <ValuationAnalysis listingId={listing.listing_id} />
 
               {/* TOP 10 ENHANCED SECTIONS - Only show if featured_rank exists */}
               {listing.featured_rank && (
