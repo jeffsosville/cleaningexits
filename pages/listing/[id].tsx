@@ -4,7 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import AIAnalysis from '../../components/AIAnalysis';
+import ValuationAnalysis from '../../components/ValuationAnalysis';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
