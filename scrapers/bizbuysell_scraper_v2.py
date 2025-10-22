@@ -15,7 +15,8 @@ from typing import List, Dict, Optional, Any
 from colorama import Fore, Style, init
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from supabase import create_client, Client
+import psycopg2
+from psycopg2.extras import Json
 from dotenv import load_dotenv
 
 # Initialize
@@ -124,12 +125,19 @@ class BizBuySellScraperV2:
             'X-Correlation-Id': str(uuid.uuid4())
         }
 
-        # Initialize Supabase
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
-        if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in .env file")
-        self.supabase: Client = create_client(supabase_url, supabase_key)
+        # Initialize Direct PostgreSQL Connection (bypasses PostgREST cache)
+        postgres_password = os.getenv("POSTGRES_PASSWORD")
+        if not postgres_password:
+            raise ValueError("POSTGRES_PASSWORD must be set in .env file")
+
+        self.db_conn = psycopg2.connect(
+            host="db.tcsgmaozbhkldpwlorzk.supabase.co",
+            port=5432,
+            database="postgres",
+            user="postgres",
+            password=postgres_password
+        )
+        self.db_conn.autocommit = False  # Use transactions
 
         # Tracking
         self.token = None
@@ -143,7 +151,7 @@ class BizBuySellScraperV2:
         }
 
     def log(self, level: str, message: str, context: Dict = None):
-        """Log to console and scraper_logs table (if table exists)"""
+        """Log to console and scraper_logs table via direct PostgreSQL"""
         # Console logging
         colors = {
             'debug': Fore.CYAN,
@@ -157,54 +165,76 @@ class BizBuySellScraperV2:
         # Database logging (silently skip if table doesn't exist)
         if self.scraper_run_id:
             try:
-                self.supabase.table('scraper_logs').insert({
-                    'id': str(uuid.uuid4()),
-                    'scraper_run_id': self.scraper_run_id,
-                    'timestamp': datetime.now(timezone.utc).isoformat(),
-                    'level': level,
-                    'message': message,
-                    'context': context or {}
-                }).execute()
+                cursor = self.db_conn.cursor()
+                cursor.execute("""
+                    INSERT INTO scraper_logs (id, scraper_run_id, timestamp, level, message, context)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    str(uuid.uuid4()),
+                    self.scraper_run_id,
+                    datetime.now(timezone.utc),
+                    level,
+                    message,
+                    Json(context or {})
+                ))
+                self.db_conn.commit()
+                cursor.close()
             except Exception:
                 pass  # Silently skip if table doesn't exist
 
     def create_scraper_run(self):
-        """Create a scraper run record (optional - continues if table doesn't exist)"""
+        """Create a scraper run record via direct PostgreSQL"""
         self.scraper_run_id = str(uuid.uuid4())
         try:
-            self.supabase.table('scraper_runs').insert({
-                'id': self.scraper_run_id,
-                'vertical_slug': self.vertical_slug,
-                'broker_source': self.broker_source,
-                'scraper_type': 'bizbuysell',
-                'started_at': datetime.now(timezone.utc).isoformat(),
-                'status': 'running',
-                'total_listings_found': 0,
-                'new_listings': 0,
-                'updated_listings': 0,
-                'failed_listings': 0
-            }).execute()
+            cursor = self.db_conn.cursor()
+            cursor.execute("""
+                INSERT INTO scraper_runs (
+                    id, vertical_slug, broker_source, scraper_type, started_at, status,
+                    total_listings_found, new_listings, updated_listings, failed_listings
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                self.scraper_run_id,
+                self.vertical_slug,
+                self.broker_source,
+                'bizbuysell',
+                datetime.now(timezone.utc),
+                'running',
+                0, 0, 0, 0
+            ))
+            self.db_conn.commit()
+            cursor.close()
             self.log('info', f"Created scraper run: {self.scraper_run_id}")
-        except Exception:
+        except Exception as e:
             # Table doesn't exist - continue without tracking
             self.scraper_run_id = None
+            print(f"Warning: Could not create scraper run: {e}")
 
     def update_scraper_run(self, status: str = 'completed', error_message: str = None):
-        """Update scraper run with final stats (silently skips if table doesn't exist)"""
+        """Update scraper run with final stats via direct PostgreSQL"""
         if not self.scraper_run_id:
             return
 
         try:
-            self.supabase.table('scraper_runs').update({
-                'completed_at': datetime.now(timezone.utc).isoformat(),
-                'status': status,
-                'total_listings_found': self.stats['total_found'],
-                'new_listings': self.stats['new_listings'],
-                'updated_listings': self.stats['updated_listings'],
-                'failed_listings': self.stats['errors'],
-                'error_message': error_message
-            }).eq('id', self.scraper_run_id).execute()
-
+            cursor = self.db_conn.cursor()
+            cursor.execute("""
+                UPDATE scraper_runs
+                SET completed_at = %s, status = %s, total_listings_found = %s,
+                    new_listings = %s, updated_listings = %s, failed_listings = %s,
+                    error_message = %s
+                WHERE id = %s
+            """, (
+                datetime.now(timezone.utc),
+                status,
+                self.stats['total_found'],
+                self.stats['new_listings'],
+                self.stats['updated_listings'],
+                self.stats['errors'],
+                error_message,
+                self.scraper_run_id
+            ))
+            self.db_conn.commit()
+            cursor.close()
             self.log('info', f"Updated scraper run: {status}")
         except Exception:
             pass  # Silently skip if table doesn't exist
@@ -469,30 +499,124 @@ class BizBuySellScraperV2:
 
         return filtered_listings
 
-    def save_to_supabase(self, listings: List[Dict[str, Any]]):
-        """Save listings to Supabase in batches"""
+    def save_to_postgres(self, listings: List[Dict[str, Any]]):
+        """Save listings to PostgreSQL directly (bypasses PostgREST cache)"""
         if not listings:
             self.log('warning', 'No listings to save')
             return
 
-        self.log('info', f"Saving {len(listings)} listings to Supabase...")
+        self.log('info', f"Saving {len(listings)} listings to PostgreSQL...")
 
-        batch_size = 500
-        for i in range(0, len(listings), batch_size):
-            batch = listings[i:i+batch_size]
+        cursor = self.db_conn.cursor()
+
+        for i, listing in enumerate(listings, 1):
             try:
-                response = self.supabase.table('listings').upsert(
-                    batch,
-                    on_conflict='id'
-                ).execute()
+                # Use INSERT ... ON CONFLICT for upsert functionality
+                cursor.execute("""
+                    INSERT INTO listings (
+                        id, vertical_id, vertical_slug, title, description, slug,
+                        city, state, country, zip_code,
+                        asking_price, revenue, sde, ebitda, cash_flow, inventory_value,
+                        year_established, employees_count, category, status,
+                        broker_id, source, external_id, external_url,
+                        images, documents,
+                        meta_title, meta_description,
+                        custom_fields,
+                        created_at, updated_at
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s,
+                        %s, %s,
+                        %s,
+                        %s, %s
+                    )
+                    ON CONFLICT (id) DO UPDATE SET
+                        vertical_id = EXCLUDED.vertical_id,
+                        vertical_slug = EXCLUDED.vertical_slug,
+                        title = EXCLUDED.title,
+                        description = EXCLUDED.description,
+                        slug = EXCLUDED.slug,
+                        city = EXCLUDED.city,
+                        state = EXCLUDED.state,
+                        country = EXCLUDED.country,
+                        zip_code = EXCLUDED.zip_code,
+                        asking_price = EXCLUDED.asking_price,
+                        revenue = EXCLUDED.revenue,
+                        sde = EXCLUDED.sde,
+                        ebitda = EXCLUDED.ebitda,
+                        cash_flow = EXCLUDED.cash_flow,
+                        inventory_value = EXCLUDED.inventory_value,
+                        year_established = EXCLUDED.year_established,
+                        employees_count = EXCLUDED.employees_count,
+                        category = EXCLUDED.category,
+                        status = EXCLUDED.status,
+                        broker_id = EXCLUDED.broker_id,
+                        source = EXCLUDED.source,
+                        external_id = EXCLUDED.external_id,
+                        external_url = EXCLUDED.external_url,
+                        images = EXCLUDED.images,
+                        documents = EXCLUDED.documents,
+                        meta_title = EXCLUDED.meta_title,
+                        meta_description = EXCLUDED.meta_description,
+                        custom_fields = EXCLUDED.custom_fields,
+                        updated_at = EXCLUDED.updated_at
+                """, (
+                    listing['id'],
+                    listing.get('vertical_id'),
+                    listing['vertical_slug'],
+                    listing['title'],
+                    listing.get('description'),
+                    listing.get('slug'),
+                    listing.get('city'),
+                    listing.get('state'),
+                    listing.get('country'),
+                    listing.get('zip_code'),
+                    listing.get('asking_price'),
+                    listing.get('revenue'),
+                    listing.get('sde'),
+                    listing.get('ebitda'),
+                    listing.get('cash_flow'),
+                    listing.get('inventory_value'),
+                    listing.get('year_established'),
+                    listing.get('employees_count'),
+                    listing.get('category'),
+                    listing.get('status'),
+                    listing.get('broker_id'),
+                    listing.get('source'),
+                    listing.get('external_id'),
+                    listing.get('external_url'),
+                    Json(listing.get('images', [])),
+                    Json(listing.get('documents', [])),
+                    listing.get('meta_title'),
+                    listing.get('meta_description'),
+                    Json(listing.get('custom_fields', {})),
+                    listing.get('created_at'),
+                    listing.get('updated_at')
+                ))
 
-                # Count as new (simplified - in reality would check existing)
-                self.stats['new_listings'] += len(response.data)
+                self.stats['new_listings'] += 1
 
-                self.log('info', f"✓ Saved batch {i//batch_size + 1} ({len(batch)} listings)")
+                if i % 50 == 0:
+                    self.log('info', f"✓ Saved {i}/{len(listings)} listings")
+
             except Exception as e:
-                self.log('error', f"✗ Failed to save batch {i//batch_size + 1}: {e}")
-                self.stats['errors'] += len(batch)
+                self.log('error', f"✗ Failed to save listing {i}: {e}")
+                self.stats['errors'] += 1
+
+        # Commit all inserts
+        try:
+            self.db_conn.commit()
+            self.log('info', f"✓ Committed all listings to database")
+        except Exception as e:
+            self.db_conn.rollback()
+            self.log('error', f"✗ Failed to commit: {e}")
+
+        cursor.close()
 
         self.log('info', f"Save complete! New: {self.stats['new_listings']}, Errors: {self.stats['errors']}")
 
@@ -522,8 +646,8 @@ class BizBuySellScraperV2:
             # Filter and normalize
             filtered_listings = self.filter_and_normalize(raw_listings)
 
-            # Save to database
-            self.save_to_supabase(filtered_listings)
+            # Save to database via direct PostgreSQL connection
+            self.save_to_postgres(filtered_listings)
 
             # Update scraper run
             self.update_scraper_run(status='completed')
@@ -544,6 +668,11 @@ class BizBuySellScraperV2:
             self.log('error', f"Scraper failed: {e}")
             self.update_scraper_run(status='failed', error_message=str(e))
             raise
+        finally:
+            # Always close the database connection
+            if hasattr(self, 'db_conn') and self.db_conn:
+                self.db_conn.close()
+                print(f"{Fore.CYAN}Database connection closed.")
 
 
 # ============================================================================

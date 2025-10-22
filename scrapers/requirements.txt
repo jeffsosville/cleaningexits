@@ -1,7 +1,8 @@
 # Multi-Tenant Business Listing Scrapers
 # Python 3.9+
 
-# Supabase
+# Database
+psycopg2-binary>=2.9.9  # Direct PostgreSQL connection (bypasses PostgREST cache)
 supabase-py>=2.0.0
 postgrest-py>=0.13.0
 
