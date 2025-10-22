@@ -252,16 +252,20 @@ RLS policies rely on JWT claims:
 
 ### Helper Functions
 
+The schema includes helper functions in the **public schema** (not auth schema) to avoid permission issues:
+
 ```sql
--- Get user's vertical from JWT
-auth.user_vertical() → vertical_slug
+-- Get user's vertical from JWT claims
+public.user_vertical() → vertical_slug
 
 -- Check if user is admin
-auth.is_admin() → boolean
+public.is_admin() → boolean
 
--- Get user's broker_id from JWT
-auth.user_broker_id() → UUID
+-- Get user's broker_id from JWT claims
+public.user_broker_id() → UUID
 ```
+
+These functions extract data from JWT claims using `current_setting('request.jwt.claims')` and work without requiring special auth schema permissions.
 
 ### Policy Examples
 
@@ -271,7 +275,7 @@ auth.user_broker_id() → UUID
 CREATE POLICY "Listings: Vertical isolation"
   ON listings FOR SELECT
   TO authenticated
-  USING (vertical_id = auth.user_vertical());
+  USING (vertical_id = public.user_vertical());
 ```
 
 **Broker Access (Listings):**
@@ -280,7 +284,7 @@ CREATE POLICY "Listings: Vertical isolation"
 CREATE POLICY "Listings: Brokers manage own"
   ON listings FOR ALL
   TO authenticated
-  USING (broker_id = auth.user_broker_id());
+  USING (broker_id = public.user_broker_id());
 ```
 
 **Public Access (Listings):**
@@ -683,7 +687,7 @@ console.log(broker.verticals); // Array of assigned verticals
 const { data: myListings } = await db
   .listings()
   .select('*');
-// RLS automatically filters by auth.user_vertical()
+// RLS automatically filters by public.user_vertical()
 ```
 
 ## Security Considerations
