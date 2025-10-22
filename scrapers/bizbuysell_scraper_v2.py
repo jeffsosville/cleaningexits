@@ -247,17 +247,13 @@ class BizBuySellScraperV2:
         return False
 
     def normalize_listing(self, raw_listing: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert BizBuySell listing to match database schema"""
+        """Convert BizBuySell listing to match ACTUAL production database schema"""
         # Generate unique ID
         list_number = str(raw_listing.get('listNumber', ''))
         url_stub = raw_listing.get('urlStub', '')
         title_text = raw_listing.get('header', '')
         unique_str = f"{list_number}--{url_stub}--{title_text}"
         listing_id = hashlib.sha256(unique_str.encode()).hexdigest()
-
-        # Generate slug from title
-        import re
-        slug = re.sub(r'[^a-z0-9]+', '-', title_text.lower()).strip('-')[:100]
 
         # Extract image URL
         img = raw_listing.get("img")
@@ -294,69 +290,58 @@ class BizBuySellScraperV2:
             city = parts[0].strip() if len(parts) > 0 else None
             state = parts[1].strip() if len(parts) > 1 else None
 
-        # Map to your actual database schema
+        # Map to ACTUAL production database schema (schema.sql)
+        # ONLY include fields that exist in the database!
         return {
-            # Primary fields
+            # Required fields
             'id': listing_id,
-            'vertical_id': None,  # Set by database default or trigger
             'vertical_slug': self.vertical_slug,
             'title': title_text,
-            'description': raw_listing.get("description"),
-            'slug': slug,
+            'listing_url': listing_url,
+            'broker_source': 'BizBuySell',  # ACTUAL column name
+            'scraped_at': datetime.now(timezone.utc).isoformat(),
 
-            # Location fields
+            # Core listing fields
+            'location': location,
             'city': city,
             'state': state,
-            'country': 'US',
-            'zip_code': None,  # Not provided by BizBuySell
+            'description': raw_listing.get("description"),
 
-            # Financial fields - using YOUR column names
+            # Financial fields (ACTUAL column names)
             'asking_price': parse_financial(raw_listing.get("price")),
-            'revenue': parse_financial(raw_listing.get("grossSales")),  # YOUR column name
-            'sde': parse_financial(raw_listing.get("cashFlow")),
-            'ebitda': parse_financial(raw_listing.get("ebitda")),
+            'price_text': str(raw_listing.get("price")) if raw_listing.get("price") else None,
             'cash_flow': parse_financial(raw_listing.get("cashFlow")),
-            'inventory_value': None,  # Not provided by BizBuySell
+            'ebitda': parse_financial(raw_listing.get("ebitda")),
+            'annual_revenue': parse_financial(raw_listing.get("grossSales")),  # ACTUAL column name!
 
-            # Business details
-            'year_established': None,  # Not provided by BizBuySell
-            'employees_count': None,  # Not provided by BizBuySell
-            'category': raw_listing.get("category"),
+            # Media
+            'image_url': image_url,  # ACTUAL column name (singular)
+
+            # Categorization
+            'business_type': raw_listing.get("category"),
+            'category_id': None,
+
+            # Broker info (ACTUAL column names)
+            'broker_account': None,
+            'broker_contact': (raw_listing.get("brokercontactfullname") or
+                             raw_listing.get("brokerContactFullName")),
+            'broker_company': raw_listing.get("brokerCompany"),
+
+            # BizBuySell metadata (ACTUAL column names)
+            'list_number': list_number,
+            'url_stub': url_stub,
+            'region': raw_listing.get("region"),
+
+            # Status flags
             'status': 'pending',
+            'hot_property': raw_listing.get("hotProperty") == "true",
+            'recently_added': raw_listing.get("recentlyAdded") == "true",
+            'recently_updated': raw_listing.get("recentlyUpdated") == "true",
 
-            # Source/broker fields
-            'broker_id': None,  # Set by database or leave null
-            'source': 'BizBuySell',
-            'external_id': list_number,
-            'external_url': listing_url,
+            # Scraper tracking
+            'scraper_run_id': self.scraper_run_id,
 
-            # Media fields
-            'images': [image_url] if image_url else [],
-            'documents': [],
-
-            # SEO fields
-            'meta_title': title_text,
-            'meta_description': raw_listing.get("description", "")[:160] if raw_listing.get("description") else None,
-
-            # Custom fields (store extra BizBuySell data as JSON)
-            'custom_fields': {
-                'bizbuysell': {
-                    'list_number': list_number,
-                    'url_stub': url_stub,
-                    'broker_company': raw_listing.get("brokerCompany"),
-                    'broker_contact': (raw_listing.get("brokercontactfullname") or
-                                     raw_listing.get("brokerContactFullName")),
-                    'region': raw_listing.get("region"),
-                    'hot_property': raw_listing.get("hotProperty") == "true",
-                    'recently_added': raw_listing.get("recentlyAdded") == "true",
-                    'recently_updated': raw_listing.get("recentlyUpdated") == "true",
-                }
-            },
-
-            # Timestamps - only include created_at and updated_at
-            # Skip: created_by, updated_by, published_at, archived_at
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'updated_at': datetime.now(timezone.utc).isoformat(),
+            # Note: created_at and updated_at will be set by database defaults
         }
 
     def scrape_listings(self, max_pages: int = 100, workers: int = 10) -> List[Dict[str, Any]]:
