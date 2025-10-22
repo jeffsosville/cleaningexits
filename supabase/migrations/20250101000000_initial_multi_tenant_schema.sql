@@ -676,7 +676,7 @@ SELECT
   SUM(final_price) as total_value,
   AVG(final_price) as avg_deal_size,
   SUM(commission_amount) as total_commission,
-  AVG(EXTRACT(EPOCH FROM (actual_close_date - offer_date))/86400) as avg_days_to_close
+  AVG(actual_close_date - offer_date) as avg_days_to_close
 FROM deals
 WHERE actual_close_date IS NOT NULL
 GROUP BY vertical_id, status;
