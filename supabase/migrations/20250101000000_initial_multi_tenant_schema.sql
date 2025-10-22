@@ -342,29 +342,39 @@ ALTER TABLE scraper_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scraper_logs ENABLE ROW LEVEL SECURITY;
 
 -- ----------------------------------------------------------------------------
--- HELPER FUNCTION: Get user's vertical from JWT
+-- HELPER FUNCTIONS: Extract JWT claims for RLS policies
 -- ----------------------------------------------------------------------------
--- This function extracts the vertical_id from the JWT token
--- You'll need to set this in your auth token claims
-CREATE OR REPLACE FUNCTION auth.user_vertical()
+-- These functions are in the PUBLIC schema (not auth schema) to avoid
+-- permission issues in standard Supabase projects.
+--
+-- JWT claims should include:
+-- - vertical_id: The user's vertical (cleaning, landscape, hvac)
+-- - broker_id: UUID if user is a broker
+-- - role: User role (admin, broker, user)
+--
+-- These are automatically set by Supabase Auth and accessible via
+-- current_setting('request.jwt.claims')
+
+-- Get user's vertical from JWT claims
+CREATE OR REPLACE FUNCTION public.user_vertical()
 RETURNS vertical_slug AS $$
   SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'vertical_id', '')::vertical_slug;
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Helper function to check if user is admin
-CREATE OR REPLACE FUNCTION auth.is_admin()
+-- Check if user has admin role
+CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean AS $$
   SELECT COALESCE(
     (current_setting('request.jwt.claims', true)::json->>'role') = 'admin',
     false
   );
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Helper function to get user's broker_id from JWT
-CREATE OR REPLACE FUNCTION auth.user_broker_id()
+-- Get user's broker_id from JWT claims
+CREATE OR REPLACE FUNCTION public.user_broker_id()
 RETURNS UUID AS $$
   SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'broker_id', '')::UUID;
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- ----------------------------------------------------------------------------
 -- BROKERS: Admin can see all, brokers can see themselves
@@ -373,21 +383,21 @@ CREATE POLICY "Brokers: Admin full access"
   ON brokers
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Brokers: View own profile"
   ON brokers
   FOR SELECT
   TO authenticated
-  USING (id = auth.user_broker_id());
+  USING (id = public.user_broker_id());
 
 CREATE POLICY "Brokers: Update own profile"
   ON brokers
   FOR UPDATE
   TO authenticated
-  USING (id = auth.user_broker_id())
-  WITH CHECK (id = auth.user_broker_id());
+  USING (id = public.user_broker_id())
+  WITH CHECK (id = public.user_broker_id());
 
 -- Public read access for active brokers (for public directory)
 CREATE POLICY "Brokers: Public read active"
@@ -403,14 +413,14 @@ CREATE POLICY "Broker Verticals: Admin full access"
   ON broker_verticals
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Broker Verticals: Brokers view own"
   ON broker_verticals
   FOR SELECT
   TO authenticated
-  USING (broker_id = auth.user_broker_id());
+  USING (broker_id = public.user_broker_id());
 
 CREATE POLICY "Broker Verticals: Public read"
   ON broker_verticals
@@ -425,26 +435,26 @@ CREATE POLICY "Listings: Admin full access"
   ON listings
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Listings: Vertical isolation for authenticated"
   ON listings
   FOR SELECT
   TO authenticated
-  USING (vertical_id = auth.user_vertical() OR auth.is_admin());
+  USING (vertical_id = public.user_vertical() OR public.is_admin());
 
 CREATE POLICY "Listings: Brokers manage own listings"
   ON listings
   FOR ALL
   TO authenticated
   USING (
-    broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   )
   WITH CHECK (
-    broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   );
 
 -- Public read access for active listings
@@ -461,17 +471,17 @@ CREATE POLICY "Leads: Admin full access"
   ON leads
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Leads: Vertical isolation"
   ON leads
   FOR SELECT
   TO authenticated
   USING (
-    vertical_id = auth.user_vertical()
-    OR assigned_broker_id = auth.user_broker_id()
-    OR auth.is_admin()
+    vertical_id = public.user_vertical()
+    OR assigned_broker_id = public.user_broker_id()
+    OR public.is_admin()
   );
 
 CREATE POLICY "Leads: Brokers manage assigned leads"
@@ -479,12 +489,12 @@ CREATE POLICY "Leads: Brokers manage assigned leads"
   FOR ALL
   TO authenticated
   USING (
-    assigned_broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    assigned_broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   )
   WITH CHECK (
-    assigned_broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    assigned_broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   );
 
 -- Allow lead creation from public forms
@@ -501,17 +511,17 @@ CREATE POLICY "Deals: Admin full access"
   ON deals
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Deals: Vertical isolation"
   ON deals
   FOR SELECT
   TO authenticated
   USING (
-    vertical_id = auth.user_vertical()
-    OR broker_id = auth.user_broker_id()
-    OR auth.is_admin()
+    vertical_id = public.user_vertical()
+    OR broker_id = public.user_broker_id()
+    OR public.is_admin()
   );
 
 CREATE POLICY "Deals: Brokers manage own deals"
@@ -519,12 +529,12 @@ CREATE POLICY "Deals: Brokers manage own deals"
   FOR ALL
   TO authenticated
   USING (
-    broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   )
   WITH CHECK (
-    broker_id = auth.user_broker_id()
-    AND vertical_id = auth.user_vertical()
+    broker_id = public.user_broker_id()
+    AND vertical_id = public.user_vertical()
   );
 
 -- ----------------------------------------------------------------------------
@@ -534,14 +544,14 @@ CREATE POLICY "Scraper Runs: Admin full access"
   ON scraper_runs
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Scraper Runs: Vertical isolation"
   ON scraper_runs
   FOR SELECT
   TO authenticated
-  USING (vertical_id = auth.user_vertical() OR auth.is_admin());
+  USING (vertical_id = public.user_vertical() OR public.is_admin());
 
 -- ----------------------------------------------------------------------------
 -- SCRAPER_LOGS: Admin only
@@ -550,8 +560,8 @@ CREATE POLICY "Scraper Logs: Admin full access"
   ON scraper_logs
   FOR ALL
   TO authenticated
-  USING (auth.is_admin())
-  WITH CHECK (auth.is_admin());
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 -- ============================================================================
 -- TRIGGERS FOR AUTOMATIC TIMESTAMP UPDATES
