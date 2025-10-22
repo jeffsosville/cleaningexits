@@ -88,30 +88,32 @@ export default function VerticalDemo({ serverTime }: VerticalDemoProps) {
                   key={category.id}
                   className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <h3 className="font-semibold text-lg mb-2">
-                    {category.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3">
-                    {category.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {category.subcategories.slice(0, 3).map((sub) => (
+                  <div className="flex items-start gap-3">
+                    {category.icon && (
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                        style={{ backgroundColor: vertical.info.brandColor }}
+                      >
+                        {category.icon.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-1">
+                        {category.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {category.description}
+                      </p>
                       <span
-                        key={sub}
-                        className="text-xs px-2 py-1 rounded"
+                        className="inline-block mt-2 text-xs px-2 py-1 rounded"
                         style={{
                           backgroundColor: `${vertical.info.brandColor}20`,
                           color: vertical.info.brandColor,
                         }}
                       >
-                        {sub}
+                        ID: {category.id}
                       </span>
-                    ))}
-                    {category.subcategories.length > 3 && (
-                      <span className="text-xs text-gray-500">
-                        +{category.subcategories.length - 3} more
-                      </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
