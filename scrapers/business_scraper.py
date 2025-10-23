@@ -78,13 +78,14 @@ VERTICAL_CONFIGS = {
 # ============================================================================
 
 class BizBuySellScraper:
-    def __init__(self, vertical_slug='cleaning', use_database=True):
+    def __init__(self, vertical_slug='cleaning', use_database=True, use_proxy=True):
         """
         Initialize scraper
 
         Args:
             vertical_slug: 'cleaning', 'landscape', or 'hvac'
             use_database: If True, save to PostgreSQL. If False, save to JSON file.
+            use_proxy: If False, bypass proxy settings (default: True)
         """
         if vertical_slug not in VERTICAL_CONFIGS:
             raise ValueError(f"Invalid vertical: {vertical_slug}. Choose from: {list(VERTICAL_CONFIGS.keys())}")
@@ -93,7 +94,12 @@ class BizBuySellScraper:
         self.vertical_config = VERTICAL_CONFIGS[vertical_slug]
         self.use_database = use_database
 
-        self.session = requests.Session(impersonate="chrome")
+        # Initialize session with or without proxy
+        if use_proxy:
+            self.session = requests.Session(impersonate="chrome")
+        else:
+            print(f"{Fore.YELLOW}⚠️  Proxy disabled - using direct connection")
+            self.session = requests.Session(impersonate="chrome", proxies={})
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -546,6 +552,8 @@ if __name__ == "__main__":
                         help='Save to JSON file instead of database')
     parser.add_argument('--both', action='store_true',
                         help='Save to both database and JSON file')
+    parser.add_argument('--no-proxy', action='store_true',
+                        help='Bypass proxy settings and use direct connection')
 
     args = parser.parse_args()
 
@@ -553,7 +561,8 @@ if __name__ == "__main__":
     use_database = not args.json
     scraper = BizBuySellScraper(
         vertical_slug=args.vertical,
-        use_database=use_database
+        use_database=use_database,
+        use_proxy=not args.no_proxy
     )
 
     # Run scraper

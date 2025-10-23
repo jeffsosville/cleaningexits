@@ -167,6 +167,19 @@ TOP 10 BROKERS BY NUMBER OF LISTINGS
    ...
 ```
 
+### Use Case 6: Proxy Network Down
+
+If your proxy network is unavailable, bypass it with direct connection:
+
+```bash
+python business_scraper.py --vertical cleaning --no-proxy --max-pages 100
+```
+
+Output includes:
+```
+⚠️  Proxy disabled - using direct connection
+```
+
 ---
 
 ## 🛠️ Command Reference
@@ -186,6 +199,7 @@ python business_scraper.py --help
 --state XX      # State code filter (e.g., CA, NY, TX)
 --json          # Save to JSON instead of database
 --both          # Save to both database and JSON
+--no-proxy      # Bypass proxy settings (use direct connection)
 ```
 
 ### combiner.py
