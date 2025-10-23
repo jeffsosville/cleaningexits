@@ -10,6 +10,7 @@ Production-ready scrapers for BizBuySell with PostgreSQL integration, vertical f
 |------|---------|
 | `business_scraper.py` | Main scraper (original from bbs-listings-scraper) |
 | `combiner.py` | Combines JSON files and imports to database |
+| `broker_analyzer.py` | Analyzes broker performance from listings |
 | `requirements.txt` | Python dependencies |
 | `.env.example` | Environment variables template |
 | `README_COMPLETE_SCRAPER.md` | Detailed documentation |
@@ -141,6 +142,31 @@ Scrape everything:
 python business_scraper.py --vertical cleaning --max-pages 1000 --workers 20
 ```
 
+### Use Case 5: Broker Performance Analysis
+
+Analyze which brokers have the most listings:
+
+```bash
+# Scrape to JSON
+python business_scraper.py --vertical cleaning --json --max-pages 500
+
+# Analyze broker performance
+python broker_analyzer.py --input bizbuysell_cleaning_listings.json
+```
+
+Expected output:
+```
+TOP 10 BROKERS BY NUMBER OF LISTINGS
+#1 Acme Business Brokers
+   Listings: 45 | Avg Price: $350,000
+   Contact: John Smith | (555) 123-4567
+   Profile: https://www.bizbuysell.com/broker/...
+
+#2 Superior Business Sales
+   Listings: 38 | Avg Price: $425,000
+   ...
+```
+
 ---
 
 ## 🛠️ Command Reference
@@ -176,6 +202,25 @@ python combiner.py --prefix "bizbuysell_" --database --vertical cleaning
 
 # Combine without filtering
 python combiner.py --prefix "bizbuysell_" --no-filter --database
+```
+
+### broker_analyzer.py
+
+```bash
+# Show help
+python broker_analyzer.py --help
+
+# Analyze default file (bizbuysell_all_listings.json)
+python broker_analyzer.py
+
+# Analyze specific JSON file
+python broker_analyzer.py --input bizbuysell_cleaning_listings.json
+
+# Custom output files
+python broker_analyzer.py --output-csv my_brokers.csv --output-json my_brokers.json
+
+# Skip intermediate brokers.json file
+python broker_analyzer.py --no-brokers-json
 ```
 
 ---
@@ -288,6 +333,22 @@ python business_scraper.py --vertical cleaning --both --max-pages 500
 This creates:
 - Database entries with `is_active=true`, `quality_score`, etc.
 - JSON file: `bizbuysell_cleaning_listings.json`
+
+### Example 5: Analyze Broker Performance
+
+```bash
+# First scrape to JSON
+python business_scraper.py --vertical cleaning --json --max-pages 500
+
+# Then analyze brokers
+python broker_analyzer.py --input bizbuysell_cleaning_listings.json
+```
+
+Output includes:
+- `brokers.json` - Full data grouped by broker
+- `brokers_report.csv` - Ranked broker performance table
+- `brokers_report.json` - JSON version for parsing
+- Console output showing top 10 brokers with stats
 
 ---
 
