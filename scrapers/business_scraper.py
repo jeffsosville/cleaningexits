@@ -93,13 +93,13 @@ class BizBuySellScraper:
         self.vertical_slug = vertical_slug
         self.vertical_config = VERTICAL_CONFIGS[vertical_slug]
         self.use_database = use_database
+        self.use_proxy = use_proxy
 
-        # Initialize session with or without proxy
-        if use_proxy:
-            self.session = requests.Session(impersonate="chrome")
-        else:
+        # Initialize session
+        self.session = requests.Session(impersonate="chrome")
+
+        if not use_proxy:
             print(f"{Fore.YELLOW}⚠️  Proxy disabled - using direct connection")
-            self.session = requests.Session(impersonate="chrome", proxies={})
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -149,9 +149,14 @@ class BizBuySellScraper:
         print(f"{Fore.CYAN}[*] Obtaining authentication token...")
 
         try:
+            # Prepare request kwargs
+            kwargs = {'headers': self.headers}
+            if not self.use_proxy:
+                kwargs['proxies'] = {'http': None, 'https': None}
+
             response = self.session.get(
                 'https://www.bizbuysell.com/businesses-for-sale/new-york-ny/',
-                headers=self.headers
+                **kwargs
             )
 
             # Extract token from cookies
@@ -379,10 +384,17 @@ class BizBuySellScraper:
             payload["bfsSearchCriteria"]["pageNumber"] = page_number
 
             try:
+                # Prepare request kwargs
+                kwargs = {
+                    'headers': api_headers,
+                    'json': payload
+                }
+                if not self.use_proxy:
+                    kwargs['proxies'] = {'http': None, 'https': None}
+
                 response = self.session.post(
                     'https://api.bizbuysell.com/bff/v2/BbsBfsSearchResults',
-                    headers=api_headers,
-                    json=payload
+                    **kwargs
                 )
 
                 if response.status_code == 200:
