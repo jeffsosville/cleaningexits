@@ -58,7 +58,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return { notFound: true };
   }
 
-  // Map cleaning_listings_merge fields to Listing type
   const listing = {
     id: data.id,
     listing_id: data.id,
