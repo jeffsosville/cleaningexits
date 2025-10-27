@@ -200,9 +200,23 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
               {(listing.contact_name || listing.broker_account) && (
                 <div className="bg-gray-50 p-6 rounded-lg border">
                   <h3 className="font-bold text-lg mb-3">Broker Information</h3>
-                  {listing.contact_name && <div><span className="font-semibold">Contact:</span> {listing.contact_name}</div>}
-                  {listing.contact_phone && <div><span className="font-semibold">Phone:</span> {listing.contact_phone}</div>}
-                  {listing.broker_account && <div><span className="font-semibold">Broker:</span> {listing.broker_account}</div>}
+                  <div className="space-y-2">
+                    {listing.contact_name && (
+                      <div>
+                        <span className="font-semibold">Contact:</span> {listing.contact_name}
+                      </div>
+                    )}
+                    {listing.contact_phone && (
+                      <div>
+                        <span className="font-semibold">Phone:</span> {listing.contact_phone}
+                      </div>
+                    )}
+                    {listing.broker_account && (
+                      <div>
+                        <span className="font-semibold">Broker:</span> {listing.broker_account}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -236,7 +250,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg mb-3 focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                     <button
                       onClick={handleSubscribe}
