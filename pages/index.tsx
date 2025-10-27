@@ -33,31 +33,9 @@ const money = (n?: number | null) =>
       });
 
 export async function getServerSideProps() {
-  const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
-  const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
-
-  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%";
-  
-  const EXCLUDES = [
-    "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
-    "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
-    "%construction%", "%roofing%", "%plumbing%", "%hvac%", "%landscap%",
-    "%pest%", "%security%", "%catering%"
-  ];
-
-  let q = supabase
-    .from("listings")
-    .select("listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, scraped_at, why_hot")
-    .or(includeOr)
-    .gte("scraped_at", days90agoISO)
-    .eq("is_active", true);
-
-  for (const x of EXCLUDES) q = q.not("title", "ilike", x);
-
-  const { data, error } = await q
-    .order("cash_flow", { ascending: false, nullsFirst: false })
-    .order("price", { ascending: false, nullsFirst: false })
-    .order("scraped_at", { ascending: false })
+  const { data, error } = await supabase
+    .from("top_10_commercial_cleaning")
+    .select("*")
     .limit(10);
 
   const top10 = (data ?? []).map((r: any) => ({
@@ -91,7 +69,7 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Exits — 847 Verified Commercial Cleaning Businesses For Sale</title>
+        <title>Cleaning Exits — 760 Verified Commercial Cleaning Businesses For Sale</title>
         <meta name="description" content="No franchises. No maid services. No BS." />
       </Head>
 
@@ -104,7 +82,7 @@ export default function Home({
             Cleaning Exits
           </h1>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
-            847 Verified Commercial Cleaning Businesses
+            760 Verified Commercial Cleaning Businesses
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
             No franchises. No maid services. No dead listings.
@@ -135,7 +113,7 @@ export default function Home({
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">847</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">760</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
               </div>
               <div>
@@ -267,7 +245,7 @@ export default function Home({
           <div className="rounded-2xl border border-gray-200 p-6 bg-white">
             <h3 className="font-bold text-lg mb-2">The Cleaning Index</h3>
             <p className="text-gray-600 mb-4">
-              Browse all 847 verified cleaning business listings. See which are real and where to find them.
+              Browse all 760 verified cleaning business listings. See which are real and where to find them.
             </p>
             <Link
               href="/cleaning-index"
