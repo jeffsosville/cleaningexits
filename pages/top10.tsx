@@ -104,7 +104,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
@@ -121,7 +120,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
           </div>
         </header>
 
-        {/* Hero */}
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="text-center mb-12">
             <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
@@ -136,12 +134,11 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
           {hadError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p className="text-red-800">
-                Couldn't load Top 10. {errMsg ?? "Check connection."}
+                Could not load Top 10. {errMsg ?? "Check connection."}
               </p>
             </div>
           )}
 
-          {/* Listings */}
           <div className="space-y-6">
             {listings.map((listing, index) => {
               const multiple = calculateMultiple(listing.price, listing.revenue);
@@ -152,7 +149,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                   className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-200"
                 >
                   <div className="flex flex-col md:flex-row">
-                    {/* Rank Badge */}
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-6 flex items-center justify-center md:w-24">
                       <div className="text-center">
                         <div className="text-4xl font-bold">#{index + 1}</div>
@@ -162,7 +158,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                       </div>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
@@ -183,7 +178,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                         </div>
                       </div>
 
-                      {/* Key Metrics */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="bg-blue-50 rounded-lg p-3">
                           <div className="text-xs text-gray-600 mb-1">Asking Price</div>
@@ -213,7 +207,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                         )}
                       </div>
 
-                      {/* Why Hot */}
                       {listing.why_hot && (
                         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                           <div className="flex items-start">
@@ -226,14 +219,12 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                         </div>
                       )}
 
-                      {/* Description Preview */}
                       {listing.description && (
                         <p className="text-gray-700 text-sm mb-4 line-clamp-2">
                           {listing.description}
                         </p>
                       )}
 
-                      {/* Actions */}
                       <div className="flex gap-3">
                         {listing.listing_id ? (
                           <Link
@@ -271,7 +262,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
             })}
           </div>
 
-          {/* CTA */}
           <div className="mt-12 bg-white rounded-xl shadow-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Want alerts for new top deals?
