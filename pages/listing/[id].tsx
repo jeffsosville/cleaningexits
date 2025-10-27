@@ -49,21 +49,47 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
   const { data, error } = await supabase
-    .from('listings')
+    .from('cleaning_listings_merge')
     .select('*')
-    .eq('listing_id', id)
+    .eq('id', id)
     .single();
 
   if (error || !data) {
     return { notFound: true };
   }
 
+  const listing = {
+    id: data.id,
+    listing_id: data.id,
+    title: data.header,
+    price: data.price,
+    price_text: null,
+    location: data.location,
+    city: data.city,
+    state: data.state,
+    description: data.notes,
+    business_type: null,
+    category: null,
+    revenue: data.revenue,
+    cash_flow: data.cash_flow,
+    established_year: null,
+    employees: null,
+    listing_url: data.direct_broker_url || data.url || '#',
+    image_url: data.image_url,
+    broker_account: data.broker_account,
+    why_hot: null,
+    curator_note: null,
+    verified_date: data.scraped_at,
+    quality_score: null,
+    featured_rank: null,
+    scraped_at: data.scraped_at,
+  };
+
   return {
     props: {
-      listing: data,
+      listing,
     },
   };
-};
 
 export default function ListingDetail({ listing }: { listing: Listing }) {
   const [showBrokerContact, setShowBrokerContact] = useState(false);
