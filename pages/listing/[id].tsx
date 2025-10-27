@@ -1,5 +1,6 @@
 // pages/listing/[id].tsx
 import { useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
@@ -80,7 +81,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
   const handleSubscribe = () => {
     if (email) {
       setSubmitted(true);
-      // TODO: Call your subscribe API
     }
   };
 
@@ -98,13 +98,12 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
   const roi = calculateROI();
 
   return (
-    <>
+    <React.Fragment>
       <Head>
         <title>{listing.title || 'Cleaning Business'} | Cleaning Exits</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
         <header className="bg-white border-b">
           <div className="max-w-6xl mx-auto px-4 py-4">
             <Link href="/" className="text-emerald-600 hover:text-emerald-700 font-semibold">
@@ -113,14 +112,11 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="max-w-6xl mx-auto px-4 py-8">
           <div className="grid lg:grid-cols-3 gap-8">
             
-            {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               
-              {/* Source Badge */}
               <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${
                 listing.source === 'direct_scraped' 
                   ? 'bg-blue-100 text-blue-800' 
@@ -129,19 +125,16 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 {listing.source === 'direct_scraped' ? '🎯 Direct Broker' : '📊 BizBuySell'}
               </span>
 
-              {/* Title */}
               <h1 className="text-4xl font-bold text-gray-900">
                 {listing.title || 'Commercial Cleaning Business'}
               </h1>
 
-              {/* Location */}
               {(listing.location || listing.city || listing.state) && (
                 <div className="text-lg text-gray-600">
                   📍 {listing.location || `${listing.city || ''}${listing.city && listing.state ? ', ' : ''}${listing.state || ''}`}
                 </div>
               )}
 
-              {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-lg border">
                   <div className="text-sm text-gray-600">Price</div>
@@ -167,7 +160,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 )}
               </div>
 
-              {/* Investment Analysis */}
               {(roi || listing.ebitda) && (
                 <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg">
                   <h3 className="font-bold text-lg mb-4">📊 Investment Analysis</h3>
@@ -188,7 +180,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               )}
 
-              {/* Description */}
               <div className="bg-white p-6 rounded-lg border">
                 <h3 className="font-bold text-lg mb-4">About This Business</h3>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
@@ -196,7 +187,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </p>
               </div>
 
-              {/* Broker Info */}
               {(listing.contact_name || listing.broker_account) && (
                 <div className="bg-gray-50 p-6 rounded-lg border">
                   <h3 className="font-bold text-lg mb-3">Broker Information</h3>
@@ -220,7 +210,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               )}
 
-              {/* CTA */}
               <div className="flex gap-3">
                 {(listing.direct_broker_url || listing.listing_url) && (
                   
@@ -235,13 +224,12 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
               </div>
             </div>
 
-            {/* Right Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg border p-6 sticky top-6">
                 <h3 className="font-bold mb-4">Interested?</h3>
                 
                 {!submitted ? (
-                  <>
+                  <React.Fragment>
                     <p className="text-sm text-gray-600 mb-4">
                       Get updates on similar listings.
                     </p>
@@ -259,7 +247,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                     >
                       Subscribe
                     </button>
-                  </>
+                  </React.Fragment>
                 ) : (
                   <div className="bg-emerald-50 p-4 rounded-lg">
                     <p className="text-emerald-800">✓ Subscribed!</p>
@@ -280,6 +268,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
           </div>
         </main>
       </div>
-    </>
+    </React.Fragment>
   );
 }
