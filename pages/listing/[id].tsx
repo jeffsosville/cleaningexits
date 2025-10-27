@@ -1,6 +1,5 @@
 // pages/listing/[id].tsx
 import { useState } from 'react';
-import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
@@ -98,7 +97,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
   const roi = calculateROI();
 
   return (
-    <React.Fragment>
+    <div>
       <Head>
         <title>{listing.title || 'Cleaning Business'} | Cleaning Exits</title>
       </Head>
@@ -229,7 +228,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 <h3 className="font-bold mb-4">Interested?</h3>
                 
                 {!submitted ? (
-                  <React.Fragment>
+                  <div>
                     <p className="text-sm text-gray-600 mb-4">
                       Get updates on similar listings.
                     </p>
@@ -247,7 +246,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                     >
                       Subscribe
                     </button>
-                  </React.Fragment>
+                  </div>
                 ) : (
                   <div className="bg-emerald-50 p-4 rounded-lg">
                     <p className="text-emerald-800">✓ Subscribed!</p>
@@ -268,6 +267,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
           </div>
         </main>
       </div>
-    </React.Fragment>
+    </div>
   );
 }
