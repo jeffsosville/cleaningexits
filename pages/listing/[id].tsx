@@ -90,6 +90,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       listing,
     },
   };
+};
 
 export default function ListingDetail({ listing }: { listing: Listing }) {
   const [showBrokerContact, setShowBrokerContact] = useState(false);
