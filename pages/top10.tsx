@@ -44,32 +44,9 @@ const money = (n?: number | null) =>
       });
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  // Same include/exclude logic as your index page
-  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%,title.ilike.%window cleaning%,title.ilike.%carpet cleaning%,title.ilike.%pressure wash%,title.ilike.%power wash%";
-  
-  const EXCLUDES = [
-    "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
-    "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
-    "%construction%", "%contractor%", "%roofing%", "%plumbing%", "%hvac%", 
-    "%landscap%", "%pest%", "%security%", "%catering%", "%lawn%", "%painting%",
-    "%glass%", "%electrical%"
-  ];
-
-  let q = supabase
-    .from("listings")
-    .select("id, listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, broker_account, why_hot, quality_score, established_year, employees")
-    .or(includeOr)
-    .eq("is_active", true)
-    .gt("price", 0);
-
-  for (const x of EXCLUDES) {
-    q = q.not("title", "ilike", x);
-  }
-
-  const { data, error } = await q
-    .order("quality_score", { ascending: false, nullsFirst: false })
-    .order("revenue", { ascending: false, nullsFirst: false })
-    .order("price", { ascending: false })
+  const { data, error } = await supabase
+    .from("top_10_commercial_cleaning")
+    .select("*")
     .limit(10);
 
   if (error || !data) {
@@ -83,7 +60,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
   }
 
   const listings = data.map((r) => ({
-    id: r.id,
+    id: r.listing_id,
     listing_id: r.listing_id ?? null,
     title: r.title ?? null,
     city: r.city ?? null,
@@ -95,10 +72,10 @@ export const getServerSideProps: GetServerSideProps = async () => {
     description: r.description ?? null,
     listing_url: r.listing_url ?? null,
     broker_account: r.broker_account ?? null,
-    why_hot: r.why_hot ?? null,
+    why_hot: null,
     quality_score: r.quality_score ?? null,
-    established_year: r.established_year ?? null,
-    employees: r.employees ?? null,
+    established_year: null,
+    employees: null,
   }));
 
   return { 
@@ -180,7 +157,7 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                       <div className="text-center">
                         <div className="text-4xl font-bold">#{index + 1}</div>
                         {listing.quality_score && (
-                          <div className="text-xs mt-1 opacity-90">Score: {listing.quality_score}</div>
+                          <div className="text-xs mt-1 opacity-90">Score: {Math.round(listing.quality_score)}</div>
                         )}
                       </div>
                     </div>
@@ -271,7 +248,7 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
                           </div>
                         )}
                         {listing.listing_url && (
-                          <a
+                          
                             href={listing.listing_url}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -302,15 +279,13 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
             <p className="text-gray-600 mb-6">
               Subscribe to get weekly updates when we refresh the Top 10
             </p>
-            <div className="max-w-md mx-auto flex gap-2">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                Subscribe
-              </button>
+            <div className="max-w-md mx-auto">
+              <Link
+                href="/subscribe"
+                className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Subscribe for Weekly Updates
+              </Link>
             </div>
           </div>
         </div>
