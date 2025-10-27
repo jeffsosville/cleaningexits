@@ -1,4 +1,4 @@
-// pages/listing/[id].tsx
+/ pages/listing/[id].tsx
 import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -49,45 +49,18 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
   const { data, error } = await supabase
-    .from('cleaning_listings_merge')
+    .from('listings')
     .select('*')
-    .eq('id', id)
+    .eq('listing_id', id)
     .single();
 
   if (error || !data) {
     return { notFound: true };
   }
 
-  const listing = {
-    id: data.id,
-    listing_id: data.id,
-    title: data.header,
-    price: data.price,
-    price_text: null,
-    location: data.location,
-    city: data.city,
-    state: data.state,
-    description: data.notes,
-    business_type: null,
-    category: null,
-    revenue: data.revenue,
-    cash_flow: data.cash_flow,
-    established_year: null,
-    employees: null,
-    listing_url: data.direct_broker_url || data.url || '#',
-    image_url: data.image_url,
-    broker_account: data.broker_account,
-    why_hot: null,
-    curator_note: null,
-    verified_date: data.scraped_at,
-    quality_score: null,
-    featured_rank: null,
-    scraped_at: data.scraped_at,
-  };
-
   return {
     props: {
-      listing,
+      listing: data,
     },
   };
 };
@@ -270,7 +243,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
 
               {/* View Original Listing */}
               <div className="flex gap-3">
-                
+                <a
                   href={listing.listing_url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -315,7 +288,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                     <p className="text-sm text-emerald-800 mb-3">
                       Check your email for broker details and next steps.
                     </p>
-                    
+                    <a
                       href={listing.listing_url}
                       target="_blank"
                       rel="noopener noreferrer"
