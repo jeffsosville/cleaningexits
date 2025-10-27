@@ -94,7 +94,7 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
   };
 
   return (
-    <>
+    <div>
       <Head>
         <title>Top 10 Cleaning Businesses For Sale | CleaningExits</title>
         <meta
@@ -290,6 +290,6 @@ export default function Top10({ listings, hadError, errMsg }: Props) {
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }
