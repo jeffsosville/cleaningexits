@@ -51,7 +51,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { data, error } = await supabase
     .from('cleaning_listings_merge')
     .select('*')
-    .eq('listing_id', id)
+    .eq('id', id)
     .single();
 
   if (error || !data) {
