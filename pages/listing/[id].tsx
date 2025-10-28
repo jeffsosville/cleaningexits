@@ -48,13 +48,18 @@ const money = (n?: number | null) =>
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
-  const { data, error } = await supabase
+const { data, error } = await supabase
     .from('cleaning_listings_merge')
     .select('*')
     .eq('id', id)
     .single();
 
+  console.log('Query ID:', id);
+  console.log('Error:', error);
+  console.log('Data:', data);
+
   if (error || !data) {
+    console.log('Returning 404');
     return { notFound: true };
   }
 
