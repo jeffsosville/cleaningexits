@@ -41,43 +41,15 @@ const money = (n?: number | null) =>
       });
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  // Include cleaning-related terms
-  const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%,title.ilike.%window cleaning%,title.ilike.%carpet cleaning%,title.ilike.%pressure wash%,title.ilike.%power wash%";
-  
-  // Exclude non-cleaning businesses
-  const EXCLUDES = [
-    "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
-    "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
-    "%construction%", "%contractor%", "%roofing%", "%plumbing%", "%hvac%", 
-    "%landscap%", "%pest%", "%security%", "%catering%", "%lawn%", "%painting%",
-    "%glass%", "%electrical%"
-  ];
-
   // Get total count
-  let countQuery = supabase
-    .from("listings")
-    .select("listing_id", { count: "exact", head: true })
-    .or(includeOr)
-    .eq("is_active", true);
-
-  for (const x of EXCLUDES) {
-    countQuery = countQuery.not("title", "ilike", x);
-  }
-
-  const { count } = await countQuery;
+  const { count } = await supabase
+    .from("cleaning_listings_merge")
+    .select("id", { count: "exact", head: true });
 
   // Get all listings
-  let q = supabase
-    .from("listings")
-    .select("listing_id, title, city, state, location, price, cash_flow, revenue, description, listing_url, broker_account, scraped_at")
-    .or(includeOr)
-    .eq("is_active", true);
-
-  for (const x of EXCLUDES) {
-    q = q.not("title", "ilike", x);
-  }
-
-  const { data, error } = await q
+  const { data, error } = await supabase
+    .from("cleaning_listings_merge")
+    .select("id, header, city, state, location, price, cash_flow, revenue, notes, url, direct_broker_url, broker_account, scraped_at")
     .order("scraped_at", { ascending: false })
     .limit(1000);
 
@@ -93,16 +65,16 @@ export const getServerSideProps: GetServerSideProps = async () => {
   }
 
   const listings = data.map((r) => ({
-    listing_id: r.listing_id ?? null,
-    title: r.title ?? null,
+    listing_id: r.id ?? null,
+    title: r.header ?? null,
     city: r.city ?? null,
     state: r.state ?? null,
     location: r.location ?? null,
     price: r.price ?? null,
     cash_flow: r.cash_flow ?? null,
     revenue: r.revenue ?? null,
-    description: r.description ?? null,
-    listing_url: r.listing_url ?? null,
+    description: r.notes ?? null,
+    listing_url: r.direct_broker_url || r.url ?? null,
     broker_account: r.broker_account ?? null,
     scraped_at: r.scraped_at ?? null,
   }));
