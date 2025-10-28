@@ -81,13 +81,13 @@ def calculate_sba_financing(asking_price, cash_flow):
 def generate_deep_dive_html(listing):
     """Generate comprehensive deep dive analysis HTML"""
     
-    header = listing.get('header', 'Commercial Cleaning Business')
+    title = listing.get('title') or listing.get('header', 'Commercial Cleaning Business')
     location = listing.get('location', 'United States')
     price = listing.get('price')
     cash_flow = listing.get('cash_flow')
     revenue = listing.get('revenue')
     ebitda = listing.get('ebitda')
-    notes = listing.get('notes', '')
+    notes = listing.get('description') or listing.get('notes', '')
     
     # Calculate margin if we have data
     margin = None
@@ -208,12 +208,13 @@ def generate_deep_dive_html(listing):
     """
 
     # Add action section
+    listing_url = listing.get('listing_url') or listing.get('url', '#')
     html += f"""
         <h3>Take Action on This Opportunity</h3>
         <div class="cta-section">
             <p>Ready to learn more about this listing?</p>
             <div class="cta-buttons">
-                <a href="{listing.get('url', '#')}" class="btn-primary" target="_blank" rel="noopener">View Full Listing →</a>
+                <a href="{listing_url}" class="btn-primary" target="_blank" rel="noopener">View Full Listing →</a>
                 <a href="/contact" class="btn-secondary">Need SBA Financing?</a>
             </div>
         </div>
@@ -381,16 +382,17 @@ def main():
         print(f"Found {len(listings)} listings to process\n")
         
         for i, listing in enumerate(listings, 1):
-            header = listing.get('header', 'Untitled')
-            print(f"Processing {i}/{len(listings)}: {header[:60]}...")
+            title = listing.get('title') or listing.get('header', 'Untitled')
+            print(f"Processing {i}/{len(listings)}: {title[:60]}...")
             
             # Generate deep dive
             deep_dive_html = generate_deep_dive_html(listing)
             
             # Update the record in cleaning_listings_merge
+            listing_id = listing.get('listing_id') or listing.get('id')
             update_result = supabase.table("cleaning_listings_merge").update({
                 'deep_dive_html': deep_dive_html
-            }).eq('id', listing['id']).execute()
+            }).eq('id', listing_id).execute()
             
             print(f"  ✓ Generated {len(deep_dive_html):,} characters of analysis")
         
