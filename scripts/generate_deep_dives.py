@@ -90,6 +90,7 @@ def generate_deep_dive_html(listing):
     notes = listing.get('notes', '')
     
     # Calculate margin if we have data
+    margin = None
     margin_text = ""
     if cash_flow and revenue and revenue > 0:
         margin = (cash_flow / revenue) * 100
@@ -129,6 +130,7 @@ def generate_deep_dive_html(listing):
 
     # Add valuation section if we have data
     if low and high and likely:
+        multiple = price / cash_flow if price and cash_flow else 0
         html += f"""
         <h3>The Valuation Play</h3>
         <div class="valuation-analysis">
@@ -138,7 +140,7 @@ def generate_deep_dive_html(listing):
                 <p><strong>Typical multiples for this profile:</strong></p>
                 <ul>
                     <li>Base multiple for cleaning businesses: 2.5-3.5x SDE</li>
-                    {"<li>Premium for strong margins: +0.3-0.5x</li>" if margin_text else ""}
+                    {"<li>Premium for strong margins: +0.3-0.5x</li>" if margin and margin >= 20 else ""}
                     {"<li>Premium for EBITDA documentation: +0.3x</li>" if ebitda else ""}
                 </ul>
                 
@@ -149,7 +151,7 @@ def generate_deep_dive_html(listing):
                     <li>Optimistic: ${high:,.0f} (premium multiple)</li>
                 </ul>
                 
-                {"<p><strong>Asking price of $" + f"{price:,}" + " represents " + f"{(price/cash_flow):.1f}x SDE" + "</strong> - " + ("a fair market rate" if price/cash_flow <= 3.5 else "slightly premium pricing") + "</p>" if price and cash_flow else ""}
+                {"<p><strong>Asking price of $" + f"{price:,}" + " represents " + f"{multiple:.1f}x SDE" + "</strong> - " + ("a fair market rate" if multiple <= 3.5 else "slightly premium pricing") + "</p>" if price and cash_flow else ""}
             </div>
         </div>
 """
@@ -365,53 +367,47 @@ def main():
     print("="*80)
     print()
     
-    # Note: Run this script from your local machine where network access works
-    # This is a template - you'll need to run it locally
-    
-    print("INSTRUCTIONS:")
-    print("1. Save this script to your local machine")
-    print("2. Install supabase: pip install supabase")
-    print("3. Run: python generate_deep_dives.py")
-    print()
-    print("The script will:")
-    print("  - Fetch all listings from top_10_commercial_cleaning view")
-    print("  - Generate comprehensive deep dive HTML for each")
-    print("  - Add 'deep_dive_html' column to cleaning_listings_merge if needed")
-    print("  - Update each top 10 listing with generated deep dive")
-    print()
-    print("Then in your Next.js frontend:")
-    print("  - Check if listing has deep_dive_html field")
-    print("  - If yes: render it with dangerouslySetInnerHTML")
-    print("  - If no: show basic listing info only")
-    print()
-    
-    # Uncomment below when running locally with network access
-    """
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    
-    print("Fetching top 10 listings...")
-    result = supabase.table("top_10_commercial_cleaning").select("*").execute()
-    listings = result.data
-    
-    print(f"Found {len(listings)} listings to process\n")
-    
-    for i, listing in enumerate(listings, 1):
-        print(f"Processing {i}/{len(listings)}: {listing.get('header', 'Untitled')[:50]}...")
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         
-        # Generate deep dive
-        deep_dive_html = generate_deep_dive_html(listing)
+        print("Fetching top 10 listings...")
+        result = supabase.table("top_10_commercial_cleaning").select("*").execute()
+        listings = result.data
         
-        # Update the record in cleaning_listings_merge
-        update_result = supabase.table("cleaning_listings_merge").update({
-            'deep_dive_html': deep_dive_html
-        }).eq('id', listing['id']).execute()
+        if not listings:
+            print("No listings found in top_10_commercial_cleaning view!")
+            return
         
-        print(f"  ✓ Generated {len(deep_dive_html)} characters of analysis")
-    
-    print(f"\n{'='*80}")
-    print(f"SUCCESS! Updated {len(listings)} listings with deep dive analysis")
-    print(f"{'='*80}")
-    """
+        print(f"Found {len(listings)} listings to process\n")
+        
+        for i, listing in enumerate(listings, 1):
+            header = listing.get('header', 'Untitled')
+            print(f"Processing {i}/{len(listings)}: {header[:60]}...")
+            
+            # Generate deep dive
+            deep_dive_html = generate_deep_dive_html(listing)
+            
+            # Update the record in cleaning_listings_merge
+            update_result = supabase.table("cleaning_listings_merge").update({
+                'deep_dive_html': deep_dive_html
+            }).eq('id', listing['id']).execute()
+            
+            print(f"  ✓ Generated {len(deep_dive_html):,} characters of analysis")
+        
+        print(f"\n{'='*80}")
+        print(f"SUCCESS! Updated {len(listings)} listings with deep dive analysis")
+        print(f"{'='*80}")
+        print("\nNext steps:")
+        print("1. Update your Next.js listing page to display deep_dive_html")
+        print("2. Deploy to see the deep dives live on your site")
+        
+    except Exception as e:
+        print(f"\n❌ ERROR: {e}")
+        print("\nTroubleshooting:")
+        print("1. Make sure you're connected to the internet")
+        print("2. Verify your Supabase credentials are correct")
+        print("3. Check that top_10_commercial_cleaning view exists")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
