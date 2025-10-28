@@ -74,7 +74,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     cash_flow: r.cash_flow ?? null,
     revenue: r.revenue ?? null,
     description: r.notes ?? null,
-    listing_url: r.direct_broker_url || r.url ?? null,
+    listing_url: r.direct_broker_url ?? r.url ?? null,
     broker_account: r.broker_account ?? null,
     scraped_at: r.scraped_at ?? null,
   }));
