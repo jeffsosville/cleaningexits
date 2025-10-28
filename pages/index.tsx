@@ -134,7 +134,7 @@ export default function Home({
             href="/daily-cleaning"
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-white font-semibold shadow-md hover:bg-emerald-700 transition"
           >
-            View Today&apos;s Listings
+            View Weekly&apos;s Listings
           </Link>
           <Link
             href="/cleaning-index"
