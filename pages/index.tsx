@@ -129,15 +129,13 @@ export default function Home({
         </section>
 
         {/* Action Buttons */}
-        <div className="mb-12 flex flex-wrap items-center justify-center gap-3">
-          {/* Action Buttons */}
         <div className="mb-12 flex justify-center">
-        <Link
-        href="/cleaning-index"
-        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow-md hover:bg-slate-800 transition"
-        >
-        Explore Full Index
-        </Link>
+          <Link
+            href="/cleaning-index"
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow-md hover:bg-slate-800 transition"
+          >
+            Explore Full Index
+          </Link>
         </div>
 
         {/* Top 10 */}
