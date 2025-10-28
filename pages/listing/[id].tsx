@@ -48,13 +48,23 @@ const money = (n?: number | null) =>
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
-const { data, error } = await supabase
+console.log('Query ID:', id);
+  console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('Has anon key:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  
+  // Test: count rows
+  const { count } = await supabase
+    .from('cleaning_listings_merge')
+    .select('*', { count: 'exact', head: true });
+  
+  console.log('Total rows in table:', count);
+
+  const { data, error } = await supabase
     .from('cleaning_listings_merge')
     .select('*')
     .eq('id', id)
     .single();
 
-  console.log('Query ID:', id);
   console.log('Error:', error);
   console.log('Data:', data);
 
