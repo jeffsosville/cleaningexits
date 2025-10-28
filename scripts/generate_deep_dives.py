@@ -83,10 +83,21 @@ def generate_deep_dive_html(listing):
     
     title = listing.get('title') or listing.get('header', 'Commercial Cleaning Business')
     location = listing.get('location', 'United States')
-    price = listing.get('price')
-    cash_flow = listing.get('cash_flow')
-    revenue = listing.get('revenue')
-    ebitda = listing.get('ebitda')
+    
+    # Safely convert numeric fields
+    def safe_int(value):
+        """Safely convert to int, return None if not possible"""
+        if value is None:
+            return None
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return None
+    
+    price = safe_int(listing.get('price'))
+    cash_flow = safe_int(listing.get('cash_flow'))
+    revenue = safe_int(listing.get('revenue'))
+    ebitda = safe_int(listing.get('ebitda'))
     notes = listing.get('description') or listing.get('notes', '')
     
     # Calculate margin if we have data
