@@ -1,4 +1,3 @@
-import { createElement as h } from 'react';
 import Head from "next/head";
 import Link from "next/link";
 import { GetServerSideProps } from "next";
@@ -15,17 +14,10 @@ type Listing = {
   title: string | null;
   city: string | null;
   state: string | null;
-  location: string | null;
   price: number | null;
   cash_flow: number | null;
   revenue: number | null;
-  description: string | null;
   listing_url: string | null;
-  broker_account: string | null;
-};
-
-type Props = {
-  listings: Listing[];
 };
 
 const money = (n?: number | null) =>
@@ -40,26 +32,39 @@ export const getServerSideProps: GetServerSideProps = async () => {
     title: r.title,
     city: r.city,
     state: r.state,
-    location: r.location,
     price: r.price,
     cash_flow: r.cash_flow,
     revenue: r.revenue,
-    description: r.description,
     listing_url: r.listing_url,
-    broker_account: r.broker_account,
   }));
 
   return { props: { listings } };
 };
 
-export default function Top10({ listings }: Props) {
-  return h('div', { className: 'min-h-screen' },
-    listings.map((listing, i) => 
-      h('div', { key: listing.id, className: 'p-4 border mb-4' },
-        h('h2', { className: 'text-xl font-bold' }, listing.title),
-        h('p', null, `Price: ${money(listing.price)}`),
-        listing.listing_id && h(Link, { href: `/listing/${listing.listing_id}` }, 'View Details')
-      )
-    )
+export default function Top10({ listings }: { listings: Listing[] }) {
+  return (
+    <div className="min-h-screen p-8">
+      <Head>
+        <title>Top 10 | CleaningExits</title>
+      </Head>
+      
+      <h1 className="text-4xl font-bold mb-8">Top 10 Cleaning Businesses</h1>
+      
+      <div className="space-y-4">
+        {listings.map((listing, i) => (
+          <div key={listing.id} className="border p-6 rounded-lg">
+            <div className="text-2xl font-bold mb-2">#{i + 1}</div>
+            <h2 className="text-xl font-bold mb-2">{listing.title}</h2>
+            <p className="mb-2">Price: {money(listing.price)}</p>
+            <p className="mb-2">Cash Flow: {money(listing.cash_flow)}</p>
+            {listing.listing_id && (
+              <Link href={`/listing/${listing.listing_id}`} className="text-blue-600 hover:underline">
+                View Details →
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
