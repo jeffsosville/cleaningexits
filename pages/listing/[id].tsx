@@ -36,6 +36,7 @@ type Listing = {
   quality_score: number | null;
   featured_rank: number | null;
   scraped_at: string | null;
+  deep_dive_html: string | null;
 };
 
 const money = (n?: number | null) =>
@@ -98,6 +99,7 @@ console.log('Query ID:', id);
     quality_score: null,
     featured_rank: null,
     scraped_at: data.scraped_at,
+    deep_dive_html: data.deep_dive_html,
   };
 
   return {
@@ -220,6 +222,13 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
 
               {/* Valuation Analysis - Automated */}
               <ValuationAnalysis listingId={listing.listing_id} />
+              {/* Deep Dive Analysis - Top 10 Only */}
+              {listing.deep_dive_html && (
+              <div 
+              dangerouslySetInnerHTML={{ __html: listing.deep_dive_html }}
+              className="deep-dive-container"
+              />
+              )}
 
               {/* Curator's Note */}
               {listing.curator_note && (
