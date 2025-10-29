@@ -46,6 +46,45 @@ const money = (n?: number | null) =>
     maximumFractionDigits: 0,
   });
 
+// Sanitize deep_dive_html to remove sections we don't want
+const sanitizeDeepDiveHtml = (html: string | null): string | null => {
+  if (!html) return null;
+  
+  // Remove "Ready to Move on This Deal?" section with buttons
+  let sanitized = html.replace(
+    /<h[23][^>]*>Ready to Move on This Deal\?<\/h[23]>[\s\S]*?(?=<h[23]|<div class="bg-white|$)/i,
+    ''
+  );
+  
+  // Remove "About This Business" section (we show it separately)
+  sanitized = sanitized.replace(
+    /<h[23][^>]*>About This Business<\/h[23]>[\s\S]*?(?=<h[23]|<div class="bg-white|$)/i,
+    ''
+  );
+  
+  // Remove any "View Full Listing" or "Need SBA Financing" buttons
+  sanitized = sanitized.replace(
+    /<a[^>]*>View Full Listing[^<]*<\/a>/gi,
+    ''
+  );
+  sanitized = sanitized.replace(
+    /<button[^>]*>View Full Listing[^<]*<\/button>/gi,
+    ''
+  );
+  sanitized = sanitized.replace(
+    /<a[^>]*>Need SBA Financing\?<\/a>/gi,
+    ''
+  );
+  
+  // Remove "View on Broker Site" links
+  sanitized = sanitized.replace(
+    /<a[^>]*>View on Broker Site<\/a>/gi,
+    ''
+  );
+  
+  return sanitized.trim();
+};
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
@@ -255,19 +294,9 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
               {/* Deep Dive Analysis - Top 10 Only */}
               {listing.deep_dive_html && (
                 <div 
-                  dangerouslySetInnerHTML={{ __html: listing.deep_dive_html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeDeepDiveHtml(listing.deep_dive_html) || '' }}
                   className="deep-dive-container"
                 />
-              )}
-
-              {/* Business Description - Always visible */}
-              {listing.description && (
-                <div className="bg-white p-6 rounded-lg border">
-                  <h3 className="font-bold text-gray-900 mb-4 text-lg">Business Overview</h3>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {listing.description}
-                  </p>
-                </div>
               )}
 
               {/* Gated Content - Show gate or unlocked content */}
@@ -275,10 +304,10 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-lg p-8 text-center">
                   <div className="max-w-md mx-auto">
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                      Ready to Move on This Deal?
+                      Get Complete Financial Details
                     </h3>
                     <p className="text-gray-700 mb-6">
-                      This listing won't last long. Get complete financial breakdown, direct broker contact, and our investment analysis.
+                      This listing won't last long. Access the full analysis, broker contact, and investment breakdown.
                     </p>
                     <div className="bg-white rounded-lg p-6 mb-4">
                       <div className="text-left space-y-3">
@@ -502,4 +531,5 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
+
 
