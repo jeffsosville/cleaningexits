@@ -260,15 +260,17 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 />
               )}
 
-              {/* Description - Always visible */}
-              <div className="bg-white p-6 rounded-lg border">
-                <h3 className="font-bold text-gray-900 mb-4 text-lg">About This Business</h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {listing.description || 'No description available.'}
-                </p>
-              </div>
+              {/* Business Description - Always visible */}
+              {listing.description && (
+                <div className="bg-white p-6 rounded-lg border">
+                  <h3 className="font-bold text-gray-900 mb-4 text-lg">Business Overview</h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {listing.description}
+                  </p>
+                </div>
+              )}
 
-              {/* Gated Content - Full Financial Details */}
+              {/* Gated Content - Show gate or unlocked content */}
               {!showFullDetails ? (
                 <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-lg p-8 text-center">
                   <div className="max-w-md mx-auto">
@@ -276,25 +278,25 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                       Ready to Move on This Deal?
                     </h3>
                     <p className="text-gray-700 mb-6">
-                      Get complete financial breakdown, owner contact details, and our AI-powered investment analysis.
+                      This listing won't last long. Get complete financial breakdown, direct broker contact, and our investment analysis.
                     </p>
                     <div className="bg-white rounded-lg p-6 mb-4">
-                      <div className="text-left space-y-3 mb-4">
+                      <div className="text-left space-y-3">
                         <div className="flex items-center gap-3">
                           <span className="text-emerald-600 text-xl">✓</span>
-                          <span className="text-gray-700">Complete P&L and financial statements</span>
+                          <span className="text-gray-700">Complete financial statements</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-emerald-600 text-xl">✓</span>
-                          <span className="text-gray-700">Direct broker and owner contact info</span>
+                          <span className="text-gray-700">Direct broker contact info</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-emerald-600 text-xl">✓</span>
-                          <span className="text-gray-700">Detailed valuation and ROI analysis</span>
+                          <span className="text-gray-700">Detailed valuation & ROI analysis</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-emerald-600 text-xl">✓</span>
-                          <span className="text-gray-700">Key questions to ask during due diligence</span>
+                          <span className="text-gray-700">Key due diligence questions</span>
                         </div>
                       </div>
                     </div>
@@ -303,38 +305,40 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
               ) : (
                 <div className="space-y-6">
                   {/* Additional Business Details - After unlock */}
-                  <div className="bg-white p-6 rounded-lg border">
-                    <h3 className="font-bold text-gray-900 mb-4 text-lg">Additional Details</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {listing.established_year && (
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Established</div>
-                          <div className="text-lg font-bold text-gray-900">{listing.established_year}</div>
-                        </div>
-                      )}
-                      
-                      {listing.employees && (
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Employees</div>
-                          <div className="text-lg font-bold text-gray-900">{listing.employees}</div>
-                        </div>
-                      )}
-                      
-                      {listing.business_type && (
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Business Type</div>
-                          <div className="text-lg font-bold text-gray-900">{listing.business_type}</div>
-                        </div>
-                      )}
-                      
-                      {listing.category && (
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">Category</div>
-                          <div className="text-lg font-bold text-gray-900">{listing.category}</div>
-                        </div>
-                      )}
+                  {(listing.established_year || listing.employees || listing.business_type || listing.category) && (
+                    <div className="bg-white p-6 rounded-lg border">
+                      <h3 className="font-bold text-gray-900 mb-4 text-lg">Additional Details</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {listing.established_year && (
+                          <div>
+                            <div className="text-sm text-gray-600 mb-1">Established</div>
+                            <div className="text-lg font-bold text-gray-900">{listing.established_year}</div>
+                          </div>
+                        )}
+                        
+                        {listing.employees && (
+                          <div>
+                            <div className="text-sm text-gray-600 mb-1">Employees</div>
+                            <div className="text-lg font-bold text-gray-900">{listing.employees}</div>
+                          </div>
+                        )}
+                        
+                        {listing.business_type && (
+                          <div>
+                            <div className="text-sm text-gray-600 mb-1">Business Type</div>
+                            <div className="text-lg font-bold text-gray-900">{listing.business_type}</div>
+                          </div>
+                        )}
+                        
+                        {listing.category && (
+                          <div>
+                            <div className="text-sm text-gray-600 mb-1">Category</div>
+                            <div className="text-lg font-bold text-gray-900">{listing.category}</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Broker Contact - After unlock */}
                   <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-6">
@@ -422,6 +426,17 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                         Schedule 15-Min Call
                       </a>
                     </div>
+
+                    {/* SBA Financing Teaser */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                      <h5 className="font-semibold text-blue-900 mb-2 text-sm">Need SBA Financing?</h5>
+                      <p className="text-xs text-blue-800 mb-2">
+                        90% financing available with 10% down. We connect you with specialized lenders.
+                      </p>
+                      <div className="text-xs text-blue-700">
+                        • Est. monthly payment: ~{listing.price && listing.cash_flow ? `$${Math.round((listing.price * 0.9 * (0.08/12) * Math.pow(1 + 0.08/12, 120)) / (Math.pow(1 + 0.08/12, 120) - 1)).toLocaleString()}` : 'TBD'}
+                      </div>
+                    </div>
                     
                     <p className="text-xs text-gray-500 text-center">
                       We'll never spam you. Unsubscribe anytime.
@@ -487,4 +502,3 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
-
