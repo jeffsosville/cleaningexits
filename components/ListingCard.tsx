@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 
 interface ListingCardProps {
   listing: any;
@@ -32,7 +33,18 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     }).format(num);
   };
 
-  const getBizBuySellUrl = () => {
+  const getListingUrl = () => {
+    // Always route through our internal listing detail page first
+    if (listing.id) {
+      return `/listing/${listing.id}`;
+    }
+    if (listing.surrogate_key) {
+      return `/listing/${listing.surrogate_key}`;
+    }
+    if (listing.listing_id) {
+      return `/listing/${listing.listing_id}`;
+    }
+    // Fallback to external if no ID found (shouldn't happen)
     return listing.urlStub || `https://www.bizbuysell.com/business/listing/${listing.listNumber}`;
   };
 
@@ -47,6 +59,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   };
 
   const imageUrl = getImageUrl();
+  const listingUrl = getListingUrl();
+  const isInternalLink = listingUrl.startsWith('/listing/');
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
@@ -140,14 +154,24 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
               : 'Recently added'
             }
           </div>
-          <a
-            href={getBizBuySellUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-          >
-            View Details →
-          </a>
+          
+          {isInternalLink ? (
+            <Link
+              href={listingUrl}
+              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              View Details →
+            </Link>
+          ) : (
+            <a
+              href={listingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              View Details →
+            </a>
+          )}
         </div>
       </div>
     </div>
