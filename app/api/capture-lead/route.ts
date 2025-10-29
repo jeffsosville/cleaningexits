@@ -1,16 +1,13 @@
 // app/api/capture-lead/route.ts
-// Simple version with ONE confirmation email via Resend
+// Simple version with ONE confirmation email via Resend API (no SDK)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,39 +106,39 @@ export async function POST(request: NextRequest) {
       throw leadError;
     }
 
-    // STEP 5: Send ONE confirmation email via Resend
-    try {
-      await resend.emails.send({
-        from: 'Jeff at Cleaning Exits <jeff@cleaningexits.com>',
-        to: email,
-        subject: `Your Details: ${leadData.listing_title || 'Cleaning Business'} - ${leadData.listing_location}`,
-        html: `
+    // STEP 5: Send ONE confirmation email via Resend API directly
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #059669; color: white; padding: 20px; text-align: center; }
-    .content { background: #f9fafb; padding: 30px; }
-    .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #e5e7eb; }
-    .section h2 { color: #059669; margin-top: 0; }
-    .metric { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background: #059669; color: white; padding: 30px 20px; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; }
+    .header p { margin: 10px 0 0 0; opacity: 0.9; }
+    .content { background: #f9fafb; padding: 30px 20px; }
+    .section { background: white; padding: 25px; margin: 20px 0; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .section h2 { color: #059669; margin-top: 0; font-size: 22px; }
+    .metric { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
     .metric:last-child { border-bottom: none; }
-    .label { color: #6b7280; }
-    .value { font-weight: bold; color: #111827; }
-    .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
-    .questions { background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; }
-    .questions h3 { margin-top: 0; color: #92400e; }
-    .questions ol { margin: 10px 0; padding-left: 20px; }
-    .footer { text-align: center; color: #6b7280; padding: 20px; font-size: 14px; }
+    .label { color: #6b7280; font-size: 15px; }
+    .value { font-weight: bold; color: #111827; font-size: 15px; }
+    .button { display: inline-block; background: #059669; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 15px 5px; font-weight: bold; }
+    .questions { background: #fef3c7; padding: 20px; border-radius: 6px; margin: 20px 0; }
+    .questions h3 { margin-top: 0; color: #92400e; font-size: 18px; }
+    .questions ol { margin: 10px 0; padding-left: 25px; }
+    .questions li { margin: 8px 0; }
+    .footer { text-align: center; color: #6b7280; padding: 30px 20px; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>Your Listing Details</h1>
-      <p style="margin: 0;">Complete financial breakdown + direct broker contact</p>
+      <p>Complete financial breakdown + direct broker contact</p>
     </div>
     
     <div class="content">
@@ -175,7 +172,7 @@ export async function POST(request: NextRequest) {
       ${price > 0 && sde > 0 ? `
       <div class="section">
         <h2>💰 SBA Financing Scenario</h2>
-        <p style="color: #6b7280; font-size: 14px;">Based on 90% financing, 8% interest, 10-year term</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 0;">Based on 90% financing, 8% interest, 10-year term</p>
         <div class="metric">
           <span class="label">Down Payment (10%):</span>
           <span class="value">$${Math.round(downPayment).toLocaleString()}</span>
@@ -197,7 +194,7 @@ export async function POST(request: NextRequest) {
       <div class="section">
         <h2>📞 Direct Broker Contact</h2>
         <p><strong>Listed through:</strong> ${listing?.broker_account || 'See listing for details'}</p>
-        <p style="margin: 20px 0;">
+        <p style="margin: 25px 0; text-align: center;">
           <a href="${leadData.listing_url}" class="button">View Full Listing →</a>
         </p>
       </div>
@@ -216,13 +213,13 @@ export async function POST(request: NextRequest) {
       <div class="section">
         <h2>🤝 How We Help (No Cost to You)</h2>
         <p>We represent YOUR interests as co-broker. Commission comes from the seller's side, so our guidance is free to you:</p>
-        <ul>
+        <ul style="line-height: 1.8;">
           <li>Due diligence framework</li>
           <li>Valuation verification</li>
           <li>Negotiation strategy</li>
           <li>SBA financing connections</li>
         </ul>
-        <p style="margin: 20px 0;">
+        <p style="margin: 25px 0; text-align: center;">
           <a href="${process.env.CALENDLY_LINK || 'https://cleaningexits.com'}" class="button">Schedule 15-Min Call</a>
         </p>
       </div>
@@ -230,14 +227,13 @@ export async function POST(request: NextRequest) {
       <div class="footer">
         <p><strong>Jeff Sosville</strong><br>
         Founder, Cleaning Exits<br>
-        ${process.env.YOUR_EMAIL || 'jeff@cleaningexits.com'}<br>
-        ${process.env.YOUR_PHONE || ''}</p>
+        ${process.env.YOUR_EMAIL || 'jeff@cleaningexits.com'}${process.env.YOUR_PHONE ? '<br>' + process.env.YOUR_PHONE : ''}</p>
         
-        <p style="margin-top: 30px; font-size: 12px;">
+        <p style="margin-top: 30px; font-size: 13px; font-style: italic;">
           P.S. These listings move fast. If you're serious, contact the broker today and CC us so we can support your due diligence.
         </p>
         
-        <p style="margin-top: 20px; font-size: 12px; color: #9ca3af;">
+        <p style="margin-top: 25px; font-size: 12px; color: #9ca3af;">
           You're receiving this because you requested details from CleaningExits.com.<br>
           You'll also receive our weekly Top 10 cleaning business listings every Monday.
         </p>
@@ -246,11 +242,29 @@ export async function POST(request: NextRequest) {
   </div>
 </body>
 </html>
-        `
-      });
-    } catch (emailError) {
-      console.error('Resend email error:', emailError);
-      // Don't fail the request if email fails
+        `;
+
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Jeff at Cleaning Exits <jeff@cleaningexits.com>',
+            to: email,
+            subject: `Your Details: ${leadData.listing_title || 'Cleaning Business'} - ${leadData.listing_location || ''}`,
+            html: emailHtml
+          })
+        });
+
+        if (!resendResponse.ok) {
+          console.error('Resend API error:', await resendResponse.text());
+        }
+      } catch (emailError) {
+        console.error('Email send error:', emailError);
+        // Don't fail the request if email fails
+      }
     }
 
     // STEP 6: Send Slack notification (if configured)
