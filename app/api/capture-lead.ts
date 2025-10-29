@@ -1,8 +1,7 @@
-//pages/api/capture-lead.ts
-// This endpoint handles listing-specific lead captures
-// It piggybacks on your existing /api/subscribe infrastructure
+// app/api/capture-lead/route.ts
+// Next.js App Router API endpoint for lead capture
 
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -10,37 +9,34 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { 
-    email, 
-    phone, 
-    listing_id, 
-    source, 
-    listing_price, 
-    listing_title,
-    listing_location,
-    listing_url
-  } = req.body;
-
-  if (!email || !listing_id) {
-    return res.status(400).json({ error: 'Email and listing_id required' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    
+    const { 
+      email, 
+      phone, 
+      listing_id, 
+      source, 
+      listing_price, 
+      listing_title,
+      listing_location,
+      listing_url
+    } = body;
+
+    if (!email || !listing_id) {
+      return NextResponse.json(
+        { error: 'Email and listing_id required' },
+        { status: 400 }
+      );
+    }
+
     // STEP 1: Add to subscribers table (for weekly Top 10 newsletter)
-    // Auto-confirm listing leads since they're showing intent
     await supabase
       .from('subscribers')
       .upsert({
         email,
-        confirmed: true, // Skip confirmation for high-intent leads
+        confirmed: true,
         confirmed_at: new Date().toISOString(),
         subscribed_at: new Date().toISOString()
       }, {
@@ -75,7 +71,7 @@ export default async function handler(
     const cashAfterDebt = sde - (monthlyPayment * 12);
     const roi = price > 0 ? ((sde / price) * 100).toFixed(1) : 'N/A';
 
-    // STEP 4: Store in buyer_leads table for CRM tracking
+    // STEP 4: Store in buyer_leads table
     const leadData = {
       email,
       phone: phone || null,
@@ -88,18 +84,18 @@ export default async function handler(
       broker_account: listing?.broker_account,
       source: source || 'listing_detail',
       status: 'new',
-      lead_score: phone ? 25 : 10, // Higher score if phone provided
+      lead_score: phone ? 25 : 10,
       email_sequence_started: true,
       email_sequence_name: 'cleaning-exits-full-details',
       last_email_sent_at: new Date().toISOString(),
-      emails_sent: 1, // Email 0 sent immediately
-      next_follow_up_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days
+      emails_sent: 1,
+      next_follow_up_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       captured_at: new Date().toISOString(),
-      user_agent: req.headers['user-agent'],
-      referrer: req.headers['referer'],
-      ip_address: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
-                  req.headers['x-real-ip'] || 
-                  req.socket.remoteAddress
+      user_agent: request.headers.get('user-agent'),
+      referrer: request.headers.get('referer'),
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                  request.headers.get('x-real-ip') || 
+                  'unknown'
     };
 
     const { data: lead, error: leadError } = await supabase
@@ -117,37 +113,31 @@ export default async function handler(
     const instantlyPayload = {
       email,
       phone: phone || '',
-      firstName: email.split('@')[0], // Fallback to email username
+      firstName: email.split('@')[0],
       
-      // Listing details
       listing_id,
       listing_title: leadData.listing_title || 'Cleaning Business',
       listing_url: leadData.listing_url || '',
       listing_location: leadData.listing_location || 'Location TBD',
       listing_price: price ? `$${price.toLocaleString()}` : 'Contact',
       
-      // Financials
       revenue: revenue ? `$${revenue.toLocaleString()}` : 'N/A',
       cash_flow: sde ? `$${sde.toLocaleString()}` : 'N/A',
       roi_percentage: roi,
       
-      // Broker info
       broker_name: listing?.broker_account || 'Broker',
       broker_contact: 'Contact details in listing',
       
-      // Valuation metrics for email
       price_to_sde_multiple: multiple,
       estimated_monthly_payment: monthlyPayment > 0 ? `$${Math.round(monthlyPayment).toLocaleString()}` : 'TBD',
       cash_after_debt: cashAfterDebt > 0 ? `$${Math.round(cashAfterDebt).toLocaleString()}` : 'TBD',
       down_payment: downPayment > 0 ? `$${Math.round(downPayment).toLocaleString()}` : 'TBD',
       loan_amount: loanAmount > 0 ? `$${Math.round(loanAmount).toLocaleString()}` : 'TBD',
       
-      // Risk assessment
       risk_assessment: parseFloat(multiple) > 4 ? 'Higher than average multiple' : 
                       parseFloat(multiple) < 2.5 ? 'Below market multiple' : 
                       'Within market range',
       
-      // Campaign tracking
       campaign: 'listing_detail_capture',
       sequence: 'cleaning-exits-full-details',
       lead_id: lead.id,
@@ -173,7 +163,6 @@ export default async function handler(
         }
       } catch (instantlyError) {
         console.error('Instantly webhook error:', instantlyError);
-        // Don't fail the request if Instantly fails
       }
     }
 
@@ -249,12 +238,11 @@ export default async function handler(
         });
       } catch (slackError) {
         console.error('Slack notification error:', slackError);
-        // Don't fail the request if Slack fails
       }
     }
 
     // STEP 8: Return success
-    return res.status(200).json({ 
+    return NextResponse.json({ 
       success: true, 
       lead_id: lead.id,
       message: 'Lead captured successfully'
@@ -262,9 +250,12 @@ export default async function handler(
 
   } catch (error) {
     console.error('Lead capture error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to capture lead',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    return NextResponse.json(
+      { 
+        error: 'Failed to capture lead',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 }
