@@ -225,9 +225,9 @@ export async function POST(request: NextRequest) {
       </div>
 
       <div class="footer">
-        <p><strong>Jeff Sosville</strong><br>
-        Founder, Cleaning Exits<br>
-        ${process.env.YOUR_EMAIL || 'jeff@cleaningexits.com'}${process.env.YOUR_PHONE ? '<br>' + process.env.YOUR_PHONE : ''}</p>
+        <p><strong>Jeff & John Sosville</strong><br>
+        Founders, Cleaning Exits<br>
+        ${process.env.YOUR_EMAIL || 'info@cleaningexits.com'}${process.env.YOUR_PHONE ? '<br>' + process.env.YOUR_PHONE : ''}</p>
         
         <p style="margin-top: 30px; font-size: 13px; font-style: italic;">
           P.S. These listings move fast. If you're serious, contact the broker today and CC us so we can support your due diligence.
