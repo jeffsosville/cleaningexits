@@ -502,3 +502,4 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
+
