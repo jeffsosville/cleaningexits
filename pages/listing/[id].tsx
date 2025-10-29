@@ -49,11 +49,10 @@ const money = (n?: number | null) =>
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
-console.log('Query ID:', id);
+  console.log('Query ID:', id);
   console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
   console.log('Has anon key:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   
-  // Test: count rows
   const { count } = await supabase
     .from('cleaning_listings_merge')
     .select('*', { count: 'exact', head: true });
@@ -110,24 +109,45 @@ console.log('Query ID:', id);
 };
 
 export default function ListingDetail({ listing }: { listing: Listing }) {
-  const [showBrokerContact, setShowBrokerContact] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(false);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  // Show phone field for high-value listings
+  const isHighValue = listing.price && listing.price >= 1000000;
 
   const handleEmailCapture = async () => {
-    if (!email || submitting) return;
+    if (!email || submitting) {
+      setError('Please enter a valid email address');
+      return;
+    }
     
     setSubmitting(true);
+    setError('');
+    
     try {
-      await fetch('/api/subscribe', {
+      const response = await fetch('/api/capture-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'listing_detail' }),
+        body: JSON.stringify({ 
+          email, 
+          phone: phone || null,
+          listing_id: listing.id,
+          source: 'listing_detail',
+          listing_price: listing.price,
+          listing_title: listing.title,
+          listing_location: `${listing.city}, ${listing.state}`
+        }),
       });
-      setShowBrokerContact(true);
+
+      if (!response.ok) throw new Error('Submission failed');
+      
+      setShowFullDetails(true);
     } catch (error) {
-      console.error('Subscription error:', error);
-      setShowBrokerContact(true);
+      console.error('Lead capture error:', error);
+      setError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -180,7 +200,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 
                 {listing.cash_flow && (
                   <div className="bg-white p-4 rounded-lg border">
-                    <div className="text-sm text-gray-600">Cash Flow</div>
+                    <div className="text-sm text-gray-600">Cash Flow (SDE)</div>
                     <div className="text-xl font-bold text-emerald-600">
                       {money(listing.cash_flow)}
                     </div>
@@ -205,47 +225,42 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               </div>
 
-              {/* Why It's Hot */}
-              {listing.why_hot && (
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-r-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">🔥</div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 mb-2">Why This Is Hot</h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        {listing.why_hot}
-                      </p>
-                    </div>
+              {/* Competitive Advantages */}
+              <div className="bg-white p-6 rounded-lg border">
+                <h3 className="font-bold text-gray-900 mb-4 text-xl">Competitive Advantages</h3>
+                <p className="text-gray-600 mb-4">What makes this business defensible:</p>
+                <div className="space-y-3">
+                  <div>
+                    <span className="font-semibold text-gray-900">Established operations</span>
+                    <span className="text-gray-600"> - Not a startup, proven revenue model</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Recurring revenue</span>
+                    <span className="text-gray-600"> - Cleaning contracts provide predictable cash flow</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Barrier to entry</span>
+                    <span className="text-gray-600"> - Building a client base takes years</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Asset-light model</span>
+                    <span className="text-gray-600"> - Low overhead, high cash conversion</span>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Valuation Analysis - Automated */}
+              {/* Valuation Analysis - Always visible */}
               <ValuationAnalysis listingId={listing.listing_id} />
+
               {/* Deep Dive Analysis - Top 10 Only */}
               {listing.deep_dive_html && (
-              <div 
-              dangerouslySetInnerHTML={{ __html: listing.deep_dive_html }}
-              className="deep-dive-container"
-              />
+                <div 
+                  dangerouslySetInnerHTML={{ __html: listing.deep_dive_html }}
+                  className="deep-dive-container"
+                />
               )}
 
-              {/* Curator's Note */}
-              {listing.curator_note && (
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">💡</div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 mb-2">Curator's Note</h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        {listing.curator_note}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
+              {/* Description - Always visible */}
               <div className="bg-white p-6 rounded-lg border">
                 <h3 className="font-bold text-gray-900 mb-4 text-lg">About This Business</h3>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
@@ -253,100 +268,193 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </p>
               </div>
 
-              {/* Additional Business Details */}
-              <div className="grid grid-cols-2 gap-4">
-                {listing.established_year && (
-                  <div className="bg-white p-4 rounded-lg border">
-                    <div className="text-sm text-gray-600 mb-1">Established</div>
-                    <div className="text-lg font-bold text-gray-900">{listing.established_year}</div>
+              {/* Gated Content - Full Financial Details */}
+              {!showFullDetails ? (
+                <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-lg p-8 text-center">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                      Ready to Move on This Deal?
+                    </h3>
+                    <p className="text-gray-700 mb-6">
+                      Get complete financial breakdown, owner contact details, and our AI-powered investment analysis.
+                    </p>
+                    <div className="bg-white rounded-lg p-6 mb-4">
+                      <div className="text-left space-y-3 mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-emerald-600 text-xl">✓</span>
+                          <span className="text-gray-700">Complete P&L and financial statements</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-emerald-600 text-xl">✓</span>
+                          <span className="text-gray-700">Direct broker and owner contact info</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-emerald-600 text-xl">✓</span>
+                          <span className="text-gray-700">Detailed valuation and ROI analysis</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-emerald-600 text-xl">✓</span>
+                          <span className="text-gray-700">Key questions to ask during due diligence</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-                
-                {listing.employees && (
-                  <div className="bg-white p-4 rounded-lg border">
-                    <div className="text-sm text-gray-600 mb-1">Employees</div>
-                    <div className="text-lg font-bold text-gray-900">{listing.employees}</div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Additional Business Details - After unlock */}
+                  <div className="bg-white p-6 rounded-lg border">
+                    <h3 className="font-bold text-gray-900 mb-4 text-lg">Additional Details</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {listing.established_year && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Established</div>
+                          <div className="text-lg font-bold text-gray-900">{listing.established_year}</div>
+                        </div>
+                      )}
+                      
+                      {listing.employees && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Employees</div>
+                          <div className="text-lg font-bold text-gray-900">{listing.employees}</div>
+                        </div>
+                      )}
+                      
+                      {listing.business_type && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Business Type</div>
+                          <div className="text-lg font-bold text-gray-900">{listing.business_type}</div>
+                        </div>
+                      )}
+                      
+                      {listing.category && (
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">Category</div>
+                          <div className="text-lg font-bold text-gray-900">{listing.category}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                {listing.business_type && (
-                  <div className="bg-white p-4 rounded-lg border">
-                    <div className="text-sm text-gray-600 mb-1">Business Type</div>
-                    <div className="text-lg font-bold text-gray-900">{listing.business_type}</div>
-                  </div>
-                )}
-                
-                {listing.category && (
-                  <div className="bg-white p-4 rounded-lg border">
-                    <div className="text-sm text-gray-600 mb-1">Category</div>
-                    <div className="text-lg font-bold text-gray-900">{listing.category}</div>
-                  </div>
-                )}
-              </div>
 
-              {/* Broker Info */}
-              {listing.broker_account && (
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <div className="text-sm text-gray-600 mb-1">Listed By</div>
-                  <div className="font-semibold text-gray-900">{listing.broker_account}</div>
+                  {/* Broker Contact - After unlock */}
+                  <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-6">
+                    <h3 className="font-bold text-emerald-900 mb-2 text-lg">✓ Contact Information Sent</h3>
+                    <p className="text-emerald-800 mb-4">
+                      Check your email for complete broker details, owner contact info, and your personalized investment analysis.
+                    </p>
+                    <div className="bg-white rounded-lg p-4 mb-4">
+                      <div className="text-sm text-gray-600 mb-2">Listed through our broker network</div>
+                      {listing.broker_account && (
+                        <div className="font-semibold text-gray-900">{listing.broker_account}</div>
+                      )}
+                    </div>
+                    <p className="text-sm text-emerald-800">
+                      <strong>Next steps:</strong> We represent YOUR interests as co-broker at no cost to you. Our team will follow up within 24 hours to discuss this opportunity.
+                    </p>
+                  </div>
+
+                  {/* Disclaimer */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs text-gray-600 italic">
+                      Disclaimer: This analysis is for informational purposes only and does not constitute investment advice. All numbers are based on publicly available listing information and should be verified during due diligence. Always consult with legal, financial, and tax professionals before making any business acquisition decision.
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {/* View Original Listing */}
-              <div className="flex gap-3">
-                <a
-                  href={listing.listing_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition"
-                >
-                  View Original Listing →
-                </a>
-              </div>
+              {listing.verified_date && (
+                <div className="text-sm text-gray-500 text-center">
+                  Verified on {new Date(listing.verified_date).toLocaleDateString()}
+                </div>
+              )}
             </div>
 
             {/* Right Column - CTA Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg border p-6 sticky top-6">
-                <h3 className="font-bold text-gray-900 mb-4">Interested in this business?</h3>
-                
-                {!showBrokerContact ? (
+              <div className="bg-white rounded-lg border-2 border-emerald-200 p-6 sticky top-6">
+                {!showFullDetails ? (
                   <div>
+                    <h3 className="font-bold text-gray-900 mb-2 text-xl">Get Full Details + Financial Analysis</h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Get broker contact details and receive updates on similar listings.
+                      This listing won't last long. Here's how to take action:
                     </p>
-                    <input
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
+                    
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-3 text-sm">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="space-y-3 mb-4">
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        required
+                      />
+                      
+                      {isHighValue && (
+                        <input
+                          type="tel"
+                          placeholder="Phone (optional)"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      )}
+                    </div>
+
                     <button
                       onClick={handleEmailCapture}
                       disabled={submitting || !email}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed mb-3 text-lg"
                     >
-                      {submitting ? 'Processing...' : 'Get Broker Details'}
+                      {submitting ? 'Processing...' : 'Get Full Details →'}
                     </button>
-                    <p className="text-xs text-gray-500 mt-2">
+
+                    <div className="border-t border-gray-200 pt-3 mb-3">
+                      <a
+                        href="#"
+                        className="block w-full text-center bg-white hover:bg-gray-50 text-emerald-700 font-semibold py-3 px-6 rounded-lg border-2 border-emerald-600 transition"
+                      >
+                        Schedule 15-Min Call
+                      </a>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 text-center">
                       We'll never spam you. Unsubscribe anytime.
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-emerald-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-emerald-900 mb-2">✓ Contact Information</h4>
-                    <p className="text-sm text-emerald-800 mb-3">
-                      Check your email for broker details and next steps.
-                    </p>
+                  <div>
+                    <div className="bg-emerald-50 p-4 rounded-lg mb-4">
+                      <h4 className="font-semibold text-emerald-900 mb-2">✓ Details Sent!</h4>
+                      <p className="text-sm text-emerald-800">
+                        Check your email for complete financial information and next steps.
+                      </p>
+                    </div>
+                    
                     <a
-                      href={listing.listing_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition"
+                      href="#"
+                      className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition mb-3"
                     >
-                      View on Broker Site
+                      Schedule Strategy Call
                     </a>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h5 className="font-semibold text-blue-900 mb-2 text-sm">Need SBA Financing?</h5>
+                      <p className="text-xs text-blue-800 mb-3">
+                        We partner with lenders who specialize in cleaning business acquisitions.
+                      </p>
+                      <a
+                        href="#"
+                        className="text-blue-700 font-semibold text-sm hover:text-blue-800"
+                      >
+                        Learn More →
+                      </a>
+                    </div>
                   </div>
                 )}
 
@@ -371,12 +479,6 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                     </li>
                   </ul>
                 </div>
-
-                {listing.verified_date && (
-                  <div className="mt-6 pt-6 border-t text-xs text-gray-500">
-                    Verified on {new Date(listing.verified_date).toLocaleDateString()}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -385,3 +487,4 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
+
