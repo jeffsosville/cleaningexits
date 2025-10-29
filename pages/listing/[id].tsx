@@ -288,9 +288,7 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               </div>
 
-              {/* Valuation Analysis - Always visible */}
-              <ValuationAnalysis listingId={listing.listing_id} />
-
+              
               {/* Deep Dive Analysis - Top 10 Only */}
               {listing.deep_dive_html && (
                 <div 
