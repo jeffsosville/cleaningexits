@@ -76,7 +76,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   if (!states) return { paths: [], fallback: 'blocking' };
 
   // Get unique states
-  const uniqueStates = [...new Set(states.map(s => s.state))];
+  const uniqueStates = Array.from(new Set(states.map(s => s.state)));
   
   const paths = uniqueStates.map(state => ({
     params: { state: state.toLowerCase() }
@@ -118,7 +118,7 @@ export const getStaticProps: GetStaticProps<StatePageProps> = async (context) =>
   const validRevenue = listings
     .map(l => parseRevenue(l.revenue))
     .filter((r): r is number => r !== null);
-  const cities = [...new Set(listings.filter(l => l.city).map(l => l.city!))];
+  const cities = Array.from(new Set(listings.filter(l => l.city).map(l => l.city!)));
 
   const stats: StateStats = {
     total_listings: listings.length,
