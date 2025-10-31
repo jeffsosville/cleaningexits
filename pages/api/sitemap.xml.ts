@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .not('state', 'is', null)
       .not('city', 'is', null);
 
-    const uniqueStates = [...new Set(states?.map(s => s.state) || [])];
+    const uniqueStates = Array.from(new Set(states?.map(s => s.state) || []));
     
     const uniqueCities = new Map<string, Set<string>>();
     cities?.forEach(loc => {
