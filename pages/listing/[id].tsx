@@ -157,6 +157,52 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
   // Show phone field for high-value listings
   const isHighValue = listing.price && listing.price >= 1000000;
 
+  // Generate Schema.org structured data for SEO
+  const generateListingSchema = () => {
+    return {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": listing.title || "Commercial Cleaning Business",
+      "description": listing.description?.substring(0, 500) || "Established commercial cleaning business for sale",
+      "image": listing.image_url,
+      "offers": {
+        "@type": "Offer",
+        "price": listing.price,
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": listing.broker_account || "Cleaning Exits"
+        }
+      },
+      "brand": {
+        "@type": "Brand",
+        "name": "Cleaning Exits"
+      },
+      "additionalProperty": [
+        listing.revenue ? {
+          "@type": "PropertyValue",
+          "name": "Revenue",
+          "value": listing.revenue
+        } : null,
+        listing.cash_flow ? {
+          "@type": "PropertyValue", 
+          "name": "Cash Flow (SDE)",
+          "value": listing.cash_flow
+        } : null
+      ].filter(Boolean),
+      "locationCreated": listing.city && listing.state ? {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": listing.city,
+          "addressRegion": listing.state,
+          "addressCountry": "US"
+        }
+      } : undefined
+    };
+  };
+
   const handleEmailCapture = async () => {
     if (!email || submitting) {
       setError('Please enter a valid email address');
@@ -197,6 +243,30 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
       <Head>
         <title>{listing.title || 'Business Listing'} | Cleaning Exits</title>
         <meta name="description" content={listing.description?.substring(0, 160) || 'Commercial cleaning business for sale'} />
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href={`https://cleaningexits.com/listing/${listing.id}`} />
+        
+        {/* Schema.org Structured Data */}
+        <script 
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ 
+            __html: JSON.stringify(generateListingSchema()) 
+          }}
+        />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content={listing.title || 'Business Listing'} />
+        <meta property="og:description" content={listing.description?.substring(0, 160)} />
+        <meta property="og:image" content={listing.image_url || 'https://cleaningexits.com/og-default.jpg'} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={`https://cleaningexits.com/listing/${listing.id}`} />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={listing.title || 'Business Listing'} />
+        <meta name="twitter:description" content={listing.description?.substring(0, 160)} />
+        <meta name="twitter:image" content={listing.image_url || 'https://cleaningexits.com/og-default.jpg'} />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
@@ -529,5 +599,3 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
-
-
