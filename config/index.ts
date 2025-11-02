@@ -24,6 +24,7 @@ export {
   cleaningVertical,
   landscapeVertical,
   hvacVertical,
+  vendingVertical,
   // Registry
   verticalRegistry,
   // Utility functions
