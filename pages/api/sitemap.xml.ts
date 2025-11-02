@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
-  <!-- Static Pages -->
+  <!-- Homepage -->
   <url>
     <loc>${BASE_URL}/</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
@@ -55,6 +55,79 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     <priority>1.0</priority>
   </url>
   
+  <!-- Main Navigation Pages -->
+  <url>
+    <loc>${BASE_URL}/top-10</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/cleaning-index</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/resources</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/sell</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/about</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/contact</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/subscribe</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/privacy-policy</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>${BASE_URL}/terms-of-service</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <!-- Service Type Pages -->
+  <url>
+    <loc>${BASE_URL}/residential-cleaning-for-sale</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- All States Index -->
   <url>
     <loc>${BASE_URL}/cleaning-businesses-for-sale</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
@@ -99,7 +172,6 @@ ${(listings || [])
   </url>`
   )
   .join('\n')}
-
 </urlset>`;
 
     res.setHeader('Content-Type', 'text/xml');
