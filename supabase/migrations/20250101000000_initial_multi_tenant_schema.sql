@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================================
 
 -- Vertical identifiers (should match config/types.ts)
-CREATE TYPE vertical_slug AS ENUM ('cleaning', 'landscape', 'hvac');
+CREATE TYPE vertical_slug AS ENUM ('cleaning', 'landscape', 'hvac', 'vending');
 
 -- Lead types
 CREATE TYPE lead_type AS ENUM ('buyer', 'seller');
