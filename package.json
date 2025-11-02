@@ -1,4 +1,3 @@
-cat > package.json << 'EOF'
 {
   "name": "cleaningexits",
   "version": "1.0.0",
@@ -24,4 +23,3 @@ cat > package.json << 'EOF'
     "typescript": "^5.0.4"
   }
 }
-EOF
