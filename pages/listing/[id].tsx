@@ -88,57 +88,85 @@ const sanitizeDeepDiveHtml = (html: string | null): string | null => {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
-  console.log('Query ID:', id);
-  console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('Has anon key:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  
-  const { count } = await supabase
-    .from('cleaning_listings_merge')
-    .select('*', { count: 'exact', head: true });
-  
-  console.log('Total rows in table:', count);
+  let listing = null;
 
-  const { data, error } = await supabase
-    .from('cleaning_listings_merge')
+  // Try top_10_commercial_cleaning first (for slugs like top10-2024-001)
+  const { data: top10Data } = await supabase
+    .from('top_10_commercial_cleaning')
     .select('*')
-    .eq('id', id)
-    .single();
+    .eq('listing_id', id)
+    .maybeSingle();
 
-  console.log('Error:', error);
-  console.log('Data:', data);
+  if (top10Data) {
+    listing = {
+      id: top10Data.listing_id,
+      listing_id: top10Data.listing_id,
+      title: top10Data.title,
+      price: top10Data.price,
+      price_text: null,
+      location: top10Data.location,
+      city: top10Data.city,
+      state: top10Data.state,
+      description: top10Data.description,
+      business_type: null,
+      category: null,
+      revenue: top10Data.revenue,
+      cash_flow: top10Data.cash_flow,
+      established_year: null,
+      employees: null,
+      listing_url: top10Data.listing_url || '#',
+      image_url: top10Data.image_url,
+      broker_account: top10Data.broker_account,
+      why_hot: null,
+      curator_note: null,
+      verified_date: top10Data.scraped_at,
+      quality_score: null,
+      featured_rank: top10Data.rank,
+      scraped_at: top10Data.scraped_at,
+      deep_dive_html: null,
+    };
+  } else {
+    // Fall back to cleaning_listings_merge for UUID IDs
+    const { data: mergeData } = await supabase
+      .from('cleaning_listings_merge')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
 
-  if (error || !data) {
-    console.log('Returning 404');
-    return { notFound: true };
+    if (mergeData) {
+      listing = {
+        id: mergeData.id,
+        listing_id: mergeData.id,
+        title: mergeData.header,
+        price: mergeData.price,
+        price_text: null,
+        location: mergeData.location,
+        city: mergeData.city,
+        state: mergeData.state,
+        description: mergeData.notes,
+        business_type: null,
+        category: null,
+        revenue: mergeData.revenue,
+        cash_flow: mergeData.cash_flow,
+        established_year: null,
+        employees: null,
+        listing_url: mergeData.url || mergeData.direct_broker_url || '#',
+        image_url: mergeData.image_url,
+        broker_account: mergeData.broker_account,
+        why_hot: null,
+        curator_note: null,
+        verified_date: mergeData.scraped_at,
+        quality_score: null,
+        featured_rank: null,
+        scraped_at: mergeData.scraped_at,
+        deep_dive_html: mergeData.deep_dive_html,
+      };
+    }
   }
 
-  const listing = {
-    id: data.id,
-    listing_id: data.id,
-    title: data.header,
-    price: data.price,
-    price_text: null,
-    location: data.location,
-    city: data.city,
-    state: data.state,
-    description: data.notes,
-    business_type: null,
-    category: null,
-    revenue: data.revenue,
-    cash_flow: data.cash_flow,
-    established_year: null,
-    employees: null,
-    listing_url: data.direct_broker_url || data.url || '#',
-    image_url: data.image_url,
-    broker_account: data.broker_account,
-    why_hot: null,
-    curator_note: null,
-    verified_date: data.scraped_at,
-    quality_score: null,
-    featured_rank: null,
-    scraped_at: data.scraped_at,
-    deep_dive_html: data.deep_dive_html,
-  };
+  if (!listing) {
+    return { notFound: true };
+  }
 
   return {
     props: {
@@ -599,3 +627,4 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
+
