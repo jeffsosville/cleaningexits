@@ -25,9 +25,9 @@ const money = (n?: number | null) =>
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const { data } = await supabase.from("top_10_commercial_cleaning").select("*").limit(10);
-
+  
   const listings = (data ?? []).map((r: any) => ({
-    id: r.listing_id, // may be a slug like "top10-2024-001"
+    id: r.listing_id,
     listing_id: r.listing_id,
     title: r.title,
     city: r.city,
@@ -47,9 +47,9 @@ export default function Top10({ listings }: { listings: Listing[] }) {
       <Head>
         <title>Top 10 | CleaningExits</title>
       </Head>
-
+      
       <h1 className="text-4xl font-bold mb-8">Top 10 Cleaning Businesses</h1>
-
+      
       <div className="space-y-4">
         {listings.map((listing, i) => (
           <div key={listing.id} className="border p-6 rounded-lg">
