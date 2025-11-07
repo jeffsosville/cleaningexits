@@ -88,7 +88,7 @@ const sanitizeDeepDiveHtml = (html: string | null): string | null => {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
 
-  let listing = null;
+  let listing: Listing | null = null;
 
   // Try top_10_commercial_cleaning first (for slugs like top10-2024-001)
   const { data: top10Data } = await supabase
