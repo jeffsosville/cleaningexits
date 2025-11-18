@@ -69,8 +69,8 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Exits — 760 Verified Commercial Cleaning Businesses For Sale</title>
-        <meta name="description" content="No franchises. No maid services. No BS." />
+        <title>Cleaning Business For Sale | 760+ Verified Commercial Cleaning Businesses</title>
+        <meta name="description" content="Find verified cleaning businesses for sale. 760+ commercial cleaning companies, no franchises, no dead listings. Updated weekly with direct broker connections." />
       </Head>
 
       <Header />
