@@ -93,12 +93,12 @@ export default function CleaningIndex({ listings, totalCount, hadError, errMsg }
   return (
     <>
       <Head>
-        <title>Cleaning Index — All Listings | Cleaning Exits</title>
-        <meta
-          name="description"
-          content="Complete index of cleaning business listings. Browse all verified cleaning service businesses for sale."
-        />
-      </Head>
+      <title>Cleaning Business For Sale | 824+ Verified Commercial Cleaning Businesses</title>
+      <meta
+      name="description"
+      content="Find cleaning businesses for sale - 824+ verified commercial cleaning companies, janitorial services, no franchises. Updated daily from 1,500+ brokers."
+    />
+</Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
