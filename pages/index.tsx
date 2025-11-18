@@ -79,8 +79,9 @@ export default function Home({
         {/* Hero */}
         <header className="text-center mb-10">
           <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
-            Cleaning Exits
+          Cleaning Business For Sale
           </h1>
+<p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
             760 Verified Commercial Cleaning Businesses
           </p>
