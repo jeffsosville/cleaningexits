@@ -79,9 +79,9 @@ export default function Home({
         {/* Hero */}
         <header className="text-center mb-10">
           <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
-          Cleaning Business For Sale
+            Cleaning Business For Sale
           </h1>
-<p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
+          <p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
             760 Verified Commercial Cleaning Businesses
           </p>
@@ -130,12 +130,18 @@ export default function Home({
         </section>
 
         {/* Action Buttons */}
-        <div className="mb-12 flex justify-center">
+        <div className="mb-12 flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/cleaning-business-for-sale"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-white font-semibold shadow-lg hover:bg-emerald-700 transition"
+          >
+            Find Your Cleaning Business →
+          </Link>
           <Link
             href="/cleaning-index"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white font-semibold shadow-md hover:bg-slate-800 transition"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-slate-900 px-8 py-4 text-slate-900 font-semibold hover:bg-gray-50 transition"
           >
-            Explore Full Index
+            Browse All Listings
           </Link>
         </div>
 
@@ -238,15 +244,15 @@ export default function Home({
         {/* Trust Sections */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
           <div className="rounded-2xl border border-gray-200 p-6 bg-white">
-            <h3 className="font-bold text-lg mb-2">The Cleaning Index</h3>
+            <h3 className="font-bold text-lg mb-2">Complete Buying Guide</h3>
             <p className="text-gray-600 mb-4">
-              Browse all 760 verified cleaning business listings. See which are real and where to find them.
+              Learn what to look for when buying a cleaning business, valuation tips, financing options, and more.
             </p>
             <Link
-              href="/cleaning-index"
+              href="/cleaning-business-for-sale"
               className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold"
             >
-              View full index →
+              Read the guide →
             </Link>
           </div>
 
@@ -278,3 +284,4 @@ export default function Home({
     </>
   );
 }
+
