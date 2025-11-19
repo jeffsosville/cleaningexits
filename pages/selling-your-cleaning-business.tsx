@@ -1,8 +1,8 @@
-// pages/guide/selling-your-cleaning-business.tsx
+// pages/selling-cleaning-business-guide.tsx
 import Head from "next/head";
 import Link from "next/link";
-import Header from '../../components/Header';
-import Footer from '../../components/Footer';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export default function SellingGuide() {
   return (
