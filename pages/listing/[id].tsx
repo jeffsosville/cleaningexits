@@ -187,12 +187,11 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
 
   // Generate Schema.org structured data for SEO
   const generateListingSchema = () => {
-    return {
+    const schema: any = {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": listing.title || "Commercial Cleaning Business",
       "description": listing.description?.substring(0, 500) || "Established commercial cleaning business for sale",
-      "image": listing.image_url,
       "offers": {
         "@type": "Offer",
         "price": listing.price,
@@ -206,20 +205,35 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
       "brand": {
         "@type": "Brand",
         "name": "Cleaning Exits"
-      },
-      "additionalProperty": [
-        listing.revenue ? {
-          "@type": "PropertyValue",
-          "name": "Revenue",
-          "value": listing.revenue
-        } : null,
-        listing.cash_flow ? {
-          "@type": "PropertyValue", 
-          "name": "Cash Flow (SDE)",
-          "value": listing.cash_flow
-        } : null
-      ].filter(Boolean),
-      "locationCreated": listing.city && listing.state ? {
+      }
+    };
+
+    // Only add image if it exists
+    if (listing.image_url) {
+      schema.image = listing.image_url;
+    }
+
+    // Only add additionalProperty if we have revenue or cash_flow
+    const additionalProperties = [
+      listing.revenue ? {
+        "@type": "PropertyValue",
+        "name": "Revenue",
+        "value": listing.revenue
+      } : null,
+      listing.cash_flow ? {
+        "@type": "PropertyValue", 
+        "name": "Cash Flow (SDE)",
+        "value": listing.cash_flow
+      } : null
+    ].filter(Boolean);
+
+    if (additionalProperties.length > 0) {
+      schema.additionalProperty = additionalProperties;
+    }
+
+    // Only add locationCreated if we have city and state
+    if (listing.city && listing.state) {
+      schema.locationCreated = {
         "@type": "Place",
         "address": {
           "@type": "PostalAddress",
@@ -227,8 +241,10 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
           "addressRegion": listing.state,
           "addressCountry": "US"
         }
-      } : undefined
-    };
+      };
+    }
+
+    return schema;
   };
 
   const handleEmailCapture = async () => {
@@ -627,4 +643,3 @@ export default function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
-
