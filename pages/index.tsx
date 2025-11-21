@@ -69,8 +69,8 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | 150+ Verified Commercial Cleaning Businesses</title>
-        <meta name="description" content="Find verified cleaning businesses for sale. 150+ commercial cleaning companies, no franchises, no dead listings. Updated weekly with direct broker connections." />
+        <title>Cleaning Business For Sale | 270 Verified Commercial Cleaning Businesses</title>
+        <meta name="description" content="Find verified cleaning businesses for sale. 270 manually verified commercial cleaning companies from BizBuySell. No franchises, no spam. Updated daily." />
       </Head>
 
       <Header />
@@ -83,10 +83,10 @@ export default function Home({
           </h1>
           <p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
-            760 Verified Commercial Cleaning Businesses
+            270 Verified Commercial Cleaning Businesses
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
-            No franchises. No maid services. No dead listings.
+            Manually verified. No franchise spam. No dead listings.
           </p>
         </header>
 
@@ -114,11 +114,11 @@ export default function Home({
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">760</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">270</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
               </div>
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">25</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">20</div>
                 <div className="text-sm text-gray-600 mt-1">Added This Week</div>
               </div>
               <div>
@@ -141,7 +141,7 @@ export default function Home({
             href="/cleaning-index"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-slate-900 px-8 py-4 text-slate-900 font-semibold hover:bg-gray-50 transition"
           >
-            Browse All Listings
+            Browse All 270 Listings
           </Link>
         </div>
 
@@ -236,8 +236,8 @@ export default function Home({
           </ol>
 
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p className="font-semibold">Updated weekly</p>
-            <p>Verified • No franchises • No lead-gen</p>
+            <p className="font-semibold">Updated daily</p>
+            <p>Manually verified • No franchises • No lead-gen spam</p>
           </div>
         </section>
 
@@ -261,11 +261,11 @@ export default function Home({
             <ul className="text-sm text-gray-600 space-y-2">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span>Verified sources over marketplace noise</span>
+                <span>Every listing manually verified</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span>Deduped & filtered (no franchise funnels)</span>
+                <span>72.5% of BizBuySell removed as spam</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
@@ -273,7 +273,7 @@ export default function Home({
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span>Direct broker relationships</span>
+                <span>Direct broker contact info</span>
               </li>
             </ul>
           </div>
