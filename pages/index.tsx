@@ -122,7 +122,7 @@ export default function Home({
                 <div className="text-sm text-gray-600 mt-1">Added This Week</div>
               </div>
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">14</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">4</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Today</div>
               </div>
             </div>
