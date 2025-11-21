@@ -69,8 +69,8 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | 760+ Verified Commercial Cleaning Businesses</title>
-        <meta name="description" content="Find verified cleaning businesses for sale. 760+ commercial cleaning companies, no franchises, no dead listings. Updated weekly with direct broker connections." />
+        <title>Cleaning Business For Sale | 150+ Verified Commercial Cleaning Businesses</title>
+        <meta name="description" content="Find verified cleaning businesses for sale. 150+ commercial cleaning companies, no franchises, no dead listings. Updated weekly with direct broker connections." />
       </Head>
 
       <Header />
@@ -118,7 +118,7 @@ export default function Home({
                 <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
               </div>
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">63</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">25</div>
                 <div className="text-sm text-gray-600 mt-1">Added This Week</div>
               </div>
               <div>
