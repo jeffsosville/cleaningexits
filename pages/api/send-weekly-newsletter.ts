@@ -237,7 +237,7 @@ export default async function handler(
       ];
 
       let topQuery = supabase
-        .from("listings")
+        .from("cleaning_listings_merge")
         .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
         .or(includeOr)
         .gte("scraped_at", days90agoISO)
@@ -248,12 +248,12 @@ export default async function handler(
       for (const x of EXCLUDES) topQuery = topQuery.not("title", "ilike", x);
       const { data: topListings } = await topQuery.order("cash_flow", { ascending: false }).limit(12);
 
-      let newQuery = supabase.from("listings").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_active", true);
+      let newQuery = supabase.from("cleaning_listings_merge").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_active", true);
       for (const x of EXCLUDES) newQuery = newQuery.not("title", "ilike", x);
       const { data: newListings } = await newQuery;
 
       const { data: allRecentListings } = await supabase
-        .from("listings")
+        .from("cleaning_listings_merge")
         .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
         .gte("scraped_at", days7agoISO)
         .eq("is_active", true)
@@ -331,7 +331,7 @@ export default async function handler(
 
     // Get top 10-12 listings (best by cashflow/price)
     let topQuery = supabase
-      .from("listings")
+      .from("cleaning_listings_merge")
       .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days90agoISO)
@@ -349,7 +349,7 @@ export default async function handler(
 
     // Get new listings this week for stats
     let newQuery = supabase
-      .from("listings")
+      .from("cleaning_listings_merge")
       .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days7agoISO)
@@ -362,7 +362,7 @@ export default async function handler(
 
     // Get total verified count
     let totalQuery = supabase
-      .from("listings")
+      .from("cleaning_listings_merge")
       .select("id", { count: 'exact', head: true })
       .or(includeOr)
       .eq("is_active", true);
@@ -399,7 +399,7 @@ export default async function handler(
 
     // Get some "junk" listings for educational purposes (low multiples, missing broker, etc.)
     const { data: allRecentListings } = await supabase
-      .from("listings")
+      .from("cleaning_listings_merge")
       .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
       .gte("scraped_at", days7agoISO)
       .eq("is_active", true)
@@ -461,6 +461,7 @@ export default async function handler(
     });
   }
 }
+
 
 
 
