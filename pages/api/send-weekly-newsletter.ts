@@ -11,6 +11,7 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type Listing = {
+  id: string;
   header: string | null;
   city: string | null;
   state: string | null;
@@ -238,7 +239,7 @@ export default async function handler(
 
       let topQuery = supabase
         .from("cleaning_listings_merge")
-        .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
+        .select("id, header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
         .or(includeOr)
         .gte("scraped_at", days90agoISO)
         .eq("is_verified", true)
@@ -254,7 +255,7 @@ export default async function handler(
 
       const { data: allRecentListings } = await supabase
         .from("cleaning_listings_merge")
-        .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
+        .select("id, header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
         .gte("scraped_at", days7agoISO)
         .eq("is_verified", true)
         .limit(100);
@@ -332,7 +333,7 @@ export default async function handler(
     // Get top 10-12 listings (best by cashflow/price)
     let topQuery = supabase
       .from("cleaning_listings_merge")
-      .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
+      .select("id, header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days90agoISO)
       .eq("is_verified", true)
@@ -350,7 +351,7 @@ export default async function handler(
     // Get new listings this week for stats
     let newQuery = supabase
       .from("cleaning_listings_merge")
-      .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
+      .select("id, header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days7agoISO)
       .eq("is_verified", true);
@@ -400,7 +401,7 @@ export default async function handler(
     // Get some "junk" listings for educational purposes (low multiples, missing broker, etc.)
     const { data: allRecentListings } = await supabase
       .from("cleaning_listings_merge")
-      .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
+      .select("id, header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
       .gte("scraped_at", days7agoISO)
       .eq("is_verified", true)
       .limit(100);
