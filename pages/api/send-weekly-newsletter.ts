@@ -11,15 +11,15 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 type Listing = {
-  title: string | null;
+  header: string | null;
   city: string | null;
   state: string | null;
   price: number | null;
   revenue: number | null;
   cash_flow: number | null;
-  listing_url: string | null;
-  description: string | null;
-  source_broker: string | null;
+  url: string | null;
+  notes: string | null;
+  broker_account: string | null;
   scraped_at: string | null;
 };
 
@@ -61,8 +61,8 @@ function generateEmailHTML(
         </div>
         <div style="flex: 1;">
           <h3 style="margin: 0 0 6px 0; font-size: 16px; color: #111827; line-height: 1.3;">
-            <a href="${listing.listing_url || '#'}" style="color: #059669; text-decoration: none;">
-              ${listing.title || "Untitled"}
+            <a href="${listing.url || '#'}" style="color: #059669; text-decoration: none;">
+              ${listing.header || "Untitled"}
             </a>
           </h3>
           ${listing.city || listing.state ? `
@@ -92,11 +92,11 @@ function generateEmailHTML(
       ${junkListings.map((listing, i) => `
         <div style="background: white; border: 1px solid #F59E0B; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
           <div style="font-size: 14px; color: #92400E; margin-bottom: 4px;">
-            <strong>${listing.title || "Untitled"}</strong>
+            <strong>${listing.header || "Untitled"}</strong>
           </div>
           <div style="font-size: 13px; color: #78350F;">
             ${listing.price ? `${money(listing.price)}` : "No price"} ${listing.cash_flow ? `• Cashflow: ${money(listing.cash_flow)}` : ""} ${listing.price && listing.cash_flow ? `• ${calculateMultiple(listing.price, listing.cash_flow)} multiple` : ""}
-            ${listing.source_broker ? ` • ${listing.source_broker}` : " • No broker info"}
+            ${listing.broker_account ? ` • ${listing.broker_account}` : " • No broker info"}
           </div>
         </div>
       `).join('')}
@@ -238,7 +238,7 @@ export default async function handler(
 
       let topQuery = supabase
         .from("listings")
-        .select("title, city, state, price, cash_flow, revenue, description, listing_url, source_broker, scraped_at")
+        .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
         .or(includeOr)
         .gte("scraped_at", days90agoISO)
         .eq("is_active", true)
@@ -254,7 +254,7 @@ export default async function handler(
 
       const { data: allRecentListings } = await supabase
         .from("listings")
-        .select("title, city, state, price, cash_flow, revenue, listing_url, source_broker, description, scraped_at")
+        .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
         .gte("scraped_at", days7agoISO)
         .eq("is_active", true)
         .limit(100);
@@ -263,7 +263,7 @@ export default async function handler(
         .filter(l => {
           if (!l.price || !l.cash_flow) return false;
           const multiple = l.price / l.cash_flow;
-          return multiple < 1.5 || !l.source_broker || l.source_broker === 'FSBO';
+          return multiple < 1.5 || !l.broker_account || l.broker_account === 'FSBO';
         })
         .slice(0, 3);
 
@@ -332,7 +332,7 @@ export default async function handler(
     // Get top 10-12 listings (best by cashflow/price)
     let topQuery = supabase
       .from("listings")
-      .select("title, city, state, price, cash_flow, revenue, description, listing_url, source_broker, scraped_at")
+      .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days90agoISO)
       .eq("is_active", true)
@@ -350,7 +350,7 @@ export default async function handler(
     // Get new listings this week for stats
     let newQuery = supabase
       .from("listings")
-      .select("title, city, state, price, cash_flow, revenue, description, listing_url, source_broker, scraped_at")
+      .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days7agoISO)
       .eq("is_active", true);
@@ -400,7 +400,7 @@ export default async function handler(
     // Get some "junk" listings for educational purposes (low multiples, missing broker, etc.)
     const { data: allRecentListings } = await supabase
       .from("listings")
-      .select("title, city, state, price, cash_flow, revenue, listing_url, source_broker, description, scraped_at")
+      .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
       .gte("scraped_at", days7agoISO)
       .eq("is_active", true)
       .limit(100);
