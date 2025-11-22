@@ -219,6 +219,81 @@ export default async function handler(
   }
   */
 
+  // Allow GET for preview mode
+  if (req.method === "GET") {
+    // Preview mode - generate HTML without sending
+    try {
+      const DAYS_7_MS = 7 * 24 * 60 * 60 * 1000;
+      const days7agoISO = new Date(Date.now() - DAYS_7_MS).toISOString();
+      const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
+      const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
+      
+      const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%";
+      const EXCLUDES = [
+        "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
+        "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
+        "%construction%", "%roofing%", "%plumbing%", "%hvac%", "%landscap%",
+        "%pest%", "%security%", "%catering%"
+      ];
+
+      let topQuery = supabase
+        .from("listings")
+        .select("title, city, state, price, cash_flow, revenue, description, listing_url, source_broker, scraped_at")
+        .or(includeOr)
+        .gte("scraped_at", days90agoISO)
+        .eq("is_active", true)
+        .not("cash_flow", "is", null)
+        .gte("cash_flow", 50000);
+
+      for (const x of EXCLUDES) topQuery = topQuery.not("title", "ilike", x);
+      const { data: topListings } = await topQuery.order("cash_flow", { ascending: false }).limit(12);
+
+      let newQuery = supabase.from("listings").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_active", true);
+      for (const x of EXCLUDES) newQuery = newQuery.not("title", "ilike", x);
+      const { data: newListings } = await newQuery;
+
+      const { data: allRecentListings } = await supabase
+        .from("listings")
+        .select("title, city, state, price, cash_flow, revenue, listing_url, source_broker, description, scraped_at")
+        .gte("scraped_at", days7agoISO)
+        .eq("is_active", true)
+        .limit(100);
+
+      const junkListings = (allRecentListings || [])
+        .filter(l => {
+          if (!l.price || !l.cash_flow) return false;
+          const multiple = l.price / l.cash_flow;
+          return multiple < 1.5 || !l.source_broker || l.source_broker === 'FSBO';
+        })
+        .slice(0, 3);
+
+      const listingsWithFinancials = (newListings || []).filter(l => l.price && l.cash_flow && l.cash_flow > 0);
+      const avgPrice = listingsWithFinancials.length > 0 ? listingsWithFinancials.reduce((sum, l) => sum + (l.price || 0), 0) / listingsWithFinancials.length : 0;
+      const multiples = listingsWithFinancials.map(l => (l.price || 0) / (l.cash_flow || 1));
+      const avgMultiple = multiples.length > 0 ? multiples.reduce((sum, m) => sum + m, 0) / multiples.length : 0;
+      
+      const stateCounts: Record<string, number> = {};
+      (newListings || []).forEach(l => { if (l.state) stateCounts[l.state] = (stateCounts[l.state] || 0) + 1; });
+      const hottestState = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+      const stats = {
+        totalNew: (newListings || []).length,
+        totalVerified: 270,
+        avgPrice,
+        avgMultiple,
+        hottestState
+      };
+
+      const weekOf = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const html = generateEmailHTML(topListings || [], junkListings, stats, weekOf, "preview-token");
+      
+      res.setHeader('Content-Type', 'text/html');
+      return res.status(200).send(html);
+    } catch (error) {
+      return res.status(500).json({ error: "Preview failed", details: String(error) });
+    }
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -386,3 +461,4 @@ export default async function handler(
     });
   }
 }
+
