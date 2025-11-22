@@ -410,7 +410,7 @@ export default async function handler(
         if (!l.price || !l.cash_flow) return false;
         const multiple = l.price / l.cash_flow;
         // Flag as junk if multiple is suspiciously low (<1.5x) or missing broker
-        return multiple < 1.5 || !l.source_broker || l.source_broker === 'FSBO';
+        return multiple < 1.5 || !l.broker_account || l.broker_account === 'FSBO';
       })
       .slice(0, 3); // Show 3 examples
 
@@ -461,5 +461,6 @@ export default async function handler(
     });
   }
 }
+
 
 
