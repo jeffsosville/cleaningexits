@@ -228,7 +228,7 @@ export default async function handler(
       const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
       const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
       
-      const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%";
+      const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%,header.ilike.%maid%,header.ilike.%housekeeping%,header.ilike.%custodial%";
       const EXCLUDES = [
         "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
         "%convenience%", "%grocery%", "%bakery%", "%printing%", "%marketing%",
@@ -245,11 +245,11 @@ export default async function handler(
         .not("cash_flow", "is", null)
         .gte("cash_flow", 50000);
 
-      for (const x of EXCLUDES) topQuery = topQuery.not("title", "ilike", x);
+      for (const x of EXCLUDES) topQuery = topQuery.not("header", "ilike", x);
       const { data: topListings } = await topQuery.order("cash_flow", { ascending: false }).limit(12);
 
       let newQuery = supabase.from("cleaning_listings_merge").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_active", true);
-      for (const x of EXCLUDES) newQuery = newQuery.not("title", "ilike", x);
+      for (const x of EXCLUDES) newQuery = newQuery.not("header", "ilike", x);
       const { data: newListings } = await newQuery;
 
       const { data: allRecentListings } = await supabase
@@ -320,7 +320,7 @@ export default async function handler(
     const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
     const days90agoISO = new Date(Date.now() - DAYS_90_MS).toISOString();
     
-    const includeOr = "title.ilike.%cleaning%,title.ilike.%janitorial%,title.ilike.%maid%,title.ilike.%housekeeping%,title.ilike.%custodial%";
+    const includeOr = "header.ilike.%cleaning%,header.ilike.%janitorial%,header.ilike.%maid%,header.ilike.%housekeeping%,header.ilike.%custodial%";
     
     const EXCLUDES = [
       "%dry%clean%", "%insurance%", "%franchise%", "%restaurant%", "%pharmacy%",
@@ -339,7 +339,7 @@ export default async function handler(
       .not("cash_flow", "is", null)
       .gte("cash_flow", 50000); // Minimum $50K cashflow for top picks
 
-    for (const x of EXCLUDES) topQuery = topQuery.not("title", "ilike", x);
+    for (const x of EXCLUDES) topQuery = topQuery.not("header", "ilike", x);
 
     const { data: topListings, error: topError } = await topQuery
       .order("cash_flow", { ascending: false })
@@ -355,7 +355,7 @@ export default async function handler(
       .gte("scraped_at", days7agoISO)
       .eq("is_active", true);
 
-    for (const x of EXCLUDES) newQuery = newQuery.not("title", "ilike", x);
+    for (const x of EXCLUDES) newQuery = newQuery.not("header", "ilike", x);
 
     const { data: newListings, error: newError } = await newQuery;
     if (newError) throw newError;
@@ -367,7 +367,7 @@ export default async function handler(
       .or(includeOr)
       .eq("is_active", true);
 
-    for (const x of EXCLUDES) totalQuery = totalQuery.not("title", "ilike", x);
+    for (const x of EXCLUDES) totalQuery = totalQuery.not("header", "ilike", x);
 
     const { count: totalVerified } = await totalQuery;
 
@@ -461,6 +461,7 @@ export default async function handler(
     });
   }
 }
+
 
 
 
