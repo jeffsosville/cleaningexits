@@ -325,7 +325,7 @@ export default async function handler(
     // Get some "junk" listings for educational purposes (low multiples, missing broker, etc.)
     const { data: allRecentListings } = await supabase
       .from("listings")
-      .select("title, city, state, price, cash_flow, revenue, listing_url, source_broker")
+      .select("title, city, state, price, cash_flow, revenue, listing_url, source_broker, description, scraped_at")
       .gte("scraped_at", days7agoISO)
       .eq("is_active", true)
       .limit(100);
