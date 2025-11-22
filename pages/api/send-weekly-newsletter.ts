@@ -61,7 +61,7 @@ function generateEmailHTML(
         </div>
         <div style="flex: 1;">
           <h3 style="margin: 0 0 6px 0; font-size: 16px; color: #111827; line-height: 1.3;">
-            <a href="${listing.url || '#'}" style="color: #059669; text-decoration: none;">
+            <a href="${process.env.NEXT_PUBLIC_BASE_URL}/listing/${listing.id}" style="color: #059669; text-decoration: none;">
               ${listing.header || "Untitled"}
             </a>
           </h3>
@@ -461,6 +461,7 @@ export default async function handler(
     });
   }
 }
+
 
 
 
