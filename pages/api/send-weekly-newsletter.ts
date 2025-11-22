@@ -241,14 +241,14 @@ export default async function handler(
         .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
         .or(includeOr)
         .gte("scraped_at", days90agoISO)
-        .eq("is_active", true)
+        .eq("is_verified", true)
         .not("cash_flow", "is", null)
         .gte("cash_flow", 50000);
 
       for (const x of EXCLUDES) topQuery = topQuery.not("header", "ilike", x);
       const { data: topListings } = await topQuery.order("cash_flow", { ascending: false }).limit(12);
 
-      let newQuery = supabase.from("cleaning_listings_merge").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_active", true);
+      let newQuery = supabase.from("cleaning_listings_merge").select("*").or(includeOr).gte("scraped_at", days7agoISO).eq("is_verified", true);
       for (const x of EXCLUDES) newQuery = newQuery.not("header", "ilike", x);
       const { data: newListings } = await newQuery;
 
@@ -256,7 +256,7 @@ export default async function handler(
         .from("cleaning_listings_merge")
         .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
         .gte("scraped_at", days7agoISO)
-        .eq("is_active", true)
+        .eq("is_verified", true)
         .limit(100);
 
       const junkListings = (allRecentListings || [])
@@ -335,7 +335,7 @@ export default async function handler(
       .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days90agoISO)
-      .eq("is_active", true)
+      .eq("is_verified", true)
       .not("cash_flow", "is", null)
       .gte("cash_flow", 50000); // Minimum $50K cashflow for top picks
 
@@ -353,7 +353,7 @@ export default async function handler(
       .select("header, city, state, price, cash_flow, revenue, notes, url, broker_account, scraped_at")
       .or(includeOr)
       .gte("scraped_at", days7agoISO)
-      .eq("is_active", true);
+      .eq("is_verified", true);
 
     for (const x of EXCLUDES) newQuery = newQuery.not("header", "ilike", x);
 
@@ -365,7 +365,7 @@ export default async function handler(
       .from("cleaning_listings_merge")
       .select("id", { count: 'exact', head: true })
       .or(includeOr)
-      .eq("is_active", true);
+      .eq("is_verified", true);
 
     for (const x of EXCLUDES) totalQuery = totalQuery.not("header", "ilike", x);
 
@@ -402,7 +402,7 @@ export default async function handler(
       .from("cleaning_listings_merge")
       .select("header, city, state, price, cash_flow, revenue, url, broker_account, notes, scraped_at")
       .gte("scraped_at", days7agoISO)
-      .eq("is_active", true)
+      .eq("is_verified", true)
       .limit(100);
 
     const junkListings = (allRecentListings || [])
@@ -461,6 +461,7 @@ export default async function handler(
     });
   }
 }
+
 
 
 
