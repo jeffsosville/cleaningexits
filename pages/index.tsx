@@ -69,8 +69,8 @@ export default function Home({
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | 270 Verified Commercial Cleaning Businesses</title>
-        <meta name="description" content="Find verified cleaning businesses for sale. 270 manually verified commercial cleaning companies from BizBuySell. No franchises, no spam. Updated daily." />
+        <title>Cleaning Business For Sale | 291 Verified Commercial Cleaning Businesses</title>
+        <meta name="description" content="Find verified cleaning businesses for sale. 291 manually verified commercial cleaning companies from BizBuySell. No franchises, no spam. Updated daily." />
       </Head>
 
       <Header />
@@ -83,7 +83,7 @@ export default function Home({
           </h1>
           <p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
-            270 Verified Commercial Cleaning Businesses
+            291 Verified Commercial Cleaning Businesses
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
             Manually verified. No franchise spam. No dead listings.
@@ -114,7 +114,7 @@ export default function Home({
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-emerald-600">270</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">291</div>
                 <div className="text-sm text-gray-600 mt-1">Verified Listings</div>
               </div>
               <div>
@@ -141,7 +141,7 @@ export default function Home({
             href="/cleaning-index"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-slate-900 px-8 py-4 text-slate-900 font-semibold hover:bg-gray-50 transition"
           >
-            Browse All 270 Listings
+            Browse All 291 Listings
           </Link>
         </div>
 
