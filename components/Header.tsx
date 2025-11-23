@@ -6,9 +6,9 @@ export default function Header() {
 
   const navLinks = [
     { label: 'Browse', href: '/cleaning-index' },
+    { label: 'Why CleaningExits', href: '/why' },
     { label: 'Resources', href: '/resources' },
     { label: 'Sell', href: '/sell' },
-    { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
   ];
 
@@ -20,6 +20,7 @@ export default function Header() {
             Cleaning Exits
           </Link>
 
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
@@ -32,6 +33,7 @@ export default function Header() {
             ))}
           </div>
 
+          {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 text-gray-700 hover:text-emerald-600"
@@ -49,6 +51,7 @@ export default function Header() {
           </button>
         </div>
 
+        {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100">
             {navLinks.map((link) => (
@@ -67,3 +70,4 @@ export default function Header() {
     </header>
   );
 }
+
