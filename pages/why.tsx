@@ -68,7 +68,7 @@ export default function Why() {
               <div className="border-t pt-6">
                 <p className="text-gray-700 text-lg leading-relaxed">
                   We analyzed every single cleaning business listing on BizBuySell — all 981 of them. 
-                  We verified broker accounts against our database of 75,000 brokers, analyzed financials, 
+                  We verified broker accounts against our database of 2,500 brokers, analyzed financials, 
                   and checked multiples. The result? Only 280 listings (29%) are legitimate businesses 
                   with real brokers and verifiable financials. 319 (33%) are definite garbage—impossible 
                   multiples, franchise spam, and lead-gen traps. The remaining 382 need manual review.
@@ -298,7 +298,7 @@ export default function Why() {
                   <h4 className="font-bold text-gray-900 mb-3 text-lg">✅ CleaningExits Model</h4>
                   <ul className="space-y-2 text-emerald-800">
                     <li>• Free for legitimate brokers</li>
-                    <li>• Manual verification against 75K broker database</li>
+                    <li>• Manual verification against 2,500 broker database</li>
                     <li>• Co-brokering revenue model</li>
                     <li>• We only win when YOU close</li>
                     <li>• 280 verified listings (not 981 spam-filled)</li>
@@ -325,7 +325,7 @@ export default function Why() {
                     <span className="text-emerald-600 text-xl flex-shrink-0">✓</span>
                     <div>
                       <strong>Real broker verification</strong> — We verify every listing against our 
-                      database of 75,000 business brokers. Fake accounts and phantom brokers don't make it through.
+                      database of 2,500 business brokers. Fake accounts and phantom brokers don't make it through.
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -487,4 +487,5 @@ export default function Why() {
     </>
   );
 }
+
 
