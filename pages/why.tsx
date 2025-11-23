@@ -159,51 +159,53 @@ export default function Why() {
               </p>
             </section>
 
-            {/* The Scandal */}
+            {/* The Real Problem */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Real Problem: Verified Brokers, Impossible Numbers</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Real Problem: The Numbers Don't Work</h2>
               
               <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8 mb-8">
                 <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                  The junk listings aren't just from anonymous accounts. We found something that breaks the entire system:
+                  The junk listings aren't just low-quality or poorly written. They have mathematically impossible financials:
                 </p>
                 
                 <div className="bg-white rounded-lg p-6 mb-6">
                   <p className="text-2xl font-bold text-red-600 mb-4">
-                    20 VERIFIED brokers have posted listings with impossible multiples (below 1.5x)
+                    40 listings have multiples below 1.5x
                   </p>
                   <p className="text-gray-700 text-lg">
-                    These aren't unverified spam accounts. These are brokers that BizBuySell has verified and 
-                    approved. Yet they're posting deals with numbers that don't make sense—where you'd supposedly 
-                    get your entire investment back in under 18 months.
+                    This means you'd supposedly get your entire investment back in under 18 months. That's not how 
+                    legitimate service businesses are priced. Real commercial cleaning companies trade at 2.5x-4x 
+                    multiples because that reflects the actual risk, effort, and time required to operate them.
                   </p>
                 </div>
 
                 <p className="text-gray-700 text-lg mb-4">
-                  <strong>Here's what we found:</strong>
+                  <strong>Examples of impossible deals:</strong>
                 </p>
                 <ul className="text-gray-700 space-y-2 mb-6">
-                  <li>• <strong>Account 45893</strong> (Verified) - $19,900 asking price / $497,313 annual cashflow = 0.04x multiple</li>
-                  <li>• <strong>Account 45895</strong> (Verified) - $409,900 asking price / $502,135 annual cashflow = 0.82x multiple</li>
-                  <li>• <strong>Account 44397</strong> (Verified) - Posted 3 separate listings, all with multiples between 0.91x-1.36x</li>
+                  <li>• <strong>Account 45893</strong> - $19,900 asking / $497,313 cashflow = 0.04x (15-day payback)</li>
+                  <li>• <strong>Account 45895</strong> - $409,900 asking / $502,135 cashflow = 0.82x (10-month payback)</li>
+                  <li>• <strong>Account 44397</strong> - Posted 3 different listings, all with 0.91x-1.36x multiples</li>
                 </ul>
 
                 <div className="bg-yellow-50 border-l-4 border-yellow-600 p-4 rounded">
                   <p className="text-gray-700 text-lg mb-3">
                     <strong>Why this matters:</strong>
                   </p>
+                  <p className="text-gray-700 mb-3">
+                    If a business really generated $497K in annual cashflow, no rational seller would accept $19,900 
+                    for it. You'd recover your investment in 15 days. The seller would be giving away a money-printing 
+                    machine for pocket change.
+                  </p>
                   <p className="text-gray-700">
-                    If these numbers were real, you'd recover your full investment in 1-18 months. The seller 
-                    would be giving away a cash-generating business for pennies. This doesn't happen in legitimate 
-                    business sales. Service businesses trade at 2.5x-4x multiples because that reflects the actual 
-                    risk and effort required to operate them.
+                    These aren't distressed sales or special situations. They're listings that stay active for months, 
+                    collect buyer contact information, and never result in actual transactions at the stated prices.
                   </p>
                 </div>
 
                 <p className="text-gray-700 text-lg mt-6 italic">
-                  When BizBuySell's own "verified" brokers can post mathematically impossible deals that stay 
-                  active for months, their verification system is meaningless. Either the deals are fake, the 
-                  financials are fake, or BizBuySell doesn't care which.
+                  When 40 out of 139 listings (29%) have mathematically impossible multiples, and they stay active 
+                  for months without being removed, the platform has stopped functioning as a legitimate marketplace.
                 </p>
               </div>
             </section>
@@ -497,6 +499,7 @@ export default function Why() {
     </>
   );
 }
+
 
 
 
