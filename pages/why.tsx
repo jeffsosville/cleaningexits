@@ -15,14 +15,14 @@ export default function Why() {
 
       <Header />
 
-      <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
+      <main className="min-h-screen bg-white">
         {/* Hero Section */}
-        <section className="py-20 px-4">
+        <section className="py-20 px-4 bg-gradient-to-b from-gray-50 to-white">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
               Why CleaningExits Exists
             </h1>
-            <p className="text-xl text-gray-300 leading-relaxed">
+            <p className="text-xl text-gray-700 leading-relaxed">
               We analyzed over 1,000 cleaning business listings on BizBuySell. In the past 30 days alone, 
               139 new listings appeared. Only 54 (39%) are legitimate. Here's the data that exposes a 
               fundamentally broken marketplace.
@@ -31,7 +31,7 @@ export default function Why() {
         </section>
 
         {/* Main Content */}
-        <section className="py-16 px-4">
+        <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             
             {/* The Data */}
@@ -89,10 +89,10 @@ export default function Why() {
 
             {/* Examples Section */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-6">Here's What "Junk" Looks Like</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">Here's What "Junk" Looks Like</h2>
               
-              <div className="bg-gray-700 rounded-lg p-6 mb-8 text-white">
-                <p className="text-lg mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <p className="text-lg text-gray-700 mb-4">
                   These are REAL listings from BizBuySell's cleaning section. Both have mathematically 
                   impossible financials. The worst part? 20 of them are from VERIFIED brokers.
                 </p>
@@ -154,14 +154,14 @@ export default function Why() {
                 </div>
               </div>
 
-              <p className="text-white italic">
+              <p className="text-gray-700 italic">
                 These listings stayed active for months. BizBuySell never removed them.
               </p>
             </section>
 
             {/* The Scandal */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-6">The Real Problem: Verified Brokers, Impossible Numbers</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Real Problem: Verified Brokers, Impossible Numbers</h2>
               
               <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8 mb-8">
                 <p className="text-gray-700 text-lg mb-6 leading-relaxed">
@@ -210,7 +210,7 @@ export default function Why() {
 
             {/* How We Know - Methodology */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-6">How We Know This</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">How We Know This</h2>
               
               <div className="bg-gray-50 rounded-lg p-8 mb-8">
                 <p className="text-gray-700 text-lg mb-6 leading-relaxed">
@@ -295,7 +295,7 @@ export default function Why() {
 
             {/* The Problem - Market for Lemons */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-6">The Problem: A Market for Lemons</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Problem: A Market for Lemons</h2>
               
               <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-8 mb-8">
                 <p className="text-gray-700 text-lg italic mb-4">
@@ -306,7 +306,7 @@ export default function Why() {
                 </p>
               </div>
 
-              <div className="prose prose-lg max-w-none text-white mb-8 bg-gray-800 rounded-lg p-8">
+              <div className="prose prose-lg max-w-none text-gray-700 mb-8 bg-gray-50 border border-gray-200 rounded-lg p-8">
                 <p>
                   In 1970, economist George Akerlof described what happens when buyers can't distinguish quality products 
                   from junk. He called it "The Market for Lemons." When sellers know more than buyers (asymmetric information), 
@@ -371,8 +371,8 @@ export default function Why() {
                 </div>
               </div>
 
-              <div className="prose prose-lg max-w-none text-white bg-gray-800 rounded-lg p-8">
-                <h3 className="text-2xl font-bold text-white mb-4">Who Loses?</h3>
+              <div className="prose prose-lg max-w-none text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Who Loses?</h3>
                 <ul className="space-y-3">
                   <li>
                     <strong>Legitimate brokers</strong> — Their real listings get buried in spam. 
@@ -387,7 +387,7 @@ export default function Why() {
                   </li>
                 </ul>
 
-                <h3 className="text-2xl font-bold text-white mb-4 mt-8">Who Wins?</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4 mt-8">Who Wins?</h3>
                 <ul className="space-y-3">
                   <li>
                     <strong>BizBuySell</strong> — Collects monthly fees from everyone, real or fake
@@ -404,7 +404,7 @@ export default function Why() {
 
             {/* The Solution */}
             <section className="mb-16">
-              <h2 className="text-3xl font-bold text-white mb-6">The Solution: CleaningExits</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Solution: CleaningExits</h2>
               
               <div className="bg-emerald-50 border-2 border-emerald-400 rounded-lg p-8 mb-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">
@@ -485,7 +485,7 @@ export default function Why() {
             </div>
 
             <div className="text-center mt-12">
-              <Link href="/" className="text-emerald-400 hover:text-emerald-300 font-semibold text-lg">
+              <Link href="/" className="text-emerald-600 hover:text-emerald-700 font-semibold text-lg">
                 ← Back to Home
               </Link>
             </div>
@@ -497,5 +497,6 @@ export default function Why() {
     </>
   );
 }
+
 
 
