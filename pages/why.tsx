@@ -36,7 +36,7 @@ export default function Why() {
               We're Fixing It.
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">
-              We analyzed all 981 cleaning business listings on BizBuySell. Only 280 (29%) are legitimate. 
+              We analyzed all 139 commercial cleaning business listings on BizBuySell. Only 54 (39%) are legitimate. 
               Here's the data that exposes a fundamentally broken marketplace.
             </p>
           </div>
@@ -52,45 +52,45 @@ export default function Why() {
             <div className="bg-white rounded-lg border-2 border-gray-200 p-8 mb-8">
               <div className="grid md:grid-cols-3 gap-8 text-center mb-8">
                 <div>
-                  <div className="text-5xl font-bold text-gray-900 mb-2">981</div>
-                  <div className="text-gray-600">Total Listings Analyzed</div>
+                  <div className="text-5xl font-bold text-gray-900 mb-2">139</div>
+                  <div className="text-gray-600">Listings Analyzed</div>
                 </div>
                 <div>
-                  <div className="text-5xl font-bold text-emerald-600 mb-2">280</div>
-                  <div className="text-gray-600">Verified Real (29%)</div>
+                  <div className="text-5xl font-bold text-emerald-600 mb-2">54</div>
+                  <div className="text-gray-600">Verified Real (39%)</div>
                 </div>
                 <div>
-                  <div className="text-5xl font-bold text-red-600 mb-2">319</div>
-                  <div className="text-gray-600">Confirmed Garbage (33%)</div>
+                  <div className="text-5xl font-bold text-red-600 mb-2">56</div>
+                  <div className="text-gray-600">Confirmed Junk (40%)</div>
                 </div>
               </div>
               
               <div className="border-t pt-6">
                 <p className="text-gray-700 text-lg leading-relaxed">
-                  We analyzed every single cleaning business listing on BizBuySell — all 981 of them. 
-                  We verified broker accounts against our database of 2,500 brokers, analyzed financials, 
-                  and checked multiples. The result? Only 280 listings (29%) are legitimate businesses 
-                  with real brokers and verifiable financials. 319 (33%) are definite garbage—impossible 
-                  multiples, franchise spam, and lead-gen traps. The remaining 382 need manual review.
+                  We analyzed every commercial and residential cleaning business listing on BizBuySell—all 139 of them. 
+                  We verified broker accounts against our database of 2,500 business brokers, analyzed financials, 
+                  and checked multiples. The result? Only 54 listings (39%) are legitimate businesses 
+                  with real brokers and verifiable financials. 56 (40%) are confirmed junk—impossible 
+                  multiples, franchise spam, and listings with no financial data. The remaining 29 need manual review.
                 </p>
               </div>
             </div>
 
             <div className="prose prose-lg max-w-none text-gray-700">
               <p>
-                <strong>What we found in the garbage pile:</strong>
+                <strong>What we found in the junk:</strong>
               </p>
               <ul className="space-y-2">
-                <li><strong>141 listings with scam multiples</strong> (below 1.5x) — Including 64 from VERIFIED brokers</li>
-                <li><strong>177 franchise spam listings</strong> with no real financials</li>
-                <li><strong>Multiple fake account farms</strong> posting identical listings across different cities</li>
-                <li><strong>Verified brokers using fake names</strong> to post impossible deals</li>
+                <li><strong>40 listings with impossible multiples</strong> (below 1.5x) — Including 20 from VERIFIED brokers</li>
+                <li><strong>42 listings with no financial data</strong> to evaluate the business</li>
+                <li><strong>9 fake "aircraft cleaning" account farms</strong> posting identical listings across different cities</li>
+                <li><strong>27 dry cleaning businesses</strong> incorrectly categorized as commercial cleaning</li>
               </ul>
               
               <p className="mt-6">
-                <strong>On a typical day:</strong> We tracked 9 new cleaning business listings posted 
-                yesterday. Only 2 were real (22%). The other 7 were fake accounts, impossible multiples, 
-                or franchise spam.
+                <strong>What we excluded from our analysis:</strong> We focus on commercial and residential 
+                cleaning businesses. We excluded dry cleaning (different industry entirely), aircraft/aviation 
+                "cleaning" (confirmed scam category), and franchise recruitment ads.
               </p>
             </div>
           </section>
@@ -167,7 +167,7 @@ export default function Why() {
 
           {/* The Scandal */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">The Scandal: Verified Brokers Posting Fakes</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">The Scandal: Verified Brokers Posting Impossible Deals</h2>
             
             <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8 mb-8">
               <p className="text-gray-700 text-lg mb-6 leading-relaxed">
@@ -176,28 +176,96 @@ export default function Why() {
               
               <div className="bg-white rounded-lg p-6 mb-6">
                 <p className="text-2xl font-bold text-red-600 mb-4">
-                  64 VERIFIED brokers are posting listings with impossible multiples (below 1.5x)
+                  20 VERIFIED brokers are posting listings with impossible multiples (below 1.5x)
                 </p>
                 <p className="text-gray-700 text-lg">
                   These aren't random spam accounts. These are legitimate, verified business brokers 
-                  with real accounts posting deals that mathematically don't make sense. They're using 
+                  posting deals where you'd supposedly get your money back in under 18 months. They're using 
                   BizBuySell as a lead generation tool, not selling actual businesses.
                 </p>
               </div>
 
               <p className="text-gray-700 text-lg mb-4">
-                <strong>Example from our data:</strong>
+                <strong>Examples from our research:</strong>
               </p>
               <ul className="text-gray-700 space-y-2 mb-6">
-                <li>• <strong>Account 45895</strong> - Verified broker John Harris / The Acquisition Pros</li>
-                <li>• Posted under fake name "Julian Sloane, JS Associates"</li>
-                <li>• Hartford, CT listing: $410K asking / $502K cashflow = 0.8x multiple</li>
-                <li>• This broker has a verified account but posted an impossible deal</li>
+                <li>• <strong>Account 45893</strong> - Verified broker posting $19,900 / $497,313 cashflow = 0.04x multiple</li>
+                <li>• <strong>Account 45895</strong> - Verified broker posting $409,900 / $502,135 cashflow = 0.82x multiple</li>
+                <li>• <strong>Account 44397</strong> - Verified broker with 3 listings, all with 0.91x-1.36x multiples</li>
               </ul>
 
               <p className="text-gray-700 text-lg italic">
                 When legitimate brokers start posting fake deals for lead generation, the entire 
                 marketplace becomes worthless.
+              </p>
+            </div>
+          </section>
+
+          {/* How We Know */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">How We Know This</h2>
+            
+            <div className="bg-gray-50 rounded-lg p-8 mb-8">
+              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+                We didn't just guess. We built the infrastructure to systematically research and analyze BizBuySell's marketplace:
+              </p>
+              
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">1. Built a Database of 2,500 Business Brokers</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Over the past several years through our ATM Brokerage business, we've compiled contact 
+                    information and account details for 2,500+ business brokers. This database lets us verify 
+                    which broker accounts are legitimate and which are fake.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">2. Analyzed Every Listing</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    We systematically reviewed all 139 commercial and residential cleaning business listings 
+                    currently on BizBuySell. For each listing, we extracted the asking price, cash flow, 
+                    broker account, and contact information.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">3. Calculated the Multiples</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    We calculated price-to-cashflow multiples for every listing with financial data. 
+                    Industry standard for service businesses: 2.5x-4x. Anything below 1.5x is mathematically 
+                    suspicious—you'd get your money back in under 18 months.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">4. Cross-Referenced Against Our Database</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    We matched broker accounts against our database of 2,500 verified brokers. This revealed 
+                    which listings came from legitimate brokers, which were from unverified accounts, and 
+                    critically—which verified brokers were posting impossible deals.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-lg p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">5. Identified Patterns</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Through our research, we found fake account farms posting identical "aircraft cleaning" 
+                    listings across different cities, franchise spam with no real financials, and verified 
+                    brokers systematically posting deals with impossible multiples for lead generation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-6">
+              <p className="text-gray-700 text-lg font-medium mb-2">
+                The Result:
+              </p>
+              <p className="text-gray-700 leading-relaxed">
+                54 out of 139 listings (39%) passed our verification. The rest had serious red flags: 
+                impossible multiples, no financial data, fake account patterns, or were incorrectly 
+                categorized (like dry cleaning). We have the receipts for every single one.
               </p>
             </div>
           </section>
@@ -298,10 +366,10 @@ export default function Why() {
                   <h4 className="font-bold text-gray-900 mb-3 text-lg">✅ CleaningExits Model</h4>
                   <ul className="space-y-2 text-emerald-800">
                     <li>• Free for legitimate brokers</li>
-                    <li>• Manual verification against 2,500 broker database</li>
+                    <li>• Verified against database of 2,500 brokers</li>
                     <li>• Co-brokering revenue model</li>
                     <li>• We only win when YOU close</li>
-                    <li>• 280 verified listings (not 981 spam-filled)</li>
+                    <li>• 54 verified listings (not 139 spam-filled)</li>
                   </ul>
                 </div>
               </div>
@@ -487,5 +555,6 @@ export default function Why() {
     </>
   );
 }
+
 
 
