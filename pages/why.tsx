@@ -1,6 +1,10 @@
 // pages/why.tsx
+// DROP THIS FILE INTO YOUR REPO AT: pages/why.tsx
+// THEN ADD THE TWO SCREENSHOT IMAGES TO: public/images/
+
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Why() {
   return (
@@ -32,8 +36,8 @@ export default function Why() {
               We're Fixing It.
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">
-              We analyzed 327 recent BizBuySell listings looking for cleaning businesses. 
-              What we found exposed a fundamentally broken marketplace.
+              We analyzed all 981 cleaning business listings on BizBuySell. Only 280 (29%) are legitimate. 
+              Here's the data that exposes a fundamentally broken marketplace.
             </p>
           </div>
         </div>
@@ -48,38 +52,46 @@ export default function Why() {
             <div className="bg-white rounded-lg border-2 border-gray-200 p-8 mb-8">
               <div className="grid md:grid-cols-3 gap-8 text-center mb-8">
                 <div>
-                  <div className="text-5xl font-bold text-gray-900 mb-2">327</div>
-                  <div className="text-gray-600">Listings Analyzed</div>
+                  <div className="text-5xl font-bold text-gray-900 mb-2">981</div>
+                  <div className="text-gray-600">Total Listings Analyzed</div>
                 </div>
                 <div>
-                  <div className="text-5xl font-bold text-emerald-600 mb-2">15</div>
-                  <div className="text-gray-600">Cleaning Businesses Found</div>
+                  <div className="text-5xl font-bold text-emerald-600 mb-2">280</div>
+                  <div className="text-gray-600">Verified Real (29%)</div>
                 </div>
                 <div>
-                  <div className="text-5xl font-bold text-red-600 mb-2">0</div>
-                  <div className="text-gray-600">Were Legitimate</div>
+                  <div className="text-5xl font-bold text-red-600 mb-2">319</div>
+                  <div className="text-gray-600">Confirmed Garbage (33%)</div>
                 </div>
               </div>
               
               <div className="border-t pt-6">
                 <p className="text-gray-700 text-lg leading-relaxed">
-                  On a single Saturday morning in November 2024, we scraped every new business listing 
-                  from BizBuySell. Out of 327 listings, only 15 mentioned cleaning or janitorial services. 
-                  Not one of those 15 was a legitimate, verified business opportunity.
+                  We analyzed every single cleaning business listing on BizBuySell — all 981 of them. 
+                  We verified broker accounts against our database of 75,000 brokers, analyzed financials, 
+                  and checked multiples. The result? Only 280 listings (29%) are legitimate businesses 
+                  with real brokers and verifiable financials. 319 (33%) are definite garbage—impossible 
+                  multiples, franchise spam, and lead-gen traps. The remaining 382 need manual review.
                 </p>
               </div>
             </div>
 
             <div className="prose prose-lg max-w-none text-gray-700">
               <p>
-                <strong>Here's what we found instead:</strong>
+                <strong>What we found in the garbage pile:</strong>
               </p>
               <ul className="space-y-2">
-                <li>6 identical "aviation detailing" businesses with cookie-cutter descriptions</li>
-                <li>3 franchise lead-generation traps disguised as business sales</li>
-                <li>2 listings with impossible financials (0.9x - 1.5x multiples)</li>
-                <li>4 with missing broker information or "FSBO" with no contact details</li>
+                <li><strong>141 listings with scam multiples</strong> (below 1.5x) — Including 64 from VERIFIED brokers</li>
+                <li><strong>177 franchise spam listings</strong> with no real financials</li>
+                <li><strong>Multiple fake account farms</strong> posting identical listings across different cities</li>
+                <li><strong>Verified brokers using fake names</strong> to post impossible deals</li>
               </ul>
+              
+              <p className="mt-6">
+                <strong>On a typical day:</strong> We tracked 9 new cleaning business listings posted 
+                yesterday. Only 2 were real (22%). The other 7 were fake accounts, impossible multiples, 
+                or franchise spam.
+              </p>
             </div>
           </section>
 
@@ -88,45 +100,24 @@ export default function Why() {
             <h2 className="text-3xl font-bold text-gray-900 mb-6">The Evidence</h2>
             
             <p className="text-gray-700 text-lg mb-8 leading-relaxed">
-              Let's look at one example. Here's an actual listing that appeared on BizBuySell:
+              Here are two examples from our analysis. These listings have been active for months with 
+              impossible financials. The worst part? One is from a VERIFIED broker using a fake name.
             </p>
 
+            {/* Junk Listing 1 */}
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 mb-6">
               <div className="mb-4">
-                <img 
+                <Image 
                   src="/images/bizbuysell-junk-1.png" 
-                  alt="BizBuySell listing showing impossible 1.07x multiple"
-                  className="w-full rounded border border-gray-300"
+                  alt="BizBuySell listing showing impossible 0.82x multiple"
+                  width={600}
+                  height={400}
+                  className="w-full max-w-2xl mx-auto rounded border border-gray-300"
                 />
               </div>
               
               <div className="bg-white rounded p-4">
                 <p className="text-sm text-gray-600 mb-2"><strong>Why this is a red flag:</strong></p>
-                <p className="text-gray-700 mb-3">
-                  <strong>$375,000 asking price ÷ $350,268 cashflow = 1.07x multiple</strong>
-                </p>
-                <p className="text-gray-700">
-                  You'd get your entire investment back in 13 months. If this business actually 
-                  generated $350K in annual cash flow, why would anyone sell it for $375K? 
-                  Real commercial cleaning businesses sell for 2.5x-4x multiples, not 1.07x.
-                </p>
-                <p className="text-gray-700 mt-3 font-semibold">
-                  This has been listed for months. BizBuySell never removed it.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 mb-8">
-              <div className="mb-4">
-                <img 
-                  src="/images/bizbuysell-junk-2.png" 
-                  alt="BizBuySell listing showing impossible 0.82x multiple"
-                  className="w-full rounded border border-gray-300"
-                />
-              </div>
-              
-              <div className="bg-white rounded p-4">
-                <p className="text-sm text-gray-600 mb-2"><strong>Even worse:</strong></p>
                 <p className="text-gray-700 mb-3">
                   <strong>$409,900 asking price ÷ $502,135 cashflow = 0.82x multiple</strong>
                 </p>
@@ -135,6 +126,31 @@ export default function Why() {
                   asking $410K. That means you'd get your money back in less than 10 months and 
                   the seller would be LOSING money on the deal. This is mathematically impossible 
                   for a legitimate business sale.
+                </p>
+              </div>
+            </div>
+
+            {/* Junk Listing 2 */}
+            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 mb-8">
+              <div className="mb-4">
+                <Image 
+                  src="/images/bizbuysell-junk-2.png" 
+                  alt="BizBuySell listing showing impossible 1.07x multiple"
+                  width={600}
+                  height={400}
+                  className="w-full max-w-2xl mx-auto rounded border border-gray-300"
+                />
+              </div>
+              
+              <div className="bg-white rounded p-4">
+                <p className="text-sm text-gray-600 mb-2"><strong>Another example:</strong></p>
+                <p className="text-gray-700 mb-3">
+                  <strong>$375,000 asking price ÷ $350,268 cashflow = 1.07x multiple</strong>
+                </p>
+                <p className="text-gray-700">
+                  You'd get your entire investment back in 13 months. If this business actually 
+                  generated $350K in annual cash flow, why would anyone sell it for $375K? 
+                  Real commercial cleaning businesses sell for 2.5x-4x multiples, not 1.07x.
                 </p>
                 <p className="text-gray-700 mt-3">
                   <strong>The pattern:</strong> Both listings have "No photo available," generic 
@@ -147,6 +163,43 @@ export default function Why() {
             <p className="text-gray-700 italic">
               These listings stayed active for months. BizBuySell never removed them.
             </p>
+          </section>
+
+          {/* The Scandal */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">The Scandal: Verified Brokers Posting Fakes</h2>
+            
+            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8 mb-8">
+              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+                The junk listings aren't just from anonymous scammers. We found something worse:
+              </p>
+              
+              <div className="bg-white rounded-lg p-6 mb-6">
+                <p className="text-2xl font-bold text-red-600 mb-4">
+                  64 VERIFIED brokers are posting listings with impossible multiples (below 1.5x)
+                </p>
+                <p className="text-gray-700 text-lg">
+                  These aren't random spam accounts. These are legitimate, verified business brokers 
+                  with real accounts posting deals that mathematically don't make sense. They're using 
+                  BizBuySell as a lead generation tool, not selling actual businesses.
+                </p>
+              </div>
+
+              <p className="text-gray-700 text-lg mb-4">
+                <strong>Example from our data:</strong>
+              </p>
+              <ul className="text-gray-700 space-y-2 mb-6">
+                <li>• <strong>Account 45895</strong> - Verified broker John Harris / The Acquisition Pros</li>
+                <li>• Posted under fake name "Julian Sloane, JS Associates"</li>
+                <li>• Hartford, CT listing: $410K asking / $502K cashflow = 0.8x multiple</li>
+                <li>• This broker has a verified account but posted an impossible deal</li>
+              </ul>
+
+              <p className="text-gray-700 text-lg italic">
+                When legitimate brokers start posting fake deals for lead generation, the entire 
+                marketplace becomes worthless.
+              </p>
+            </div>
           </section>
 
           {/* The Problem */}
@@ -245,10 +298,10 @@ export default function Why() {
                   <h4 className="font-bold text-gray-900 mb-3 text-lg">✅ CleaningExits Model</h4>
                   <ul className="space-y-2 text-emerald-800">
                     <li>• Free for legitimate brokers</li>
-                    <li>• Manual verification</li>
+                    <li>• Manual verification against 75K broker database</li>
                     <li>• Co-brokering revenue model</li>
                     <li>• We only win when YOU close</li>
-                    <li>• 270 verified listings (zero spam)</li>
+                    <li>• 280 verified listings (not 981 spam-filled)</li>
                   </ul>
                 </div>
               </div>
@@ -271,8 +324,8 @@ export default function Why() {
                   <div className="flex items-start gap-3">
                     <span className="text-emerald-600 text-xl flex-shrink-0">✓</span>
                     <div>
-                      <strong>Real broker verification</strong> — We confirm the listing is from a 
-                      legitimate business broker with contact information and licensing
+                      <strong>Real broker verification</strong> — We verify every listing against our 
+                      database of 75,000 business brokers. Fake accounts and phantom brokers don't make it through.
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -392,7 +445,7 @@ export default function Why() {
           <section className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to See the Difference?</h2>
             <p className="text-xl text-gray-600 mb-8">
-              Browse 270 verified cleaning businesses. No franchise spam. No fake listings.
+              Browse 280 verified cleaning businesses. No franchise spam. No fake listings. No impossible multiples.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link 
@@ -434,3 +487,4 @@ export default function Why() {
     </>
   );
 }
+
