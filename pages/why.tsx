@@ -415,24 +415,24 @@ export default function Why() {
                 
                 <div className="grid md:grid-cols-2 gap-8 mb-8">
                   <div className="bg-red-50 border-2 border-red-400 rounded-lg p-6">
-                    <h4 className="font-bold text-gray-900 mb-3 text-lg">❌ BizBuySell Model</h4>
+                    <h4 className="font-bold text-gray-900 mb-3 text-lg">❌ BizBuySell</h4>
                     <ul className="space-y-2 text-red-800">
+                      <li>• 1,000+ "cleaning" listings</li>
+                      <li>• 65% are junk, wrong category, or spam</li>
                       <li>• Pay $100-400/month to list anything</li>
                       <li>• No quality verification</li>
-                      <li>• No financial validation</li>
                       <li>• Makes MORE from junk listings</li>
-                      <li>• 60% of listings have problems</li>
                     </ul>
                   </div>
                   
                   <div className="bg-emerald-50 border-2 border-emerald-400 rounded-lg p-6">
-                    <h4 className="font-bold text-gray-900 mb-3 text-lg">✅ CleaningExits Model</h4>
+                    <h4 className="font-bold text-gray-900 mb-3 text-lg">✅ CleaningExits</h4>
                     <ul className="space-y-2 text-emerald-800">
+                      <li>• 291 verified commercial cleaning businesses</li>
+                      <li>• Analyzed 824 listings, kept only the best</li>
                       <li>• Free for legitimate brokers</li>
-                      <li>• Verified against database of 2,500 brokers</li>
                       <li>• Co-brokering revenue model</li>
                       <li>• We only win when YOU close</li>
-                      <li>• 54 verified listings (not 139 junk-filled)</li>
                     </ul>
                   </div>
                 </div>
@@ -441,8 +441,9 @@ export default function Why() {
                   <h4 className="font-bold text-gray-900 mb-3">How We're Different:</h4>
                   <ul className="space-y-3 text-gray-700">
                     <li>
-                      <strong>Curated, not cluttered</strong> — Only verified commercial cleaning businesses. 
-                      No franchises, no aircraft cleaning, no dry cleaning.
+                      <strong>Curated, not cluttered</strong> — We analyzed 824 BizBuySell listings over time 
+                      and removed 533 (65%) as dry cleaning, aircraft scams, franchises, or junk. Only 291 
+                      legitimate commercial cleaning businesses made the cut.
                     </li>
                     <li>
                       <strong>Verified brokers</strong> — Cross-referenced against our database of 2,500 brokers 
@@ -467,8 +468,8 @@ export default function Why() {
                 Ready to Find a Real Cleaning Business?
               </h2>
               <p className="text-gray-700 text-lg mb-8">
-                Browse our curated database of 54 verified commercial cleaning businesses. 
-                No junk. No franchises. No impossible deals.
+                Browse our curated database of 291 verified commercial cleaning businesses. 
+                No junk. No franchises. No dry cleaning. No impossible deals.
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <Link
@@ -499,6 +500,7 @@ export default function Why() {
     </>
   );
 }
+
 
 
 
