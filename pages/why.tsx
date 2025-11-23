@@ -118,9 +118,9 @@ export default function Why() {
                 <Image 
                   src="/images/bizbuysell-junk-1.png" 
                   alt="BizBuySell listing showing impossible 0.82x multiple"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl mx-auto rounded border border-gray-300"
+                  width={400}
+                  height={267}
+                  className="w-full max-w-md mx-auto rounded border border-gray-300"
                 />
               </div>
               
@@ -144,9 +144,9 @@ export default function Why() {
                 <Image 
                   src="/images/bizbuysell-junk-2.png" 
                   alt="BizBuySell listing showing impossible 1.07x multiple"
-                  width={600}
-                  height={400}
-                  className="w-full max-w-2xl mx-auto rounded border border-gray-300"
+                  width={400}
+                  height={267}
+                  className="w-full max-w-md mx-auto rounded border border-gray-300"
                 />
               </div>
               
@@ -630,6 +630,7 @@ export default function Why() {
     </>
   );
 }
+
 
 
 
