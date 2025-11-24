@@ -30,6 +30,19 @@ export default function Why() {
           </div>
         </section>
 
+        {/* Credibility Anchor */}
+        <section className="py-8 px-4 bg-blue-50">
+          <div className="max-w-4xl mx-auto">
+            <div className="p-6 bg-white border-2 border-blue-400 rounded-lg">
+              <p className="text-gray-800 text-lg">
+                <strong>Who built this?</strong> We run ATM Brokerage — achieved 90% market share and facilitated 
+                $75-100M in transactions over 10+ years by becoming the trusted specialist in a fragmented vertical. 
+                We're applying the same playbook to cleaning businesses.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Main Content */}
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
@@ -404,6 +417,146 @@ export default function Why() {
               </div>
             </section>
 
+            {/* The Proof - Screenshots */}
+            <section className="mb-16">
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Proof: Screenshots from BizBuySell</h2>
+              
+              <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8">
+                <p className="text-gray-700 mb-6">
+                  These aren't typos. These aren't glitches. These are VERIFIED broker accounts on BizBuySell 
+                  posting deals with impossible multiples that no rational seller would accept.
+                </p>
+                
+                <div className="space-y-8">
+                  {/* Screenshot 1 */}
+                  <div className="bg-white rounded-lg p-6 border-2 border-red-300">
+                    <div className="mb-4">
+                      <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
+                        Account #45893 - VERIFIED BROKER
+                      </span>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="font-bold text-gray-900 mb-3">The Listing:</h4>
+                        <ul className="space-y-2 text-gray-700">
+                          <li>• <strong>Asking Price:</strong> $19,900</li>
+                          <li>• <strong>Annual Cash Flow:</strong> $497,313</li>
+                          <li>• <strong>Multiple:</strong> 0.04x</li>
+                          <li>• <strong>Payback Period:</strong> 15 days</li>
+                        </ul>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded">
+                        <p className="text-sm text-gray-600 mb-2"><strong>The Math:</strong></p>
+                        <p className="text-sm text-gray-700">
+                          If this business generates $497,313 per year in cash flow, and you can buy it for $19,900, 
+                          you'd recover your entire investment in 15 days.
+                        </p>
+                        <p className="text-sm text-red-600 font-bold mt-3">
+                          Why would ANY owner sell a business generating $500K/year for $20K?
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                      <strong>BizBuySell Listing ID:</strong> [View actual screenshot at launch]
+                    </div>
+                  </div>
+                  
+                  {/* Screenshot 2 */}
+                  <div className="bg-white rounded-lg p-6 border-2 border-red-300">
+                    <div className="mb-4">
+                      <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
+                        Account #45895 - VERIFIED BROKER
+                      </span>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="font-bold text-gray-900 mb-3">The Listing:</h4>
+                        <ul className="space-y-2 text-gray-700">
+                          <li>• <strong>Asking Price:</strong> $409,900</li>
+                          <li>• <strong>Annual Cash Flow:</strong> $502,135</li>
+                          <li>• <strong>Multiple:</strong> 0.82x</li>
+                          <li>• <strong>Payback Period:</strong> 10 months</li>
+                        </ul>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded">
+                        <p className="text-sm text-gray-600 mb-2"><strong>The Marketing:</strong></p>
+                        <p className="text-sm text-gray-700">
+                          Beautiful copy. Talks about "recession-proof," "proprietary software," "established client base."
+                        </p>
+                        <p className="text-sm text-red-600 font-bold mt-3">
+                          But if the numbers were real, institutional buyers would pay 3-4x this price.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                      <strong>BizBuySell Listing ID:</strong> [View actual screenshot at launch]
+                    </div>
+                  </div>
+                  
+                  {/* Pattern */}
+                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
+                    <h4 className="font-bold text-gray-900 mb-3">This Is Not Isolated</h4>
+                    <p className="text-gray-700 mb-4">
+                      In the past 30 days alone, we found:
+                    </p>
+                    <ul className="space-y-2 text-gray-700">
+                      <li>• <strong>40 listings (29%)</strong> with multiples below 1.5x</li>
+                      <li>• <strong>20 different verified broker accounts</strong> posting impossible deals</li>
+                      <li>• <strong>9 aircraft cleaning scam accounts</strong> posting fake listings</li>
+                      <li>• <strong>42 listings (30%)</strong> with no financial data at all</li>
+                    </ul>
+                    <p className="text-gray-700 mt-4 font-bold">
+                      This pattern holds across all 824 listings we analyzed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Verification Methodology */}
+            <section className="mb-16">
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Verification Methodology</h2>
+              
+              <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-8 mb-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  How We Verify Listings (Simple + Transparent)
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Financial Data Required</h4>
+                      <p className="text-gray-700">Listing must include revenue AND cash flow or EBITDA. We calculate the multiple and flag anything below 1.5x as impossible.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Commercial Cleaning Only</h4>
+                      <p className="text-gray-700">We remove dry cleaning (different industry), aircraft cleaning (confirmed scam category), and franchise recruitment listings (not real businesses for sale).</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Verified Broker with Real Contact Info</h4>
+                      <p className="text-gray-700">Cross-referenced against our database of 2,500 brokers. Must have web presence, business registration, or LinkedIn profile. Phone and email must work.</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 bg-white rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <strong>Process:</strong> Automated scraping + ML pattern detection + manual review of flagged listings. 
+                    We run this daily on all new listings from 1,500+ broker websites.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* The Solution */}
             <section className="mb-16">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">The Solution: CleaningExits</h2>
@@ -462,6 +615,61 @@ export default function Why() {
               </div>
             </section>
 
+            {/* For Brokers Section - NEW */}
+            <section className="mb-16">
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">A Note to Brokers</h2>
+              
+              <div className="bg-emerald-50 border-2 border-emerald-400 rounded-lg p-8">
+                <p className="text-lg text-gray-800 mb-4">
+                  <strong>You're not the problem. The platform incentives are.</strong>
+                </p>
+                
+                <p className="text-gray-700 mb-4">
+                  BizBuySell penalizes accuracy and rewards volume. They charge you $100-400/month regardless 
+                  of listing quality, so their revenue goes UP when junk listings flood the platform.
+                </p>
+                
+                <p className="text-gray-700 mb-4">
+                  Your legitimate listings get buried. Buyers waste time on garbage. And the serious operators 
+                  (like you) lose credibility by association.
+                </p>
+                
+                <div className="bg-white rounded-lg p-6 mt-6">
+                  <h3 className="font-bold text-gray-900 mb-3">What CleaningExits Does for You:</h3>
+                  <ul className="space-y-3 text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span><strong>Free listing</strong> for verified brokers (no monthly fees)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span><strong>Quality buyers only</strong> — no tire-kickers wasting your time on fake deals</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span><strong>Co-brokering opportunities</strong> — we bring you qualified buyers and split commission</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span><strong>Your listings stand out</strong> — no junk to compete with</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span><strong>Direct contact info displayed</strong> — buyers can reach you immediately</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-gray-700">
+                    <strong>We built this because we're brokers too.</strong> We ran ATM Brokerage for 10+ years and 
+                    facilitated $75-100M in transactions by becoming the trusted specialist. We know what legitimate 
+                    brokers need: quality buyers, clean data, and aligned incentives.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* CTA */}
             <div className="bg-white rounded-xl border-2 border-emerald-600 p-8 text-center">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -500,6 +708,7 @@ export default function Why() {
     </>
   );
 }
+
 
 
 
