@@ -417,102 +417,6 @@ export default function Why() {
               </div>
             </section>
 
-            {/* The Proof - Screenshots */}
-            <section className="mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">The Proof: Screenshots from BizBuySell</h2>
-              
-              <div className="bg-red-50 border-2 border-red-400 rounded-lg p-8">
-                <p className="text-gray-700 mb-6">
-                  These aren't typos. These aren't glitches. These are VERIFIED broker accounts on BizBuySell 
-                  posting deals with impossible multiples that no rational seller would accept.
-                </p>
-                
-                <div className="space-y-8">
-                  {/* Screenshot 1 */}
-                  <div className="bg-white rounded-lg p-6 border-2 border-red-300">
-                    <div className="mb-4">
-                      <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
-                        Account #45893 - VERIFIED BROKER
-                      </span>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-bold text-gray-900 mb-3">The Listing:</h4>
-                        <ul className="space-y-2 text-gray-700">
-                          <li>• <strong>Asking Price:</strong> $19,900</li>
-                          <li>• <strong>Annual Cash Flow:</strong> $497,313</li>
-                          <li>• <strong>Multiple:</strong> 0.04x</li>
-                          <li>• <strong>Payback Period:</strong> 15 days</li>
-                        </ul>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded">
-                        <p className="text-sm text-gray-600 mb-2"><strong>The Math:</strong></p>
-                        <p className="text-sm text-gray-700">
-                          If this business generates $497,313 per year in cash flow, and you can buy it for $19,900, 
-                          you'd recover your entire investment in 15 days.
-                        </p>
-                        <p className="text-sm text-red-600 font-bold mt-3">
-                          Why would ANY owner sell a business generating $500K/year for $20K?
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
-                      <strong>BizBuySell Listing ID:</strong> [View actual screenshot at launch]
-                    </div>
-                  </div>
-                  
-                  {/* Screenshot 2 */}
-                  <div className="bg-white rounded-lg p-6 border-2 border-red-300">
-                    <div className="mb-4">
-                      <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
-                        Account #45895 - VERIFIED BROKER
-                      </span>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-bold text-gray-900 mb-3">The Listing:</h4>
-                        <ul className="space-y-2 text-gray-700">
-                          <li>• <strong>Asking Price:</strong> $409,900</li>
-                          <li>• <strong>Annual Cash Flow:</strong> $502,135</li>
-                          <li>• <strong>Multiple:</strong> 0.82x</li>
-                          <li>• <strong>Payback Period:</strong> 10 months</li>
-                        </ul>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded">
-                        <p className="text-sm text-gray-600 mb-2"><strong>The Marketing:</strong></p>
-                        <p className="text-sm text-gray-700">
-                          Beautiful copy. Talks about "recession-proof," "proprietary software," "established client base."
-                        </p>
-                        <p className="text-sm text-red-600 font-bold mt-3">
-                          But if the numbers were real, institutional buyers would pay 3-4x this price.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
-                      <strong>BizBuySell Listing ID:</strong> [View actual screenshot at launch]
-                    </div>
-                  </div>
-                  
-                  {/* Pattern */}
-                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
-                    <h4 className="font-bold text-gray-900 mb-3">This Is Not Isolated</h4>
-                    <p className="text-gray-700 mb-4">
-                      In the past 30 days alone, we found:
-                    </p>
-                    <ul className="space-y-2 text-gray-700">
-                      <li>• <strong>40 listings (29%)</strong> with multiples below 1.5x</li>
-                      <li>• <strong>20 different verified broker accounts</strong> posting impossible deals</li>
-                      <li>• <strong>9 aircraft cleaning scam accounts</strong> posting fake listings</li>
-                      <li>• <strong>42 listings (30%)</strong> with no financial data at all</li>
-                    </ul>
-                    <p className="text-gray-700 mt-4 font-bold">
-                      This pattern holds across all 824 listings we analyzed.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {/* Verification Methodology */}
             <section className="mb-16">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Verification Methodology</h2>
@@ -708,6 +612,7 @@ export default function Why() {
     </>
   );
 }
+
 
 
 
