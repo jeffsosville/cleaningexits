@@ -23,6 +23,28 @@ export default function Sell() {
             who are actively looking for opportunities like yours.
           </p>
 
+          {/* New Guide Callout */}
+          <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="text-4xl">📖</div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  New to Selling? Start Here
+                </h2>
+                <p className="text-gray-700 mb-3">
+                  Before listing your business, read our comprehensive guide that walks you through 
+                  valuation, preparation, finding buyers, and closing the deal.
+                </p>
+                <Link
+                  href="/selling-your-cleaning-business"
+                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  Read the Complete Guide to Selling Your Cleaning Business →
+                </Link>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">Why List With Us?</h2>
             <ul className="space-y-3">
@@ -144,3 +166,4 @@ export default function Sell() {
     </>
   );
 }
+
