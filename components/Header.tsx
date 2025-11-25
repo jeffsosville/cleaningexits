@@ -7,7 +7,7 @@ export default function Header() {
   const navLinks = [
     { label: 'Browse', href: '/cleaning-index' },
     { label: 'Why CleaningExits', href: '/why' },
-    { label: 'Resources', href: '/resources' },
+    { label: 'Daily Audit', href: '/audit' },
     { label: 'Sell', href: '/sell' },
     { label: 'Contact', href: '/contact' },
   ];
