@@ -132,6 +132,37 @@ export default function Resources() {
             {/* For Sellers */}
             <div>
               <h2 className="text-2xl font-bold mb-4">For Sellers</h2>
+              
+              {/* Featured Selling Guide */}
+              <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl p-6 border-2 border-blue-200 mb-6">
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📖</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2">
+                      <Link href="/selling-your-cleaning-business" className="hover:text-blue-600">
+                        The Complete Guide to Selling Your Cleaning Business
+                      </Link>
+                    </h3>
+                    <p className="text-gray-700 mb-3">
+                      A comprehensive step-by-step guide covering everything from initial valuation 
+                      and preparation through finding qualified buyers and closing the deal. Learn 
+                      how to maximize your sale price, avoid common pitfalls, and execute a smooth 
+                      transition.
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                      <span>📚 Complete Guide</span>
+                      <span>⏱️ 15 min read</span>
+                    </div>
+                    <Link 
+                      href="/selling-your-cleaning-business"
+                      className="inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition text-sm"
+                    >
+                      Read the Full Guide →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-6">
                 <div className="border-l-4 border-emerald-500 pl-4">
                   <h3 className="font-semibold text-lg mb-2">Preparing Your Business for Sale</h3>
@@ -230,3 +261,4 @@ export default function Resources() {
     </>
   );
 }
+
