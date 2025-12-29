@@ -2,27 +2,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import Head from "next/head";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { CategoryFilter, CategorySlug } from '../components/CategoryFilter';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-);
-
-type Top10 = {
-  listing_id: string | null;
-  title: string | null;
+type Listing = {
+  id: string;
+  header: string;
   city: string | null;
   state: string | null;
   price: number | null;
-  revenue: number | null;
   cash_flow: number | null;
-  listing_url: string | null;
-  description: string | null;
-  why_hot: string | null;
+  revenue: string | null;
+  url: string | null;
+  category: string | null;
 };
 
 const money = (n?: number | null) =>
@@ -34,51 +27,22 @@ const money = (n?: number | null) =>
         maximumFractionDigits: 0,
       });
 
-export async function getServerSideProps() {
-  const { data, error } = await supabase
-    .from("top_10_commercial_cleaning")
-    .select("*")
-    .limit(10);
-
-  const top10 = (data ?? []).map((r: any) => ({
-    listing_id: r.listing_id ?? null,
-    title: r.title ?? null,
-    city: r.city ?? null,
-    state: r.state ?? null,
-    price: r.price ?? null,
-    revenue: r.revenue ?? null,
-    cash_flow: r.cash_flow ?? null,
-    listing_url: r.listing_url ?? null,
-    description: r.description ?? null,
-    why_hot: r.why_hot ?? null,
-  }));
-
-  return {
-    props: {
-      top10,
-      errorAuto: error?.message || null,
-    },
-  };
-}
-
-export default function Home({
-  top10,
-  errorAuto,
-}: {
-  top10: Top10[];
-  errorAuto?: string | null;
-}) {
+export default function Home() {
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>('all');
   const [stats, setStats] = useState({
-    totalVerified: 293,
-    addedThisWeek: 20,
-    verifiedToday: 4,
+    totalVerified: 292,
+    addedThisWeek: 0,
+    verifiedToday: 0,
   });
   const [categoryCounts, setCategoryCounts] = useState<Record<CategorySlug, number>>({} as Record<CategorySlug, number>);
   const [statsLoading, setStatsLoading] = useState(false);
+  
+  // Listings state
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
 
-  // Fetch stats when category changes
+  // Fetch stats
   const fetchStats = useCallback(async (category: CategorySlug) => {
     setStatsLoading(true);
     try {
@@ -101,22 +65,61 @@ export default function Home({
     }
   }, []);
 
+  // Fetch listings
+  const fetchListings = useCallback(async (category: CategorySlug) => {
+    setListingsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: '12',
+        sortBy: 'cash_flow',
+        sortOrder: 'desc',
+      });
+      if (category !== 'all') {
+        params.set('category', category);
+      }
+      const res = await fetch(`/api/listings?${params}`);
+      const data = await res.json();
+      setListings(data.listings || []);
+    } catch (error) {
+      console.error('Failed to fetch listings:', error);
+    } finally {
+      setListingsLoading(false);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     fetchStats('all');
-  }, [fetchStats]);
+    fetchListings('all');
+  }, [fetchStats, fetchListings]);
 
   // Handle category change
   const handleCategoryChange = (category: CategorySlug) => {
     setSelectedCategory(category);
     fetchStats(category);
+    fetchListings(category);
+  };
+
+  // Category display names
+  const categoryLabels: Record<CategorySlug, string> = {
+    all: 'All',
+    commercial_cleaning: 'Commercial Cleaning',
+    residential_cleaning: 'Residential Cleaning',
+    laundromat: 'Laundromat',
+    dry_cleaner: 'Dry Cleaning',
+    pest_control: 'Pest Control',
+    landscaping: 'Landscaping',
+    pool_service: 'Pool Service',
+    pressure_washing: 'Pressure Washing',
+    junk_removal: 'Junk Removal',
+    other: 'Other',
   };
 
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | {stats.totalVerified} Verified Commercial Cleaning Businesses</title>
-        <meta name="description" content={`Find verified cleaning businesses for sale. ${stats.totalVerified} manually verified commercial cleaning companies from BizBuySell. No franchises, no spam. Updated daily.`} />
+        <title>Cleaning Business For Sale | {stats.totalVerified} Verified Listings</title>
+        <meta name="description" content={`Find verified cleaning businesses for sale. ${stats.totalVerified} manually verified commercial cleaning companies. No franchises, no spam. Updated daily.`} />
       </Head>
 
       <Header />
@@ -129,7 +132,7 @@ export default function Home({
           </h1>
           <p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
-            {stats.totalVerified} Verified Commercial Cleaning Businesses
+            {stats.totalVerified} Verified {selectedCategory === 'all' ? 'Businesses' : categoryLabels[selectedCategory] + ' Businesses'}
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
             Manually verified. No franchise spam. No dead listings.
@@ -165,7 +168,7 @@ export default function Home({
           />
         </section>
 
-        {/* Stats Bar - Now Dynamic */}
+        {/* Stats Bar */}
         <section className="mb-10">
           <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -193,120 +196,86 @@ export default function Home({
           </div>
         </section>
 
-        {/* Action Buttons */}
-        <div className="mb-12 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/cleaning-business-for-sale"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-white font-semibold shadow-lg hover:bg-emerald-700 transition"
-          >
-            Find Your Cleaning Business →
-          </Link>
-          <Link
-            href="/cleaning-index"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-slate-900 px-8 py-4 text-slate-900 font-semibold hover:bg-gray-50 transition"
-          >
-            Browse All {stats.totalVerified} Listings
-          </Link>
-        </div>
-
-        {/* Top 10 */}
-        <section>
-          <h2 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-2">
-            Top <span className="text-yellow-500">10</span> This Week
-          </h2>
-
-          <ol className="space-y-4">
-            {(!top10 || top10.length === 0) && (
-              <div className="rounded-2xl border p-6 text-gray-600">
-                {errorAuto ? (
-                  <>Couldn&apos;t load Top 10. {errorAuto}</>
-                ) : (
-                  <>No listings to show yet. Check back shortly.</>
-                )}
-              </div>
-            )}
-
-            {top10?.map((d, i) => (
-              <li
-                key={i}
-                className="rounded-2xl border border-gray-200 p-5 hover:shadow-md hover:border-emerald-200 transition"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 mt-1 h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
-                      <Link
-                        href={d.listing_id ? `/listing/${d.listing_id}` : d.listing_url ?? "#"}
-                        className="text-lg md:text-xl font-bold hover:text-emerald-600 transition"
-                      >
-                        {d.title ?? "Untitled"}
-                      </Link>
-                    </div>
-
-                    {(d.city || d.state) && (
-                      <div className="text-gray-600 text-sm mb-3">
-                        📍 {d.city ? `${d.city}, ` : ""}{d.state ?? ""}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-4 mb-3 text-sm font-semibold">
-                      <div>
-                        <span className="text-gray-500">Price</span>{" "}
-                        <span className="text-gray-900">{money(d.price)}</span>
-                      </div>
-                      {d.cash_flow && (
-                        <div>
-                          <span className="text-gray-500">Cash flow</span>{" "}
-                          <span className="text-emerald-600">{money(d.cash_flow)}</span>
-                        </div>
-                      )}
-                      {d.revenue && (
-                        <div>
-                          <span className="text-gray-500">Revenue</span>{" "}
-                          <span className="text-gray-900">{money(d.revenue)}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {d.why_hot && (
-                      <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r mb-3">
-                        <div className="flex items-start gap-2">
-                          <span className="text-lg">🔥</span>
-                          <div className="text-sm text-gray-700">
-                            <span className="font-semibold text-gray-900">Why it&apos;s hot:</span> {d.why_hot}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {d.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {d.description}
-                      </p>
-                    )}
-
-                    <Link
-                      href={d.listing_id ? `/listing/${d.listing_id}` : d.listing_url ?? "#"}
-                      className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold text-sm"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p className="font-semibold">Updated daily</p>
-            <p>Manually verified • No franchises • No lead-gen spam</p>
+        {/* Listings Grid */}
+        <section className="mb-12">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold">
+              {selectedCategory === 'all' ? 'Top Listings' : categoryLabels[selectedCategory]}
+            </h2>
+            <Link
+              href={selectedCategory === 'all' ? '/cleaning-index' : `/cleaning-index?category=${selectedCategory}`}
+              className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm"
+            >
+              View All {stats.totalVerified} →
+            </Link>
           </div>
+
+          {listingsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-xl border border-gray-200 p-5 animate-pulse">
+                  <div className="h-5 bg-gray-200 rounded w-3/4 mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                </div>
+              ))}
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="text-4xl mb-3">🔍</div>
+              <p className="text-gray-600">No listings in this category yet.</p>
+              <p className="text-gray-500 text-sm mt-1">Check back soon or browse all listings.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {listings.map((listing) => (
+                <Link
+                  key={listing.id}
+                  href={`/listing/${listing.id}`}
+                  className="rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-emerald-300 transition group"
+                >
+                  <h3 className="font-bold text-lg mb-2 group-hover:text-emerald-600 transition line-clamp-2">
+                    {listing.header}
+                  </h3>
+                  
+                  {(listing.city || listing.state) && (
+                    <p className="text-gray-500 text-sm mb-3">
+                      📍 {listing.city}{listing.city && listing.state ? ', ' : ''}{listing.state}
+                    </p>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <div>
+                      <span className="text-gray-500">Price</span>{' '}
+                      <span className="font-semibold text-gray-900">{money(listing.price)}</span>
+                    </div>
+                    {listing.cash_flow && (
+                      <div>
+                        <span className="text-gray-500">CF</span>{' '}
+                        <span className="font-semibold text-emerald-600">{money(listing.cash_flow)}</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* View All Button */}
+          {listings.length > 0 && (
+            <div className="mt-8 text-center">
+              <Link
+                href={selectedCategory === 'all' ? '/cleaning-index' : `/cleaning-index?category=${selectedCategory}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-white font-semibold shadow-lg hover:bg-emerald-700 transition"
+              >
+                Browse All {stats.totalVerified} {selectedCategory === 'all' ? 'Listings' : categoryLabels[selectedCategory]} →
+              </Link>
+            </div>
+          )}
         </section>
 
         {/* Trust Sections */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="rounded-2xl border border-gray-200 p-6 bg-white">
             <h3 className="font-bold text-lg mb-2">Complete Buying Guide</h3>
             <p className="text-gray-600 mb-4">
