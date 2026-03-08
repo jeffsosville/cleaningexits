@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       categoryCounts,
     }, {
       headers: {
-        'Cache-Control': 's-maxage=604800, stale-while-revalidate=604800'
+        'Cache-Control': 'no-store'
       }
     });
   } catch (error) {
