@@ -18,7 +18,7 @@ type Listing = {
   category: string | null;
 };
 
-const money = (n?: number | null) =
+const money = (n?: number | null) =>
   n == null
     ? "—"
     : n.toLocaleString("en-US", {
