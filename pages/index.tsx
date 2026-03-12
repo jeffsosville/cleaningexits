@@ -167,21 +167,15 @@ export default function Home() {
                 <div className={`text-3xl md:text-4xl font-bold text-emerald-600 transition-opacity ${statsLoading ? 'opacity-50' : ''}`}>
                   {stats.totalVerified}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  {selectedCategory === 'all' ? 'Verified Listings' : 'In Category'}
-                </div>
+                <div className="text-sm text-gray-600 mt-1">Active Listings</div>
               </div>
               <div>
-                <div className={`text-3xl md:text-4xl font-bold text-emerald-600 transition-opacity ${statsLoading ? 'opacity-50' : ''}`}>
-                  {stats.addedThisWeek}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Added This Week</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">50</div>
+                <div className="text-sm text-gray-600 mt-1">States Covered</div>
               </div>
               <div>
-                <div className={`text-3xl md:text-4xl font-bold text-emerald-600 transition-opacity ${statsLoading ? 'opacity-50' : ''}`}>
-                  {stats.verifiedToday}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Verified Today</div>
+                <div className="text-3xl md:text-4xl font-bold text-emerald-600">Daily</div>
+                <div className="text-sm text-gray-600 mt-1">Updated</div>
               </div>
             </div>
           </div>
