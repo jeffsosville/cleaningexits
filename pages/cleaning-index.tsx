@@ -26,6 +26,8 @@ type Listing = {
   broker_account: string | null;
   scraped_at: string | null;
   category: string | null;
+  days_on_market: number | null;
+  estimated_listed_date: string | null;
 };
 
 type Props = {
@@ -63,7 +65,7 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   // Build the base query for listings
   let listingsQuery = supabase
     .from("cleaning_listings_merge")
-    .select("id, header, city, state, location, price, cash_flow, revenue, notes, url, direct_broker_url, broker_account, scraped_at, category")
+    .select("id, header, city, state, location, price, cash_flow, revenue, notes, url, direct_broker_url, broker_account, scraped_at, category, days_on_market, estimated_listed_date")
     .eq("is_verified", true)
     .order("scraped_at", { ascending: false })
     .limit(1000);
@@ -118,6 +120,8 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     broker_account: r.broker_account ?? null,
     scraped_at: r.scraped_at ?? null,
     category: r.category ?? null,
+    days_on_market: r.days_on_market ?? null,
+    estimated_listed_date: r.estimated_listed_date ?? null,
   }));
 
   return { 
@@ -249,6 +253,22 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
                         {listing.broker_account && (
                           <span className="text-gray-400">
                             via {listing.broker_account}
+                          </span>
+                        )}
+                        {listing.days_on_market !== null && listing.days_on_market !== undefined && (
+                          <span className={`font-medium ${
+                            listing.days_on_market <= 14  ? 'text-emerald-600' :
+                            listing.days_on_market <= 90  ? 'text-gray-500' :
+                            listing.days_on_market <= 180 ? 'text-amber-600' :
+                            'text-red-500'
+                          }`}>
+                            {listing.days_on_market <= 14
+                              ? `🟢 ${listing.days_on_market}d on market`
+                              : listing.days_on_market <= 90
+                              ? `${listing.days_on_market}d on market`
+                              : listing.days_on_market <= 180
+                              ? `⏳ ${listing.days_on_market}d on market`
+                              : `🔴 ${listing.days_on_market}d on market`}
                           </span>
                         )}
                         {listing.listing_url && (
