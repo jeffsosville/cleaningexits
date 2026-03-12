@@ -49,16 +49,7 @@ const money = (n?: number | null) =>
 // Category display names
 const categoryLabels: Record<CategorySlug, string> = {
   all: 'All Listings',
-  commercial_cleaning: 'Commercial Cleaning',
-  residential_cleaning: 'Residential Cleaning',
   laundromat: 'Laundromat',
-  dry_cleaner: 'Dry Cleaning',
-  pest_control: 'Pest Control',
-  landscaping: 'Landscaping',
-  pool_service: 'Pool Service',
-  pressure_washing: 'Pressure Washing',
-  junk_removal: 'Junk Removal',
-  other: 'Other',
 };
 
 export const getServerSideProps: GetServerSideProps = async ({ query }) => {
