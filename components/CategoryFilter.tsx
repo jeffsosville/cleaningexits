@@ -5,16 +5,7 @@ import React from 'react';
 
 export type CategorySlug = 
   | 'all'
-  | 'commercial_cleaning'
-  | 'residential_cleaning'
-  | 'laundromat'
-  | 'dry_cleaner'
-  | 'pest_control'
-  | 'landscaping'
-  | 'pool_service'
-  | 'pressure_washing'
-  | 'junk_removal'
-  | 'other';
+  | 'laundromat';
 
 interface Category {
   slug: CategorySlug;
@@ -24,16 +15,7 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { slug: 'all', label: 'All', emoji: '🏢' },
-  { slug: 'commercial_cleaning', label: 'Commercial', emoji: '🧹' },
-  { slug: 'residential_cleaning', label: 'Residential', emoji: '🏠' },
   { slug: 'laundromat', label: 'Laundromats', emoji: '🧺' },
-  { slug: 'dry_cleaner', label: 'Dry Cleaners', emoji: '👔' },
-  { slug: 'pest_control', label: 'Pest Control', emoji: '🐜' },
-  { slug: 'landscaping', label: 'Landscaping', emoji: '🌳' },
-  { slug: 'pool_service', label: 'Pool', emoji: '🏊' },
-  { slug: 'pressure_washing', label: 'Pressure Wash', emoji: '💦' },
-  { slug: 'junk_removal', label: 'Junk Removal', emoji: '🚛' },
-  { slug: 'other', label: 'Other', emoji: '📦' },
 ];
 
 interface CategoryFilterProps {
