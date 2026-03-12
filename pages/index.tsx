@@ -18,7 +18,7 @@ type Listing = {
   category: string | null;
 };
 
-const money = (n?: number | null) =>
+const money = (n?: number | null) =
   n == null
     ? "—"
     : n.toLocaleString("en-US", {
@@ -29,7 +29,7 @@ const money = (n?: number | null) =>
 
 export default function Home() {
   // Category filter state
-  const [selectedCategory, setSelectedCategory] = useState<CategorySlug>('all');
+  const [selectedCategory, setSelectedCategory] = useState<CategorySlug>('laundromat');
   const [stats, setStats] = useState({
     totalVerified: 292,
     addedThisWeek: 0,
@@ -118,7 +118,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | {stats.totalVerified} Verified Listings</title>
+        <title>Laundromats For Sale | {stats.totalVerified} Verified Listings</title>
         <meta name="description" content={`Find verified cleaning businesses for sale. ${stats.totalVerified} manually verified commercial cleaning companies. No franchises, no spam. Updated daily.`} />
       </Head>
 
@@ -128,14 +128,14 @@ export default function Home() {
         {/* Hero */}
         <header className="text-center mb-10">
           <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
-            Cleaning Business For Sale
+            Laundromats For Sale
           </h1>
           <p className="text-lg text-gray-500 mt-2 font-medium">by CleaningExits</p>
           <p className="mt-4 text-xl md:text-2xl text-gray-800 font-semibold max-w-3xl mx-auto">
             {stats.totalVerified} Verified {selectedCategory === 'all' ? 'Businesses' : categoryLabels[selectedCategory] + ' Businesses'}
           </p>
           <p className="mt-3 text-gray-600 max-w-2xl mx-auto text-lg">
-            Manually verified. No franchise spam. No dead listings.
+            Every laundromat for sale in the US. Updated daily.
           </p>
         </header>
 
