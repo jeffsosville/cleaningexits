@@ -6,53 +6,18 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { CategoryFilter, CategorySlug } from '../components/CategoryFilter';
 
-type Listing = {
-  id: string;
-  header: string;
-  city: string | null;
-  state: string | null;
-  price: number | null;
-  cash_flow: number | null;
-  revenue: string | null;
-  url: string | null;
-  category: string | null;
-};
-
-const money = (n?: number | null) =>
-  n == null
-    ? '—'
-    : n.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 0,
-      });
-
 export default function Home() {
-  // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>('laundromat');
-  const [stats, setStats] = useState({
-    totalVerified: 390,
-    addedThisWeek: 0,
-    verifiedToday: 0,
-  });
-  const [categorycounts, setCategoryCounts] = useState<Record<CategorySlug, number>>({} as Record<CategorySlug, number>);
+  const [stats, setStats] = useState({ totalVerified: 390 });
+  const [categoryCounts, setCategoryCounts] = useState<Record<CategorySlug, number>>({} as Record<CategorySlug, number>);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Listings state
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [listingsLoading, setListingsLoading] = useState(true);
-
-  // Fetch stats
   const fetchStats = useCallback(async (category: CategorySlug) => {
     setStatsLoading(true);
     try {
       const res = await fetch(`/api/stats?category=${category}`);
       const data = await res.json();
-      setStats({
-        totalVerified: data.totalVerified,
-        addedThisWeek: data.addedThisWeek,
-        verifiedToday: data.verifiedToday,
-      });
+      setStats({ totalVerified: data.totalVerified || 390 });
       setCategoryCounts(data.categoryCounts || {});
     } catch (e) {
       console.error('Stats fetch error', e);
@@ -65,23 +30,11 @@ export default function Home() {
     fetchStats(selectedCategory);
   }, [selectedCategory, fetchStats]);
 
-  const handleCategoryChange = (cat: CategorySlug) => {
-    setSelectedCategory(cat);
-  };
-
-  const categoryLabels: Record<CategorySlug, string> = {
-    all: 'All',
-    laundromat: 'Laundromat',
-  };
-
   return (
     <>
       <Head>
         <title>Laundromats For Sale | {stats.totalVerified} Verified Listings</title>
-        <meta name="description" content={`Find verified laundromat businesses for sale. ${stats.totalVerified} listings updated daily. No franchises, no spam.`} />
-        <meta property="og:title" content={`Laundromats For Sale | ${stats.totalVerified} Verified Listings`} />
-        <meta property="og:description" content="Every laundromat for sale in the US. Updated daily." />
-        <meta property="og:type" content="website" />
+        <meta name="description" content={`Find verified laundromat businesses for sale. ${stats.totalVerified} listings updated daily.`} />
       </Head>
 
       <div className="min-h-screen bg-white">
@@ -122,9 +75,9 @@ export default function Home() {
           {/* Category Filter */}
           <section className="mb-6">
             <CategoryFilter
-              selected={selectedCategory}
-              onChange={handleCategoryChange}
-              counts={categoryounts}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              categoryCounts={categoryCounts}
             />
           </section>
 
@@ -133,7 +86,7 @@ export default function Home() {
             <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className={`text-3xl md:text-4xl font-bold text-emerald-600 transition-opacity ${statsLoading ? 'opacity-50' : ''}`}>
+                  <div className={`text-3xl md:text-4xl font-bold text-emerald-600 ${statsLoading ? 'opacity-50' : ''}`}>
                     {stats.totalVerified}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">Active Listings</div>
@@ -170,10 +123,7 @@ export default function Home() {
               <p className="text-gray-600 mb-4">
                 Learn what to look for when buying a laundromat, valuation tips, financing options, and more.
               </p>
-              <Link
-                href="/cleaning-business-for-sale"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm"
-              >
+              <Link href="/cleaning-business-for-sale" className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
                 Read the guide →
               </Link>
             </div>
@@ -182,10 +132,7 @@ export default function Home() {
               <p className="text-gray-600 mb-4">
                 Get your laundromat in front of serious buyers. Free listing, no commission.
               </p>
-              <Link
-                href="/sell"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm"
-              >
+              <Link href="/sell" className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
                 List your business →
               </Link>
             </div>
