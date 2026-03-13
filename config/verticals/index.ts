@@ -8,6 +8,8 @@
 export { cleaningVertical } from './cleaning.vertical';
 export { landscapeVertical } from './landscape.vertical';
 export { hvacVertical } from './hvac.vertical';
+export { pestVertical } from './pest.vertical';
+export { plumbingVertical } from './plumbing.vertical';
 
 // Export registry
 export { verticalRegistry } from './registry';
