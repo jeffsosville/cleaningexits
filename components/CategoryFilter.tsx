@@ -1,11 +1,18 @@
 // components/CategoryFilter.tsx
 'use client';
-
 import React from 'react';
 
-export type CategorySlug = 
+export type CategorySlug =
   | 'all'
-  | 'laundromat';
+  | 'commercial_cleaning'
+  | 'residential_cleaning'
+  | 'laundromat'
+  | 'landscaping'
+  | 'pool_service'
+  | 'pressure_washing'
+  | 'junk_removal'
+  | 'dry_cleaner'
+  | 'pest_control';
 
 interface Category {
   slug: CategorySlug;
@@ -14,8 +21,16 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { slug: 'all', label: 'All', emoji: '🏢' },
-  { slug: 'laundromat', label: 'Laundromats', emoji: '🧺' },
+  { slug: 'all',                  label: 'All',                  emoji: '🏢' },
+  { slug: 'commercial_cleaning',  label: 'Commercial Cleaning',  emoji: '🧹' },
+  { slug: 'residential_cleaning', label: 'Residential Cleaning', emoji: '🏠' },
+  { slug: 'laundromat',           label: 'Laundromats',          emoji: '🧺' },
+  { slug: 'landscaping',          label: 'Landscaping',          emoji: '🌿' },
+  { slug: 'pool_service',         label: 'Pool Service',         emoji: '🏊' },
+  { slug: 'pressure_washing',     label: 'Pressure Washing',     emoji: '💧' },
+  { slug: 'junk_removal',         label: 'Junk Removal',         emoji: '🚛' },
+  { slug: 'dry_cleaner',          label: 'Dry Cleaners',         emoji: '👔' },
+  { slug: 'pest_control',         label: 'Pest Control',         emoji: '🐛' },
 ];
 
 interface CategoryFilterProps {
@@ -37,7 +52,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         {CATEGORIES.map((category) => {
           const isSelected = selectedCategory === category.slug;
           const count = categoryCounts?.[category.slug];
-          
           return (
             <button
               key={category.slug}
@@ -58,10 +72,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               {count !== undefined && (
                 <span className={`
                   ml-1 px-1.5 py-0.5 rounded-full text-xs
-                  ${isSelected 
-                    ? 'bg-emerald-500 text-emerald-100' 
-                    : 'bg-gray-100 text-gray-500'
-                  }
+                  ${isSelected ? 'bg-emerald-500 text-emerald-100' : 'bg-gray-100 text-gray-500'}
                 `}>
                   {count}
                 </span>
