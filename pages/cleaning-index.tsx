@@ -164,7 +164,18 @@ export default function CleaningIndex() {
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categoryCounts={{}}
+            categoryCounts={{
+              all: 0,
+              commercial_cleaning: 0,
+              residential_cleaning: 0,
+              laundromat: 0,
+              landscaping: 0,
+              pool_service: 0,
+              pressure_washing: 0,
+              junk_removal: 0,
+              dry_cleaner: 0,
+              pest_control: 0,
+            }}
             loading={loading}
           />
         </section>
