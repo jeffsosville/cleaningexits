@@ -40,66 +40,51 @@ type Props = {
 };
 
 const money = (n?: number | null) =>
-  n == null
-    ? "—"
-    : n.toLocaleString("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
-      });
+  n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-// Category display names
 const categoryLabels: Record<CategorySlug, string> = {
-  all:                  'All Listings',
-  commercial_cleaning:  'Commercial Cleaning',
+  all: 'All Listings',
+  commercial_cleaning: 'Commercial Cleaning',
   residential_cleaning: 'Residential Cleaning',
-  laundromat:           'Laundromat',
-  landscaping:          'Landscaping',
-  pool_service:         'Pool Service',
-  pressure_washing:     'Pressure Washing',
-  junk_removal:         'Junk Removal',
-  dry_cleaner:          'Dry Cleaners',
-  pest_control:         'Pest Control',
+  laundromat: 'Laundromat',
+  landscaping: 'Landscaping',
+  pool_service: 'Pool Service',
+  pressure_washing: 'Pressure Washing',
+  junk_removal: 'Junk Removal',
+  dry_cleaner: 'Dry Cleaners',
+  pest_control: 'Pest Control',
 };
 
 export const getServerSideProps: GetServerSideProps = async ({ query }) => {
-  // Get category from URL query param
   const categoryParam = query.category as string | undefined;
   const validCategories = CATEGORIES.map(c => c.slug);
-  const initialCategory: CategorySlug = categoryParam && validCategories.includes(categoryParam as CategorySlug) 
-    ? (categoryParam as CategorySlug) 
+  const initialCategory: CategorySlug = categoryParam && validCategories.includes(categoryParam as CategorySlug)
+    ? (categoryParam as CategorySlug)
     : 'all';
 
-  // Build the base query for listings
   let listingsQuery = supabase
     .from("cleaning_listings_merge")
     .select("id, header, city, state, location, price, cash_flow, revenue, notes, url, direct_broker_url, broker_account, scraped_at, category, days_on_market, estimated_listed_date")
     .eq("is_verified", true)
-    .order("scraped_at", { ascending: false })
+    // Sort by days_on_market ascending (freshest listings first), nulls last
+    .order("days_on_market", { ascending: true, nullsFirst: false })
     .limit(1000);
 
-  // Apply category filter if not 'all'
   if (initialCategory !== 'all') {
     listingsQuery = listingsQuery.eq('category', initialCategory);
   }
 
-  // Get listings
   const { data, error } = await listingsQuery;
 
   if (error || !data) {
-    return { 
-      props: { 
-        listings: [], 
-        totalCount: 0,
-        categoryCounts: {},
-        initialCategory,
-        hadError: true, 
-        errMsg: error?.message ?? "Query failed" 
-      } 
+    return {
+      props: {
+        listings: [], totalCount: 0, categoryCounts: {},
+        initialCategory, hadError: true, errMsg: error?.message ?? "Query failed"
+      }
     };
   }
 
-  // Get category counts for the filter badges
   const { data: countData } = await supabase
     .from("cleaning_listings_merge")
     .select("category")
@@ -115,32 +100,25 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   }
 
   const listings = data.map((r) => ({
-    listing_id: r.id ?? null,
-    title: r.header ?? null,
-    city: r.city ?? null,
-    state: r.state ?? null,
-    location: r.location ?? null,
-    price: r.price ?? null,
-    cash_flow: r.cash_flow ?? null,
-    revenue: r.revenue ?? null,
-    description: r.notes ?? null,
-    listing_url: r.direct_broker_url ?? r.url ?? null,
-    broker_account: r.broker_account ?? null,
-    scraped_at: r.scraped_at ?? null,
-    category: r.category ?? null,
-    days_on_market: r.days_on_market ?? null,
+    listing_id:            r.id ?? null,
+    title:                 r.header ?? null,
+    city:                  r.city ?? null,
+    state:                 r.state ?? null,
+    location:              r.location ?? null,
+    price:                 r.price ?? null,
+    cash_flow:             r.cash_flow ?? null,
+    revenue:               r.revenue ?? null,
+    description:           r.notes ?? null,
+    listing_url:           r.direct_broker_url ?? r.url ?? null,
+    broker_account:        r.broker_account ?? null,
+    scraped_at:            r.scraped_at ?? null,
+    category:              r.category ?? null,
+    days_on_market:        r.days_on_market ?? null,
     estimated_listed_date: r.estimated_listed_date ?? null,
   }));
 
-  return { 
-    props: { 
-      listings, 
-      totalCount: listings.length,
-      categoryCounts,
-      initialCategory,
-      hadError: false, 
-      errMsg: null 
-    } 
+  return {
+    props: { listings, totalCount: listings.length, categoryCounts, initialCategory, hadError: false, errMsg: null }
   };
 };
 
@@ -148,19 +126,13 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>(initialCategory);
 
-  // Handle category change - update URL
   const handleCategoryChange = (category: CategorySlug) => {
     setSelectedCategory(category);
-    
-    // Update URL without full page reload for better UX
-    const url = category === 'all' 
-      ? '/cleaning-index' 
-      : `/cleaning-index?category=${category}`;
-    
+    const url = category === 'all' ? '/cleaning-index' : `/cleaning-index?category=${category}`;
     router.push(url, undefined, { shallow: false });
   };
 
-  const pageTitle = selectedCategory === 'all' 
+  const pageTitle = selectedCategory === 'all'
     ? `All Cleaning Businesses For Sale | ${totalCount} Verified Listings`
     : `${categoryLabels[selectedCategory]} Businesses For Sale | ${totalCount} Listings`;
 
@@ -174,9 +146,7 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
       </Head>
-
       <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
         <header className="mb-6">
           <Link href="/" className="text-emerald-600 hover:underline mb-3 inline-block">
             ← Back to Home
@@ -189,7 +159,6 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
           </p>
         </header>
 
-        {/* Category Filters */}
         <section className="mb-6">
           <CategoryFilter
             selectedCategory={selectedCategory}
@@ -199,23 +168,18 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
           />
         </section>
 
-        {/* Error state */}
         {hadError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800">
             <strong>Error loading listings:</strong> {errMsg}
           </div>
         )}
 
-        {/* Listings */}
         {!hadError && listings.length === 0 && (
           <div className="rounded-2xl border p-6 text-center">
             <div className="text-4xl mb-3">🔍</div>
             <p className="text-gray-600">No listings in this category yet.</p>
             <p className="text-gray-500 text-sm mt-1">Check back soon or browse all listings.</p>
-            <button
-              onClick={() => handleCategoryChange('all')}
-              className="mt-4 text-emerald-600 hover:underline font-medium"
-            >
+            <button onClick={() => handleCategoryChange('all')} className="mt-4 text-emerald-600 hover:underline font-medium">
               View all listings →
             </button>
           </div>
@@ -224,15 +188,11 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
         {!hadError && listings.length > 0 && (
           <>
             <div className="mb-4 text-sm text-gray-500">
-              Showing {listings.length.toLocaleString()} listings
+              Showing {listings.length.toLocaleString()} listings — sorted by days on market
             </div>
-
             <div className="space-y-3">
               {listings.map((listing) => (
-                <div
-                  key={listing.listing_id}
-                  className="rounded-2xl border p-4 hover:shadow-sm transition"
-                >
+                <div key={listing.listing_id} className="rounded-2xl border p-4 hover:shadow-sm transition">
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -244,24 +204,16 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
                         </Link>
                         {(listing.city || listing.state) && (
                           <span className="text-gray-500">
-                            • {listing.city ? `${listing.city}, ` : ""}
-                            {listing.state ?? ""}
+                            • {listing.city ? `${listing.city}, ` : ""}{listing.state ?? ""}
                           </span>
                         )}
                       </div>
-
                       <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
                         <span>Price {money(listing.price)}</span>
-                        {listing.cash_flow && (
-                          <span>Cash flow {money(listing.cash_flow)}</span>
-                        )}
-                        {listing.revenue && (
-                          <span>Revenue {money(listing.revenue)}</span>
-                        )}
+                        {listing.cash_flow && <span>Cash flow {money(listing.cash_flow)}</span>}
+                        {listing.revenue && <span>Revenue {money(listing.revenue)}</span>}
                         {listing.broker_account && (
-                          <span className="text-gray-400">
-                            via {listing.broker_account}
-                          </span>
+                          <span className="text-gray-400">via {listing.broker_account}</span>
                         )}
                         {listing.days_on_market !== null && listing.days_on_market !== undefined && (
                           <span className={`font-medium ${
@@ -270,33 +222,21 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
                             listing.days_on_market <= 180 ? 'text-amber-600' :
                             'text-red-500'
                           }`}>
-                            {listing.days_on_market <= 14
-                              ? `🟢 ${listing.days_on_market}d on market`
-                              : listing.days_on_market <= 90
-                              ? `${listing.days_on_market}d on market`
-                              : listing.days_on_market <= 180
-                              ? `⏳ ${listing.days_on_market}d on market`
-                              : `🔴 ${listing.days_on_market}d on market`}
+                            {listing.days_on_market <= 14  ? `🟢 ${listing.days_on_market}d on market` :
+                             listing.days_on_market <= 90  ? `${listing.days_on_market}d on market` :
+                             listing.days_on_market <= 180 ? `⏳ ${listing.days_on_market}d on market` :
+                             `🔴 ${listing.days_on_market}d on market`}
                           </span>
                         )}
                         {listing.listing_url && (
-                          <a
-                            href={listing.listing_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-emerald-600 hover:underline"
-                          >
+                          <a href={listing.listing_url} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">
                             View original →
                           </a>
                         )}
                       </div>
-
                       {listing.description && (
-                        <p className="mt-2 text-sm text-gray-700 line-clamp-2">
-                          {listing.description}
-                        </p>
+                        <p className="mt-2 text-sm text-gray-700 line-clamp-2">{listing.description}</p>
                       )}
-
                       {listing.scraped_at && (
                         <div className="mt-2 text-xs text-gray-400">
                           Added {new Date(listing.scraped_at).toLocaleDateString()}
@@ -311,12 +251,9 @@ export default function CleaningIndex({ listings, totalCount, categoryCounts, in
         )}
 
         <footer className="mt-12 text-center text-sm text-gray-500">
-          <Link href="/" className="text-emerald-600 hover:underline">
-            Back to Home
-          </Link>
+          <Link href="/" className="text-emerald-600 hover:underline">Back to Home</Link>
         </footer>
       </main>
     </>
   );
 }
-
