@@ -64,12 +64,21 @@ export async function GET(request: NextRequest) {
     const sortAsc = searchParams.get('sortOrder') === 'asc';
 
     // ── 1. Fetch direct broker listings ──────────────────────────────────────
-    let directQuery = supabase
-      .from('listings_broker')
-      .select('id, broker_name, listing_url, title, price, cash_flow, revenue, location_city, location_state, location_raw, description, scraped_at, is_active')
-      .eq('is_active', true);
-
-    const { data: directRaw } = await directQuery;
+    // Fetch direct broker listings — filter to rows with titles, paginate to get all
+    let directRaw: any[] = [];
+    let dOffset = 0;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('listings_broker')
+        .select('id, broker_name, listing_url, title, price, cash_flow, revenue, location_city, location_state, location_raw, description, scraped_at, is_active')
+        .eq('is_active', true)
+        .not('title', 'is', null)
+        .range(dOffset, dOffset + 999);
+      if (!batch || batch.length === 0) break;
+      directRaw = directRaw.concat(batch);
+      if (batch.length < 1000) break;
+      dOffset += 1000;
+    }
 
     // Filter by category (keyword match on title) and RE exclusion
     const directFiltered = (directRaw || []).filter(r => {
