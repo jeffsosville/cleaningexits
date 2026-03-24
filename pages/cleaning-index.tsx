@@ -1,258 +1,313 @@
 // pages/cleaning-index.tsx
-import { useState } from 'react';
+// UPDATED: Now pulls from /api/listings (DealLedger) instead of cleaning_listings_merge
+// DealLedger is the single source of truth for all listing data
+
+import { useState, useEffect, useCallback } from 'react';
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from 'next/router';
-import { createClient } from "@supabase/supabase-js";
-import type { GetServerSideProps } from "next";
 import { CategoryFilter, CategorySlug, CATEGORIES } from '../components/CategoryFilter';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-);
-
 type Listing = {
-  listing_id: string | null;
-  title: string | null;
-  city: string | null;
-  state: string | null;
-  location: string | null;
+  id: number;
+  listing_number: number | null;
+  header: string | null;
   price: number | null;
   cash_flow: number | null;
-  revenue: number | null;
-  description: string | null;
-  listing_url: string | null;
-  broker_account: string | null;
-  scraped_at: string | null;
+  state: string | null;
+  city: string | null;
   category: string | null;
   days_on_market: number | null;
+  listing_views: number | null;
   estimated_listed_date: string | null;
+  first_seen: string | null;
+  url: string | null;
+  broker_account: string | null;
+  contact_name: string | null;
+  price_reduced: boolean;
+  dom_badge: string;
 };
 
-type Props = {
-  listings: Listing[];
-  totalCount: number;
-  categoryCounts: Record<CategorySlug, number>;
-  initialCategory: CategorySlug;
-  hadError: boolean;
-  errMsg: string | null;
+type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+};
+
+const categoryLabels: Record<string, string> = {
+  all:                  'All Listings',
+  commercial_cleaning:  'Commercial Cleaning',
+  residential_cleaning: 'Residential Cleaning',
+  laundromat:           'Laundromat',
+  landscaping:          'Landscaping',
+  pool_service:         'Pool Service',
+  pressure_washing:     'Pressure Washing',
+  junk_removal:         'Junk Removal',
+  dry_cleaner:          'Dry Cleaners',
+  pest_control:         'Pest Control',
 };
 
 const money = (n?: number | null) =>
   n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-const categoryLabels: Record<CategorySlug, string> = {
-  all: 'All Listings',
-  commercial_cleaning: 'Commercial Cleaning',
-  residential_cleaning: 'Residential Cleaning',
-  laundromat: 'Laundromat',
-  landscaping: 'Landscaping',
-  pool_service: 'Pool Service',
-  pressure_washing: 'Pressure Washing',
-  junk_removal: 'Junk Removal',
-  dry_cleaner: 'Dry Cleaners',
-  pest_control: 'Pest Control',
+const domColor = (dom: number | null) => {
+  if (dom == null) return 'text-gray-400';
+  if (dom <= 14)  return 'text-emerald-600';
+  if (dom <= 90)  return 'text-gray-500';
+  if (dom <= 180) return 'text-amber-600';
+  return 'text-red-500';
 };
 
-export const getServerSideProps: GetServerSideProps = async ({ query }) => {
-  const categoryParam = query.category as string | undefined;
-  const validCategories = CATEGORIES.map(c => c.slug);
-  const initialCategory: CategorySlug = categoryParam && validCategories.includes(categoryParam as CategorySlug)
-    ? (categoryParam as CategorySlug)
-    : 'all';
-
-  let listingsQuery = supabase
-    .from("cleaning_listings_merge")
-    .select("id, header, city, state, location, price, cash_flow, revenue, notes, url, direct_broker_url, broker_account, scraped_at, category, days_on_market, estimated_listed_date")
-    .eq("is_verified", true)
-    // Sort by days_on_market ascending (freshest listings first), nulls last
-    .order("days_on_market", { ascending: true, nullsFirst: false })
-    .limit(1000);
-
-  if (initialCategory !== 'all') {
-    listingsQuery = listingsQuery.eq('category', initialCategory);
-  }
-
-  const { data, error } = await listingsQuery;
-
-  if (error || !data) {
-    return {
-      props: {
-        listings: [], totalCount: 0, categoryCounts: {},
-        initialCategory, hadError: true, errMsg: error?.message ?? "Query failed"
-      }
-    };
-  }
-
-  const { data: countData } = await supabase
-    .from("cleaning_listings_merge")
-    .select("category")
-    .eq("is_verified", true);
-
-  const categoryCounts: Record<string, number> = { all: 0 };
-  if (countData) {
-    countData.forEach((row) => {
-      const cat = row.category || 'other';
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-      categoryCounts.all++;
-    });
-  }
-
-  const listings = data.map((r) => ({
-    listing_id:            r.id ?? null,
-    title:                 r.header ?? null,
-    city:                  r.city ?? null,
-    state:                 r.state ?? null,
-    location:              r.location ?? null,
-    price:                 r.price ?? null,
-    cash_flow:             r.cash_flow ?? null,
-    revenue:               r.revenue ?? null,
-    description:           r.notes ?? null,
-    listing_url:           r.direct_broker_url ?? r.url ?? null,
-    broker_account:        r.broker_account ?? null,
-    scraped_at:            r.scraped_at ?? null,
-    category:              r.category ?? null,
-    days_on_market:        r.days_on_market ?? null,
-    estimated_listed_date: r.estimated_listed_date ?? null,
-  }));
-
-  return {
-    props: { listings, totalCount: listings.length, categoryCounts, initialCategory, hadError: false, errMsg: null }
-  };
+const domLabel = (dom: number | null) => {
+  if (dom == null) return null;
+  if (dom <= 14)  return `🟢 ${dom}d on market`;
+  if (dom <= 90)  return `${dom}d on market`;
+  if (dom <= 180) return `⏳ ${dom}d on market`;
+  return `🔴 ${dom}d on market`;
 };
 
-export default function CleaningIndex({ listings, totalCount, categoryCounts, initialCategory, hadError, errMsg }: Props) {
+export default function CleaningIndex() {
   const router = useRouter();
+
+  const categoryParam = router.query.category as string | undefined;
+  const validSlugs = CATEGORIES.map((c: { slug: string }) => c.slug);
+  const initialCategory: CategorySlug = categoryParam && validSlugs.includes(categoryParam as CategorySlug)
+    ? (categoryParam as CategorySlug)
+    : 'laundromat';
+
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>(initialCategory);
+  const [listings, setListings]                 = useState<Listing[]>([]);
+  const [pagination, setPagination]             = useState<Pagination | null>(null);
+  const [loading, setLoading]                   = useState(true);
+  const [page, setPage]                         = useState(1);
+  const [search, setSearch]                     = useState('');
+  const [searchInput, setSearchInput]           = useState('');
+
+  // Sync category from URL
+  useEffect(() => {
+    if (categoryParam && validSlugs.includes(categoryParam)) {
+      setSelectedCategory(categoryParam as CategorySlug);
+      setPage(1);
+    }
+  }, [categoryParam]);
+
+  const fetchListings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        category:  selectedCategory,
+        sortBy:    'days_on_market',
+        sortOrder: 'asc',
+        limit:     '50',
+        page:      String(page),
+      });
+      if (search) params.set('search', search);
+
+      const res  = await fetch(`/api/listings?${params}`);
+      const data = await res.json();
+      setListings(data.listings || []);
+      setPagination(data.pagination || null);
+    } catch (e) {
+      console.error('Fetch error', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, page, search]);
+
+  useEffect(() => { fetchListings(); }, [fetchListings]);
 
   const handleCategoryChange = (category: CategorySlug) => {
     setSelectedCategory(category);
+    setPage(1);
     const url = category === 'all' ? '/cleaning-index' : `/cleaning-index?category=${category}`;
-    router.push(url, undefined, { shallow: false });
+    router.push(url, undefined, { shallow: true });
   };
 
-  const pageTitle = selectedCategory === 'all'
-    ? `All Cleaning Businesses For Sale | ${totalCount} Verified Listings`
-    : `${categoryLabels[selectedCategory]} Businesses For Sale | ${totalCount} Listings`;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1);
+  };
 
-  const pageDescription = selectedCategory === 'all'
-    ? `Find cleaning businesses for sale - ${totalCount} verified listings across commercial cleaning, laundromats, landscaping, and more. Updated daily.`
-    : `Find ${categoryLabels[selectedCategory].toLowerCase()} businesses for sale - ${totalCount} verified listings. No franchises, no spam. Updated daily.`;
+  const label = categoryLabels[selectedCategory] ?? 'Cleaning Business';
+  const total = pagination?.total ?? 0;
 
   return (
     <>
       <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
+        <title>{label} Businesses For Sale | {total} Listings | CleaningExits</title>
+        <meta name="description" content={`Find ${label.toLowerCase()} businesses for sale. ${total} listings sorted by days on market. Updated daily from DealLedger.`} />
       </Head>
+
       <main className="mx-auto max-w-6xl px-4 py-8">
+
+        {/* Header */}
         <header className="mb-6">
           <Link href="/" className="text-emerald-600 hover:underline mb-3 inline-block">
             ← Back to Home
           </Link>
-          <h1 className="text-4xl font-extrabold tracking-tight mb-3">
-            {selectedCategory === 'all' ? 'The Cleaning Index' : categoryLabels[selectedCategory]}
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
+            {selectedCategory === 'all' ? 'The Cleaning Index' : label}
           </h1>
-          <p className="text-gray-600 text-lg">
-            {totalCount.toLocaleString()} verified {selectedCategory === 'all' ? 'business' : categoryLabels[selectedCategory].toLowerCase()} listings
-          </p>
+          {!loading && (
+            <p className="text-gray-600 text-lg">
+              {total.toLocaleString()} listings — sorted by days on market
+            </p>
+          )}
         </header>
 
-        <section className="mb-6">
+        {/* Category Filter */}
+        <section className="mb-5">
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categoryCounts={categoryCounts}
-            loading={false}
+            categoryCounts={{}}
+            loading={loading}
           />
         </section>
 
-        {hadError && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800">
-            <strong>Error loading listings:</strong> {errMsg}
+        {/* Search */}
+        <form onSubmit={handleSearch} className="mb-6 flex gap-2">
+          <input
+            type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Search listings..."
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <button
+            type="submit"
+            className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+          >
+            Search
+          </button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}
+              className="border border-gray-300 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            >
+              Clear
+            </button>
+          )}
+        </form>
+
+        {/* Loading */}
+        {loading && (
+          <div className="space-y-3">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="rounded-2xl border p-4 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-2/3 mb-2" />
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+              </div>
+            ))}
           </div>
         )}
 
-        {!hadError && listings.length === 0 && (
-          <div className="rounded-2xl border p-6 text-center">
+        {/* Empty */}
+        {!loading && listings.length === 0 && (
+          <div className="rounded-2xl border p-8 text-center">
             <div className="text-4xl mb-3">🔍</div>
-            <p className="text-gray-600">No listings in this category yet.</p>
-            <p className="text-gray-500 text-sm mt-1">Check back soon or browse all listings.</p>
+            <p className="text-gray-600">No listings found.</p>
             <button onClick={() => handleCategoryChange('all')} className="mt-4 text-emerald-600 hover:underline font-medium">
               View all listings →
             </button>
           </div>
         )}
 
-        {!hadError && listings.length > 0 && (
-          <>
-            <div className="mb-4 text-sm text-gray-500">
-              Showing {listings.length.toLocaleString()} listings — sorted by days on market
-            </div>
-            <div className="space-y-3">
-              {listings.map((listing) => (
-                <div key={listing.listing_id} className="rounded-2xl border p-4 hover:shadow-sm transition">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <Link
-                          href={listing.listing_id ? `/listing/${listing.listing_id}` : listing.listing_url ?? "#"}
-                          className="text-lg font-semibold hover:underline text-emerald-700"
-                        >
-                          {listing.title ?? "Untitled"}
-                        </Link>
-                        {(listing.city || listing.state) && (
-                          <span className="text-gray-500">
-                            • {listing.city ? `${listing.city}, ` : ""}{listing.state ?? ""}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
-                        <span>Price {money(listing.price)}</span>
-                        {listing.cash_flow && <span>Cash flow {money(listing.cash_flow)}</span>}
-                        {listing.revenue && <span>Revenue {money(listing.revenue)}</span>}
-                        {listing.broker_account && (
-                          <span className="text-gray-400">via {listing.broker_account}</span>
-                        )}
-                        {listing.days_on_market !== null && listing.days_on_market !== undefined && (
-                          <span className={`font-medium ${
-                            listing.days_on_market <= 14  ? 'text-emerald-600' :
-                            listing.days_on_market <= 90  ? 'text-gray-500' :
-                            listing.days_on_market <= 180 ? 'text-amber-600' :
-                            'text-red-500'
-                          }`}>
-                            {listing.days_on_market <= 14  ? `🟢 ${listing.days_on_market}d on market` :
-                             listing.days_on_market <= 90  ? `${listing.days_on_market}d on market` :
-                             listing.days_on_market <= 180 ? `⏳ ${listing.days_on_market}d on market` :
-                             `🔴 ${listing.days_on_market}d on market`}
-                          </span>
-                        )}
-                        {listing.listing_url && (
-                          <a href={listing.listing_url} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">
-                            View original →
-                          </a>
-                        )}
-                      </div>
-                      {listing.description && (
-                        <p className="mt-2 text-sm text-gray-700 line-clamp-2">{listing.description}</p>
-                      )}
-                      {listing.scraped_at && (
-                        <div className="mt-2 text-xs text-gray-400">
-                          Added {new Date(listing.scraped_at).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
+        {/* Listings */}
+        {!loading && listings.length > 0 && (
+          <div className="space-y-3">
+            {listings.map((listing) => (
+              <div key={listing.id} className="rounded-2xl border p-4 hover:shadow-sm transition">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <a
+                      href={listing.url ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-lg font-semibold hover:underline text-emerald-700"
+                    >
+                      {listing.header ?? "Untitled"}
+                    </a>
+                    {(listing.city || listing.state) && (
+                      <span className="text-gray-500">
+                        • {listing.city ? `${listing.city}, ` : ""}{listing.state ?? ""}
+                      </span>
+                    )}
+                    {listing.price_reduced && (
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                        Price Reduced
+                      </span>
+                    )}
                   </div>
+
+                  <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
+                    <span>Price {money(listing.price)}</span>
+                    {listing.cash_flow && <span>Cash flow {money(listing.cash_flow)}</span>}
+                    {listing.broker_account && (
+                      <span className="text-gray-400">via {listing.broker_account}</span>
+                    )}
+                    {listing.days_on_market !== null && (
+                      <span className={`font-medium ${domColor(listing.days_on_market)}`}>
+                        {domLabel(listing.days_on_market)}
+                      </span>
+                    )}
+                    {listing.listing_views != null && listing.listing_views > 0 && (
+                      <span className="text-gray-400">{listing.listing_views} views</span>
+                    )}
+                    <a
+                      href={listing.url ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-600 hover:underline"
+                    >
+                      View original →
+                    </a>
+                  </div>
+
+                  {listing.first_seen && (
+                    <div className="mt-1 text-xs text-gray-400">
+                      Added {new Date(listing.first_seen).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={!pagination.hasPrev}
+              className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50 transition"
+            >
+              ← Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={!pagination.hasNext}
+              className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50 transition"
+            >
+              Next →
+            </button>
+          </div>
         )}
 
         <footer className="mt-12 text-center text-sm text-gray-500">
-          <Link href="/" className="text-emerald-600 hover:underline">Back to Home</Link>
+          <p>Data sourced from <a href="https://dealledger.org" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">DealLedger</a> — updated daily</p>
+          <Link href="/" className="text-emerald-600 hover:underline mt-1 inline-block">Back to Home</Link>
         </footer>
+
       </main>
     </>
   );
