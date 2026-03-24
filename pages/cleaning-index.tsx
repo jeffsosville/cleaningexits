@@ -84,7 +84,26 @@ export default function CleaningIndex() {
   const [loading, setLoading]                   = useState(true);
   const [page, setPage]                         = useState(1);
   const [search, setSearch]                     = useState('');
-  const [searchInput, setSearchInput]           = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
+    all: 0, commercial_cleaning: 0, residential_cleaning: 0, laundromat: 0,
+    landscaping: 0, pool_service: 0, pressure_washing: 0, junk_removal: 0,
+    dry_cleaner: 0, pest_control: 0,
+  });
+
+  // Fetch category counts on mount
+  useEffect(() => {
+    fetch('/api/stats?category=all')
+      .then(r => r.json())
+      .then(data => {
+        if (data.categoryCounts) {
+          const counts = data.categoryCounts as Record<string, number>;
+          const total = Object.values(counts).reduce((a: number, b: number) => a + b, 0);
+          setCategoryCounts({ all: total, ...counts });
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // Sync category from URL
   useEffect(() => {
@@ -164,18 +183,7 @@ export default function CleaningIndex() {
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categoryCounts={{
-              all: 0,
-              commercial_cleaning: 0,
-              residential_cleaning: 0,
-              laundromat: 0,
-              landscaping: 0,
-              pool_service: 0,
-              pressure_washing: 0,
-              junk_removal: 0,
-              dry_cleaner: 0,
-              pest_control: 0,
-            }}
+            categoryCounts={categoryCounts as Record<CategorySlug, number>}
             loading={loading}
           />
         </section>
@@ -270,14 +278,6 @@ export default function CleaningIndex() {
                     {listing.listing_views != null && listing.listing_views > 0 && (
                       <span className="text-gray-400">{listing.listing_views} views</span>
                     )}
-                    <a
-                      href={listing.url ?? '#'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-emerald-600 hover:underline"
-                    >
-                      View original →
-                    </a>
                   </div>
 
                   {listing.first_seen && (
