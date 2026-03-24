@@ -130,18 +130,15 @@ export async function GET(request: NextRequest) {
     const { data: bbsRaw, count } = await bbsQuery;
 
     // Deduplicate: remove BBS listings that match a direct listing by title similarity
-    const directTitles = new Set(directListings.map(l => (l.header || '').toLowerCase().trim()));
+    const directTitles = directListings.map(l => (l.header || '').toLowerCase().trim());
 
     const bbsListings = (bbsRaw || [])
       .filter(r => {
         const t = (r.header || '').toLowerCase().trim();
         // Skip if we already have a direct listing with very similar title
-        for (const dt of directTitles) {
-          if (dt.length > 10 && t.length > 10) {
-            const shorter = Math.min(dt.length, t.length);
-            const matchLen = [...dt].filter((c, i) => t[i] === c).length;
-            if (matchLen / shorter > 0.85) return false;
-          }
+        for (let i = 0; i < directTitles.length; i++) {
+          const dt = directTitles[i];
+          if (dt.length > 10 && t.length > 10 && dt === t) return false;
         }
         return true;
       })
