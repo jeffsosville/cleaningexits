@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
 
     bbsQuery = bbsQuery
       .order('days_on_market', { ascending: sortAsc, nullsFirst: false })
-      .range(0, 500); // fetch more to allow dedup
+      .range(0, 1000); // fetch more to allow dedup
 
     const { data: bbsRaw, count } = await bbsQuery;
 
