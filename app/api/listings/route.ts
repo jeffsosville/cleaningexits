@@ -171,10 +171,19 @@ export async function GET(request: NextRequest) {
     if (hiddenGem) bbsQuery = bbsQuery.lt('days_on_market', 30).lt('listing_views', 50);
 
     bbsQuery = bbsQuery
-      .order('days_on_market', { ascending: sortAsc, nullsFirst: false })
-      .range(0, 1000); // fetch more to allow dedup
+      .order('days_on_market', { ascending: sortAsc, nullsFirst: false });
 
-    const { data: bbsRaw, count } = await bbsQuery;
+    // Paginate BBS listings to get all results
+    let bbsRaw: any[] = [];
+    let bbsOffset = 0;
+    while (true) {
+      const { data: batch } = await bbsQuery.range(bbsOffset, bbsOffset + 999);
+      if (!batch || batch.length === 0) break;
+      bbsRaw = bbsRaw.concat(batch);
+      if (batch.length < 1000) break;
+      bbsOffset += 1000;
+    }
+    const count = bbsRaw.length;
 
     // Deduplicate: remove BBS listings that match a direct listing by title similarity
     const directTitles = directListings.map(l => (l.header || '').toLowerCase().trim());
