@@ -1,6 +1,13 @@
 // pages/cleaning-index.tsx
-// UPDATED: Now pulls from /api/listings (DealLedger) instead of cleaning_listings_merge
-// DealLedger is the single source of truth for all listing data
+// FIXES:
+//   1. Default category bug: 'laundromat' -> 'commercial_cleaning' (matches homepage)
+//   2. Surfaces fields DealLedger has but page was ignoring:
+//        - quality_tier (Verified ✓ badge)
+//        - relisted     (Relisted badge)
+//        - listing_views (promoted from gray sub-text to prominent badge — the wedge)
+//        - direct_broker_url (broker name links to broker page when present)
+//        - estimated_listed_date (used in preference to first_seen)
+//   3. Type now matches what /api/listings actually returns
 
 import { useState, useEffect, useCallback } from 'react';
 import Head from "next/head";
@@ -9,7 +16,7 @@ import { useRouter } from 'next/router';
 import { CategoryFilter, CategorySlug, CATEGORIES } from '../components/CategoryFilter';
 
 type Listing = {
-  id: number;
+  id: number | string;
   listing_number: number | null;
   header: string | null;
   price: number | null;
@@ -23,8 +30,13 @@ type Listing = {
   first_seen: string | null;
   url: string | null;
   broker_account: string | null;
+  broker_id: string | null;
   contact_name: string | null;
   price_reduced: boolean;
+  relisted: boolean;
+  direct_broker_url: string | null;
+  quality_tier: string;
+  quality_score: number;
   dom_badge: string;
 };
 
@@ -53,10 +65,16 @@ const categoryLabels: Record<string, string> = {
 const money = (n?: number | null) =>
   n == null ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
+const fmtDate = (d: string | null) => {
+  if (!d) return null;
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return null; }
+};
+
 const domColor = (dom: number | null) => {
   if (dom == null) return 'text-gray-400';
   if (dom <= 14)  return 'text-emerald-600';
-  if (dom <= 90)  return 'text-gray-500';
+  if (dom <= 90)  return 'text-gray-700';
   if (dom <= 180) return 'text-amber-600';
   return 'text-red-500';
 };
@@ -74,9 +92,11 @@ export default function CleaningIndex() {
 
   const categoryParam = router.query.category as string | undefined;
   const validSlugs = CATEGORIES.map((c: { slug: string }) => c.slug);
+
+  // FIX: default to commercial_cleaning (was 'laundromat' which has 0 listings).
   const initialCategory: CategorySlug = categoryParam && validSlugs.includes(categoryParam as CategorySlug)
     ? (categoryParam as CategorySlug)
-    : 'laundromat';
+    : 'commercial_cleaning';
 
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>(initialCategory);
   const [listings, setListings]                 = useState<Listing[]>([]);
@@ -84,8 +104,8 @@ export default function CleaningIndex() {
   const [loading, setLoading]                   = useState(true);
   const [page, setPage]                         = useState(1);
   const [search, setSearch]                     = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
+  const [searchInput, setSearchInput]           = useState('');
+  const [categoryCounts, setCategoryCounts]     = useState<Record<string, number>>({
     all: 0, commercial_cleaning: 0, residential_cleaning: 0, laundromat: 0,
     landscaping: 0, pool_service: 0, pressure_washing: 0, junk_removal: 0,
     dry_cleaner: 0, pest_control: 0,
@@ -240,54 +260,99 @@ export default function CleaningIndex() {
         {/* Listings */}
         {!loading && listings.length > 0 && (
           <div className="space-y-3">
-            {listings.map((listing) => (
-              <div key={listing.id} className="rounded-2xl border p-4 hover:shadow-sm transition">
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <a
-                      href={listing.url ?? '#'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-lg font-semibold hover:underline text-emerald-700"
-                    >
-                      {listing.header ?? "Untitled"}
-                    </a>
-                    {(listing.city || listing.state) && (
-                      <span className="text-gray-500">
-                        • {listing.city ? `${listing.city}, ` : ""}{listing.state ?? ""}
-                      </span>
-                    )}
-                    {listing.price_reduced && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                        Price Reduced
-                      </span>
-                    )}
-                  </div>
+            {listings.map((listing) => {
+              const listedDate = fmtDate(listing.estimated_listed_date) ?? fmtDate(listing.first_seen);
+              return (
+                <div key={listing.id} className="rounded-2xl border p-4 hover:shadow-sm transition">
+                  <div className="flex-1">
 
-                  <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-3">
-                    <span>Price {money(listing.price)}</span>
-                    {listing.cash_flow && <span>Cash flow {money(listing.cash_flow)}</span>}
-                    {listing.broker_account && (
-                      <span className="text-gray-400">via {listing.broker_account}</span>
-                    )}
-                    {listing.days_on_market !== null && (
-                      <span className={`font-medium ${domColor(listing.days_on_market)}`}>
-                        {domLabel(listing.days_on_market)}
-                      </span>
-                    )}
-                    {listing.listing_views != null && listing.listing_views > 0 && (
-                      <span className="text-gray-400">{listing.listing_views} views</span>
-                    )}
-                  </div>
+                    {/* Title row + status badges */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Link
+                        href={`/listing/${listing.id}`}
+                        className="text-lg font-semibold hover:underline text-emerald-700"
+                      >
+                        {listing.header ?? "Untitled"}
+                      </Link>
 
-                  {listing.first_seen && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      Added {new Date(listing.first_seen).toLocaleDateString()}
+                      {(listing.city || listing.state) && (
+                        <span className="text-gray-500">
+                          • {listing.city ? `${listing.city}, ` : ""}{listing.state ?? ""}
+                        </span>
+                      )}
+
+                      {listing.quality_tier === 'Verified' && (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                          ✓ Verified
+                        </span>
+                      )}
+
+                      {listing.relisted && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                          Relisted
+                        </span>
+                      )}
+
+                      {listing.price_reduced && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                          Price Reduced
+                        </span>
+                      )}
                     </div>
-                  )}
+
+                    {/* Financials + DOM + views */}
+                    <div className="mt-2 text-sm text-gray-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span><span className="text-gray-500">Price</span> <span className="font-medium text-gray-900">{money(listing.price)}</span></span>
+
+                      {listing.cash_flow != null && (
+                        <span><span className="text-gray-500">Cash flow</span> <span className="font-medium text-gray-900">{money(listing.cash_flow)}</span></span>
+                      )}
+
+                      {listing.days_on_market !== null && (
+                        <span className={`font-semibold ${domColor(listing.days_on_market)}`}>
+                          {domLabel(listing.days_on_market)}
+                        </span>
+                      )}
+
+                      {/* Promote view count to a real badge — this is the wedge. */}
+                      {listing.listing_views != null && listing.listing_views > 0 && (
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                          👁 {listing.listing_views.toLocaleString()} buyer views
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Broker + listed date row */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                      {listing.broker_account && (
+                        listing.direct_broker_url ? (
+                          <a
+                            href={listing.direct_broker_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-600 hover:underline"
+                            title="Go directly to broker (no marketplace gate)"
+                          >
+                            via {listing.broker_account} →
+                          </a>
+                        ) : (
+                          <span>via {listing.broker_account}</span>
+                        )
+                      )}
+
+                      {listedDate && <span>Listed {listedDate}</span>}
+
+                      {listing.quality_score > 0 && (
+                        <span className="ml-auto text-gray-400">
+                          Quality {listing.quality_score}/100
+                        </span>
+                      )}
+                    </div>
+
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
