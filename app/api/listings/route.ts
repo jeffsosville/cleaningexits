@@ -1,46 +1,10 @@
 // app/api/listings/route.ts
-// UPDATED: Merges listings_direct (direct broker URLs) with listings (BizBuySell)
-// Direct broker listings show first — BizBuySell is the fallback
-// Trust tiers: direct > matched > marketplace
+// SINGLE SOURCE OF TRUTH: DealLedger `listings` table.
+// All `listings_direct` merge logic removed — DealLedger is canonical.
+// Now selects + returns: relisted, direct_broker_url (in addition to existing fields).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-
-// Broker account ID → display name
-const BROKER_NAMES: Record<string, string> = {
-  "1002":  "FCBB",
-  "28148": "Transworld",
-  "1003":  "Sunbelt",
-  "1004":  "VR Business Brokers",
-  "1005":  "Murphy Business",
-  "28149": "Hedgestone",
-  "1006":  "Executive Business Brokers",
-  "1007":  "Link Business",
-};
-
-// Parse state from FCBB-style location slugs like "hamilton-county-ohio" -> "OH"
-const STATE_SLUG_MAP: Record<string, string> = {
-  "alabama":"AL","alaska":"AK","arizona":"AZ","arkansas":"AR","california":"CA",
-  "colorado":"CO","connecticut":"CT","delaware":"DE","florida":"FL","georgia":"GA",
-  "hawaii":"HI","idaho":"ID","illinois":"IL","indiana":"IN","iowa":"IA","kansas":"KS",
-  "kentucky":"KY","louisiana":"LA","maine":"ME","maryland":"MD","massachusetts":"MA",
-  "michigan":"MI","minnesota":"MN","mississippi":"MS","missouri":"MO","montana":"MT",
-  "nebraska":"NE","nevada":"NV","new-hampshire":"NH","new-jersey":"NJ","new-mexico":"NM",
-  "new-york":"NY","north-carolina":"NC","north-dakota":"ND","ohio":"OH","oklahoma":"OK",
-  "oregon":"OR","pennsylvania":"PA","rhode-island":"RI","south-carolina":"SC",
-  "south-dakota":"SD","tennessee":"TN","texas":"TX","utah":"UT","vermont":"VT",
-  "virginia":"VA","washington":"WA","west-virginia":"WV","wisconsin":"WI","wyoming":"WY",
-};
-
-function parseStateFromSlug(raw: string | null): string | null {
-  if (!raw) return null;
-  const lower = raw.toLowerCase();
-  if (/^[a-z]{2}$/.test(lower)) return raw.toUpperCase();
-  for (const [name, code] of Object.entries(STATE_SLUG_MAP)) {
-    if (lower.includes(name)) return code;
-  }
-  return null;
-}
 
 const supabase = createClient(
   process.env.DEALLEDGER_SUPABASE_URL!,
@@ -53,31 +17,6 @@ const VALID_CATEGORIES = [
   'junk_removal', 'dry_cleaner', 'pest_control',
 ];
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  commercial_cleaning:  ['commercial clean', 'janitorial', 'office clean', 'cleaning service', 'cleaning business', 'cleaning company', 'maid', 'custodial'],
-  residential_cleaning: ['residential clean', 'house clean', 'home clean', 'maid service'],
-  laundromat:           ['laundromat', 'laundry', 'coin laundry', 'coin-op', 'wash'],
-  landscaping:          ['landscap', 'lawn', 'lawn care', 'grounds', 'tree service', 'irrigation'],
-  pool_service:         ['pool service', 'pool clean', 'pool maintenance', 'swimming pool'],
-  pressure_washing:     ['pressure wash', 'power wash', 'soft wash'],
-  junk_removal:         ['junk removal', 'junk hauling', 'debris removal', 'trash removal'],
-  dry_cleaner:          ['dry clean', 'dry-clean', 'garment care'],
-  pest_control:         ['pest control', 'pest management', 'exterminator', 'termite'],
-};
-
-function titleMatchesCategory(title: string, category: string): boolean {
-  if (category === 'all') return true;
-  const t = (title || '').toLowerCase();
-  const keywords = CATEGORY_KEYWORDS[category] || [];
-  return keywords.some(k => t.includes(k));
-}
-
-const RE_KEYWORDS = ['real estate', 'realty', 'property management', 'mortgage', 'apartment', 'condo'];
-function isRealEstate(title: string): boolean {
-  const t = (title || '').toLowerCase();
-  return RE_KEYWORDS.some(k => t.includes(k));
-}
-
 const TIER_ORDER: Record<string, number> = {
   'Verified': 0,
   'Likely Real': 1,
@@ -85,19 +24,26 @@ const TIER_ORDER: Record<string, number> = {
   'Likely Junk': 3,
 };
 
+function domBadge(dom: number | null | undefined): string {
+  if (dom == null) return 'unknown';
+  if (dom < 30)  return 'green';
+  if (dom < 90)  return 'yellow';
+  if (dom < 365) return 'orange';
+  return 'red';
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
     const page         = parseInt(searchParams.get('page')   || '1');
     const limit        = Math.min(100, parseInt(searchParams.get('limit') || '20'));
-    const offset       = (page - 1) * limit;
     const search       = searchParams.get('search')   || '';
     const location     = searchParams.get('location') || '';
     const minPrice     = searchParams.get('minPrice');
     const maxPrice     = searchParams.get('maxPrice');
     const maxDom       = searchParams.get('maxDom');
-    const hiddenGem    = searchParams.get('hidden_gem') === 'true';
+    const hiddenGem    = searchParams.get('hidden_gem')   === 'true';
     const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
 
     const rawCategory = searchParams.get('category') || 'commercial_cleaning';
@@ -105,154 +51,102 @@ export async function GET(request: NextRequest) {
 
     const sortAsc = searchParams.get('sortOrder') === 'asc';
 
-    // ── 1. Fetch direct broker listings from listings_direct ─────────────────
-    let directRaw: any[] = [];
-    let dOffset = 0;
-    while (true) {
-      const { data: batch } = await supabase
-        .from('listings_direct')
-        .select('id, broker_name, url, title, asking_price, cash_flow, revenue, city, state, description, first_seen, last_seen, status, category, vertical, quality_score, quality_tier, days_on_market')
-        .eq('status', 'active')
-        .not('title', 'is', null)
-        .range(dOffset, dOffset + 999);
-      if (!batch || batch.length === 0) break;
-      directRaw = directRaw.concat(batch);
-      if (batch.length < 1000) break;
-      dOffset += 1000;
-    }
-
-    const directFiltered = (directRaw || []).filter(r => {
-      if (isRealEstate(r.title || '')) return false;
-      if (!titleMatchesCategory(r.title || '', category)) return false;
-      if (search && !(r.title || '').toLowerCase().includes(search.toLowerCase())) return false;
-      if (location && !((r.city || '') + ' ' + (r.state || '')).toLowerCase().includes(location.toLowerCase())) return false;
-      if (minPrice && (!r.asking_price || r.asking_price < parseInt(minPrice))) return false;
-      if (maxPrice && (!r.asking_price || r.asking_price > parseInt(maxPrice))) return false;
-      if (verifiedOnly && r.quality_tier !== 'Verified') return false;
-      return true;
-    });
-
-    const directListings = directFiltered.map(r => ({
-      id:                    `direct_${r.id}`,
-      listing_number:        null,
-      header:                r.title,
-      price:                 r.asking_price,
-      cash_flow:             r.cash_flow,
-      state:                 r.state,
-      city:                  r.city,
-      category:              r.category || category,
-      days_on_market:        r.days_on_market || null,
-      listing_views:         null,
-      estimated_listed_date: null,
-      first_seen:            r.first_seen,
-      url:                   r.url,
-      broker_account:        r.broker_name,
-      contact_name:          null,
-      price_reduced:         false,
-      trust_tier:            'direct',
-      quality_tier:          r.quality_tier || 'Unverified',
-      quality_score:         r.quality_score || 0,
-      dom_badge:             'direct',
-    }));
-
-    // ── 2. Fetch BizBuySell listings ──────────────────────────────────────────
-    let bbsQuery = supabase
+    // ── Build query against DealLedger `listings` ────────────────────────────
+    let query = supabase
       .from('listings')
       .select(
         `id, listing_number, header, price, cash_flow, state, city,
          category, days_on_market, listing_views, estimated_listed_date,
-         first_seen, url, broker_account, contact_name, price_reduced,
+         first_seen, url, broker_account, contact_name, contact_phone,
+         price_reduced, relisted, direct_broker_url, broker_id,
          is_active, quality_score, quality_tier`,
         { count: 'exact' }
       )
       .eq('is_active', true);
 
-    if (category !== 'all') bbsQuery = bbsQuery.eq('category', category);
-    if (search)       bbsQuery = bbsQuery.or(`header.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%`);
-    if (location)     bbsQuery = bbsQuery.or(`city.ilike.%${location}%,state.ilike.%${location}%`);
-    if (minPrice)     bbsQuery = bbsQuery.gte('price', parseInt(minPrice));
-    if (maxPrice)     bbsQuery = bbsQuery.lte('price', parseInt(maxPrice));
-    if (maxDom)       bbsQuery = bbsQuery.lte('days_on_market', parseInt(maxDom));
-    if (hiddenGem)    bbsQuery = bbsQuery.lt('days_on_market', 30).lt('listing_views', 50);
-    if (verifiedOnly) bbsQuery = bbsQuery.eq('quality_tier', 'Verified');
+    if (category !== 'all') query = query.eq('category', category);
+    if (search)             query = query.or(`header.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%`);
+    if (location)           query = query.or(`city.ilike.%${location}%,state.ilike.%${location}%`);
+    if (minPrice)           query = query.gte('price', parseInt(minPrice));
+    if (maxPrice)           query = query.lte('price', parseInt(maxPrice));
+    if (maxDom)             query = query.lte('days_on_market', parseInt(maxDom));
+    if (hiddenGem)          query = query.lt('days_on_market', 30).lt('listing_views', 50);
+    if (verifiedOnly)       query = query.eq('quality_tier', 'Verified');
 
-    bbsQuery = bbsQuery.order('days_on_market', { ascending: sortAsc, nullsFirst: false });
+    query = query.order('days_on_market', { ascending: sortAsc, nullsFirst: false });
 
-    // Paginate BBS listings to get all results
-    let bbsRaw: any[] = [];
-    let bbsOffset = 0;
+    // Paginate through everything to allow client-side quality_tier sort below.
+    let raw: any[] = [];
+    let offset = 0;
     while (true) {
-      const { data: batch } = await bbsQuery.range(bbsOffset, bbsOffset + 999);
+      const { data: batch, error } = await query.range(offset, offset + 999);
+      if (error) throw error;
       if (!batch || batch.length === 0) break;
-      bbsRaw = bbsRaw.concat(batch);
+      raw = raw.concat(batch);
       if (batch.length < 1000) break;
-      bbsOffset += 1000;
+      offset += 1000;
     }
-    const count = bbsRaw.length;
 
-    const directTitles = directListings.map(l => (l.header || '').toLowerCase().trim());
+    const mapped = raw.map(r => ({
+      id:                    r.id,
+      listing_number:        r.listing_number,
+      header:                r.header,
+      price:                 r.price,
+      cash_flow:             r.cash_flow,
+      state:                 r.state,
+      city:                  r.city,
+      category:              r.category,
+      days_on_market:        r.days_on_market,
+      listing_views:         r.listing_views,
+      estimated_listed_date: r.estimated_listed_date,
+      first_seen:            r.first_seen,
+      url:                   r.url,
+      broker_account:        r.broker_account,
+      broker_id:             r.broker_id,
+      contact_name:          r.contact_name,
+      contact_phone:         r.contact_phone,
+      price_reduced:         !!r.price_reduced,
+      relisted:              !!r.relisted,
+      direct_broker_url:     r.direct_broker_url,
+      quality_tier:          r.quality_tier   || 'Unverified',
+      quality_score:         r.quality_score  || 0,
+      dom_badge:             domBadge(r.days_on_market),
+    }));
 
-    const bbsListings = (bbsRaw || [])
-      .filter(r => {
-        const t = (r.header || '').toLowerCase().trim();
-        for (let i = 0; i < directTitles.length; i++) {
-          const dt = directTitles[i];
-          if (dt.length > 10 && t.length > 10 && dt === t) return false;
-        }
-        return true;
-      })
-      .map(r => ({
-        id:                    r.id,
-        listing_number:        r.listing_number,
-        header:                r.header,
-        price:                 r.price,
-        cash_flow:             r.cash_flow,
-        state:                 r.state,
-        city:                  r.city,
-        category:              r.category,
-        days_on_market:        r.days_on_market,
-        listing_views:         r.listing_views,
-        estimated_listed_date: r.estimated_listed_date,
-        first_seen:            r.first_seen,
-        url:                   r.url,
-        broker_account:        r.broker_account,
-        contact_name:          r.contact_name,
-        price_reduced:         r.price_reduced,
-        trust_tier:            'marketplace',
-        quality_tier:          r.quality_tier || 'Unverified',
-        quality_score:         r.quality_score || 0,
-        dom_badge: r.days_on_market == null ? 'unknown'
-                 : r.days_on_market < 30    ? 'green'
-                 : r.days_on_market < 90    ? 'yellow'
-                 : r.days_on_market < 365   ? 'orange'
-                 : 'red',
-      }));
-
-    // ── 3. Merge: direct first, then BBS, sort Verified to top ───────────────
-    const allListings = [...directListings, ...bbsListings].sort((a, b) => {
+    // Sort by quality tier (Verified first), preserving DOM order within tier.
+    const sorted = mapped.sort((a, b) => {
       const aTier = TIER_ORDER[a.quality_tier] ?? 2;
       const bTier = TIER_ORDER[b.quality_tier] ?? 2;
       return aTier - bTier;
     });
 
-    const total      = allListings.length;
-    const paginated  = allListings.slice(offset, offset + limit);
+    const total      = sorted.length;
+    const startIdx   = (page - 1) * limit;
+    const paginated  = sorted.slice(startIdx, startIdx + limit);
     const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json(
       {
         listings: paginated,
-        pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
-        source: 'dealledger_merged',
-        direct_count: directListings.length,
-        bbs_count:    bbsListings.length,
-        verified_count: allListings.filter(l => l.quality_tier === 'Verified').length,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+        source: 'dealledger',
+        verified_count: sorted.filter(l => l.quality_tier === 'Verified').length,
       },
       { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=60' } }
     );
 
-  } catch (error) {
-    console.error('Server error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Listings API error:', error);
+    return NextResponse.json(
+      { listings: [], pagination: null, error: error?.message ?? 'Server error' },
+      { status: 500 }
+    );
   }
 }
