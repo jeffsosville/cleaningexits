@@ -58,6 +58,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     }
   };
 
+  // DOM color: green=fresh <30d, yellow=normal <90d, orange=aging <365d, red=stale
+  const domColor = (dom: number) => {
+    if (dom < 30)  return 'bg-green-100 text-green-700';
+    if (dom < 90)  return 'bg-yellow-100 text-yellow-700';
+    if (dom < 365) return 'bg-orange-100 text-orange-700';
+    return 'bg-red-100 text-red-700';
+  };
+
   const imageUrl = getImageUrl();
   const listingUrl = getListingUrl();
   const isInternalLink = listingUrl.startsWith('/listing/');
@@ -146,6 +154,33 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
             )}
           </div>
         )}
+
+        {/* ── DOM + Views + Relisted + Price Reduced badges ── */}
+        {(listing.days_on_market || listing.listing_views || listing.relisted || listing.price_reduced) && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-3 border-b border-gray-100">
+            {listing.days_on_market && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${domColor(listing.days_on_market)}`}>
+                🕐 {listing.days_on_market}d on market
+              </span>
+            )}
+            {listing.listing_views && listing.listing_views > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                👁 {listing.listing_views.toLocaleString()} views
+              </span>
+            )}
+            {listing.relisted && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
+                🔄 Relisted
+              </span>
+            )}
+            {listing.price_reduced && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                ↓ Price Cut
+              </span>
+            )}
+          </div>
+        )}
+        {/* ── END badges ── */}
 
         <div className="flex justify-between items-center">
           <div className="text-xs text-gray-500">
