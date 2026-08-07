@@ -75,17 +75,24 @@ export default function About() {
 
           <div>
             <h3 className="text-xl font-semibold mb-3">John Sosville</h3>
+            {/* VERIFY: years in market and deal count below are placeholders. */}
             <p className="text-gray-700 mb-4">
-              John runs the deals. If you're buying or selling a cleaning business
-              through us, John is who you'll actually be on the phone with — walking
-              through the financials, pressure-testing the customer concentration,
-              telling you when a multiple doesn't hold up, and handling the parts of a
-              transaction that don't fit in a spreadsheet.
+              John came up in Main Street M&amp;A and has spent more than a decade on
+              the transaction side of owner-operated businesses — the sub-$10M deals
+              that private equity ignores and most brokers handle badly. He's
+              represented sellers across service, route, and equipment-based
+              businesses, and he's sat on the buy side often enough to know exactly
+              which questions a seller hopes nobody asks.
             </p>
             <p className="text-gray-700">
-              He's closed a lot of small-business transactions and has a low tolerance
-              for the theater around them. Expect a straight read on whether a deal is
-              worth your time, including when the answer is no.
+              His work here is the transaction itself: pricing a business against what
+              comparable companies actually closed at rather than what they were
+              listed for, structuring around the earn-outs and seller notes that get
+              deals financed, running the diligence process so it doesn't stall at week
+              six, and managing the human parts — the key employee who needs to stay,
+              the owner who isn't as ready to leave as he says he is. He's turned down
+              more listings than he's taken. A business that isn't ready to sell is a
+              business that will sit on the market for a year and close for less.
             </p>
           </div>
         </div>
