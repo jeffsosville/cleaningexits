@@ -174,23 +174,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   // ─── 3. DealLedger (canonical) — numeric bigserial IDs ─────────────────────
   if (!listing) {
-    const numericId = parseInt(id, 10);
+    const numericId = Number(id);
     if (!isNaN(numericId)) {
       const { data: dlData } = await supabaseDealLedger
-        .from('listings')
+        .from('cleaning_listings_direct')
         .select(`id, listing_number, header, price, cash_flow, state, city, category,
                  days_on_market, listing_views, estimated_listed_date, first_seen,
                  url, broker_account, contact_name, contact_phone,
                  price_reduced, relisted, direct_broker_url,
-                 quality_score, quality_tier, raw_json, created_at`)
+                 quality_score, quality_tier`)
         .eq('id', numericId)
         .maybeSingle();
 
       if (dlData) {
         // Pull a description out of raw_json if available; otherwise leave null.
-        const rawDescription = dlData.raw_json?.description
-          ?? dlData.raw_json?.business_description
-          ?? null;
+        const rawDescription = null;
 
         listing = {
           ...emptyListing(),
@@ -206,8 +204,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           cash_flow: dlData.cash_flow,
           listing_url: dlData.direct_broker_url || dlData.url || '#',
           broker_account: dlData.broker_account,
-          verified_date: dlData.created_at,
-          scraped_at: dlData.created_at,
+          verified_date: dlData.first_seen,
+          scraped_at: dlData.first_seen,
           quality_score: dlData.quality_score,
           quality_tier: dlData.quality_tier,
           days_on_market: dlData.days_on_market,
