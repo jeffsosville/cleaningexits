@@ -1,5 +1,5 @@
 // app/api/listings/route.ts
-// SINGLE SOURCE OF TRUTH: DealLedger `listings` table.
+// SINGLE SOURCE OF TRUTH: DealLedger `cleaning_listings_direct` view.
 // All `listings_direct` merge logic removed — DealLedger is canonical.
 // Now selects + returns: relisted, direct_broker_url (in addition to existing fields).
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     // ── Build query against DealLedger `listings` ────────────────────────────
     let query = supabase
-      .from('listings')
+      .from('cleaning_listings_direct')
       .select(
         `id, listing_number, header, price, cash_flow, state, city,
          category, days_on_market, listing_views, estimated_listed_date,
