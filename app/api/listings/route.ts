@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Backed by a live DealLedger view — never statically cache this route.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const supabase = createClient(
   process.env.DEALLEDGER_SUPABASE_URL!,
   process.env.DEALLEDGER_SUPABASE_SERVICE_KEY!
@@ -49,9 +53,11 @@ export async function GET(request: NextRequest) {
     const rawCategory = searchParams.get('category') || 'commercial_cleaning';
     const category = VALID_CATEGORIES.includes(rawCategory) ? rawCategory : 'commercial_cleaning';
 
-    const sortAsc = searchParams.get('sortOrder') === 'asc';
+    // Default is ascending DOM = newest listings first.
+    // Previously defaulted to descending, which surfaced the oldest listings.
+    const sortAsc = searchParams.get('sortOrder') !== 'desc';
 
-    // ── Build query against DealLedger `listings` ────────────────────────────
+    // ── Build query against DealLedger `cleaning_listings_direct` ────────────
     let query = supabase
       .from('cleaning_listings_direct')
       .select(
@@ -139,7 +145,7 @@ export async function GET(request: NextRequest) {
         source: 'dealledger',
         verified_count: sorted.filter(l => l.quality_tier === 'Verified').length,
       },
-      { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=60' } }
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
 
   } catch (error: any) {
