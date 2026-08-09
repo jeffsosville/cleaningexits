@@ -24,7 +24,7 @@ type Listing = {
   city: string | null;
   state: string | null;
   cash_flow: number | null;
-  revenue: string | null;
+  revenue: string | number | null;
   image_url: string | null;
 };
 
@@ -67,10 +67,13 @@ const money = (n?: number | null) =>
         maximumFractionDigits: 0
       });
 
-const parseRevenue = (rev: string | null): number | null => {
-  if (!rev) return null;
-  const cleaned = rev.replace(/[$,]/g, '');
-  const num = parseFloat(cleaned);
+// `revenue` arrives as a number from cleaning_listings_direct (it was text on
+// the old merge table). Handle both — calling .replace() on a number throws,
+// which took down the whole static export.
+const parseRevenue = (rev: string | number | null | undefined): number | null => {
+  if (rev == null) return null;
+  if (typeof rev === 'number') return isNaN(rev) ? null : rev;
+  const num = parseFloat(String(rev).replace(/[$,]/g, ''));
   return isNaN(num) ? null : num;
 };
 
