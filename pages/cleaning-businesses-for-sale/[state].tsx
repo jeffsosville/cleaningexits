@@ -10,6 +10,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 );
 
+// Market listings live in DealLedger, not the CleaningExits app project.
+// `cleaning_listings_merge` no longer exists in either.
+const supabaseDealLedger = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL as string,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
+);
+
 type Listing = {
   id: string;
   title: string | null;
@@ -69,8 +76,8 @@ const parseRevenue = (rev: string | null): number | null => {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   // Get all unique states from database
-  const { data: states } = await supabase
-    .from('cleaning_listings_merge')
+  const { data: states } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
     .select('state')
     .not('state', 'is', null)
     .order('state');
@@ -95,8 +102,8 @@ export const getStaticProps: GetStaticProps<StatePageProps> = async context => {
   const stateFullName = STATE_NAMES[state] || state;
 
   // Get listings for this state
-  const { data: listings, error } = await supabase
-    .from('cleaning_listings_merge')
+  const { data: listings, error } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
     .select('id, header, price, city, state, cash_flow, revenue, image_url')
     .eq('state', state)
     .not('price', 'is', null)
