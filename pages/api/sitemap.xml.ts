@@ -7,6 +7,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 );
 
+// Market listings live in DealLedger, not the CleaningExits app project.
+// `cleaning_listings_merge` no longer exists in either.
+const supabaseDealLedger = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL as string,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
+);
+
 const BASE_URL = 'https://cleaningexits.com';
 
 const slugifyCity = (city: string): string => {
@@ -16,19 +23,19 @@ const slugifyCity = (city: string): string => {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Get all listings
-    const { data: listings } = await supabase
-      .from('cleaning_listings_merge')
+    const { data: listings } = await supabaseDealLedger
+      .from('cleaning_listings_direct')
       .select('id, scraped_at');
 
     // Get all unique states
-    const { data: states } = await supabase
-      .from('cleaning_listings_merge')
+    const { data: states } = await supabaseDealLedger
+      .from('cleaning_listings_direct')
       .select('state')
       .not('state', 'is', null);
 
     // Get all unique city/state combinations
-    const { data: cities } = await supabase
-      .from('cleaning_listings_merge')
+    const { data: cities } = await supabaseDealLedger
+      .from('cleaning_listings_direct')
       .select('state, city')
       .not('state', 'is', null)
       .not('city', 'is', null);
