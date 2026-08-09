@@ -9,6 +9,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 );
 
+// Market listings live in DealLedger, not the CleaningExits app project.
+// `cleaning_listings_merge` no longer exists in either.
+const supabaseDealLedger = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL as string,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
+);
+
 type Listing = {
   id: string;
   header: string | null;
@@ -129,8 +136,8 @@ export default function ResidentialCleaningPage({ listings, totalCount, avgPrice
 export const getStaticProps: GetStaticProps = async () => {
   const keywords = ['residential', 'home', 'house', 'maid', 'housekeeping', 'homeowner'];
   
-  const { data: allListings } = await supabase
-    .from('cleaning_listings_merge')
+  const { data: allListings } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
     .select('*')
     .not('price', 'is', null)
     .not('state', 'is', null);
