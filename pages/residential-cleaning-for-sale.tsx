@@ -152,12 +152,10 @@ export const getStaticProps: GetStaticProps = async () => {
 
   const avgPrice = listings.length > 0 ? Math.round(listings.reduce((sum, l) => sum + (l.price || 0), 0) / listings.length) : 0;
   
-  const revenues = listings.map(l => {
-    if (!l.revenue) return null;
-    const cleaned = l.revenue.replace(/[$,]/g, '');
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? null : num;
-  }).filter((r): r is number => r !== null);
+  // Reuse the shared parser — revenue is a number now, not text.
+  const revenues = listings
+    .map(l => parseRevenue(l.revenue))
+    .filter((r): r is number => r !== null);
   
   const avgRevenue = revenues.length > 0 ? Math.round(revenues.reduce((sum, r) => sum + r, 0) / revenues.length) : 0;
   
