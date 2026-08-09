@@ -10,6 +10,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 );
 
+// Market listings live in DealLedger, not the CleaningExits app project.
+// `cleaning_listings_merge` no longer exists in either.
+const supabaseDealLedger = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL as string,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
+);
+
 type Listing = {
   id: string;
   title: string | null;
@@ -17,7 +24,7 @@ type Listing = {
   city: string | null;
   state: string | null;
   cash_flow: number | null;
-  revenue: string | null;
+  revenue: string | number | null;
   image_url: string | null;
   location: string | null;
 };
@@ -55,10 +62,13 @@ const money = (n?: number | null) =>
         maximumFractionDigits: 0
       });
 
-const parseRevenue = (rev: string | null): number | null => {
-  if (!rev) return null;
-  const cleaned = rev.replace(/[$,]/g, '');
-  const num = parseFloat(cleaned);
+// `revenue` arrives as a number from cleaning_listings_direct (it was text on
+// the old merge table). Handle both — calling .replace() on a number throws,
+// which took down the whole static export.
+const parseRevenue = (rev: string | number | null | undefined): number | null => {
+  if (rev == null) return null;
+  if (typeof rev === 'number') return isNaN(rev) ? null : rev;
+  const num = parseFloat(String(rev).replace(/[$,]/g, ''));
   return isNaN(num) ? null : num;
 };
 
@@ -75,8 +85,8 @@ const slugifyCity = (city: string): string => {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   // Get all unique state/city combinations
-  const { data: locations } = await supabase
-    .from('cleaning_listings_merge')
+  const { data: locations } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
     .select('state, city')
     .not('state', 'is', null)
     .not('city', 'is', null);
@@ -120,8 +130,8 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
   const stateFullName = STATE_NAMES[stateParam] || stateParam;
 
   // Query database - try to match city name flexibly
-  const { data: listings, error } = await supabase
-    .from('cleaning_listings_merge')
+  const { data: listings, error } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
     .select(
       'id, header, price, city, state, cash_flow, revenue, image_url, location'
     )
