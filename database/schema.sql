@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS scraper_runs (
   -- Run identification
   vertical_slug TEXT NOT NULL,            -- Which vertical was scraped
   broker_source TEXT NOT NULL,            -- Which broker: 'BizBuySell', 'Murphy', etc.
-  scraper_type TEXT NOT NULL,             -- 'bizbuysell' | 'unified' | 'specialized'
+  scraper_type TEXT NOT NULL,             -- 'unified' | 'specialized'
 
   -- Execution tracking
   started_at TIMESTAMPTZ NOT NULL,        -- When scraper started
