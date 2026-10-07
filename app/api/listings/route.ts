@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Backed by a live DealLedger view — never statically cache this route.
+import { getOurListings, filterOurListings } from '@/data/ourListings';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -120,11 +122,40 @@ export async function GET(request: NextRequest) {
     }));
 
     // Sort by quality tier (Verified first), preserving DOM order within tier.
-    const sorted = mapped.sort((a, b) => {
+    const warehouseSorted = mapped.sort((a, b) => {
       const aTier = TIER_ORDER[a.quality_tier] ?? 2;
       const bTier = TIER_ORDER[b.quality_tier] ?? 2;
       return aTier - bTier;
     });
+
+    // Our own (CleaningExits-brokered) listings come from the CRM and lead the grid.
+    const ours = filterOurListings(await getOurListings(), { search, minPrice, maxPrice, location }).map((l) => ({
+      id:                    l.id,
+      listing_number:        null,
+      header:                l.title,
+      price:                 l.price,
+      cash_flow:             l.cash_flow,
+      state:                 l.state,
+      city:                  l.city,
+      category:              l.category,
+      days_on_market:        null,
+      listing_views:         null,
+      estimated_listed_date: l.listedOn,
+      first_seen:            l.listedOn,
+      url:                   l.listing_url,
+      broker_account:        'CleaningExits',
+      broker_id:             null,
+      contact_name:          l.broker.name,
+      contact_phone:         l.broker.phone,
+      price_reduced:         false,
+      relisted:              false,
+      direct_broker_url:     l.listing_url,
+      quality_tier:          'Verified',
+      quality_score:         100,
+      dom_badge:             domBadge(null),
+      inhouse:               true,
+    }));
+    const sorted: any[] = [...ours, ...warehouseSorted];
 
     const total      = sorted.length;
     const startIdx   = (page - 1) * limit;

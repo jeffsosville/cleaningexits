@@ -2,6 +2,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../components/Header';
+import InquiryForm from '../components/InquiryForm';
 import Footer from '../components/Footer';
 
 export default function Contact() {
@@ -63,6 +64,11 @@ export default function Contact() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl border p-8 mb-8">
+          <h2 className="text-2xl font-bold mb-4">Send Us a Message</h2>
+          <InquiryForm mode="contact" accent="emerald" />
         </div>
 
         <div className="text-center">

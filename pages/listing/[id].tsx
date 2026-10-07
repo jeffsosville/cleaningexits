@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import ValuationAnalysis from '../../components/ValuationAnalysis';
+import OurListingDetail from '../../components/OurListingDetail';
+import { getOurListingById, type OurListing } from '@/data/ourListings';
 
 // Local CleaningExits Supabase (top10 + merge tables)
 const supabaseLocal = createClient(
@@ -110,6 +112,11 @@ const emptyListing = (): Listing => ({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
+
+  // ─── 0. In-house (CleaningExits-brokered) listings live in the CRM ───────
+  const ours = await getOurListingById(id);
+  if (ours) return { props: { ourListing: ours } };
+
   let listing: Listing | null = null;
 
   // ─── 1. Top 10 (local) — slug IDs like "top10-2024-001" ────────────────────
@@ -224,7 +231,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   return { props: { listing } };
 };
 
-export default function ListingDetail({ listing }: { listing: Listing }) {
+export default function ListingPage({ listing, ourListing }: { listing?: Listing; ourListing?: OurListing }) {
+  if (ourListing) return <OurListingDetail listing={ourListing} />;
+  if (!listing) return null;
+  return <ListingDetail listing={listing} />;
+}
+
+function ListingDetail({ listing }: { listing: Listing }) {
   const generateListingSchema = () => {
     const schema: any = {
       "@context": "https://schema.org",

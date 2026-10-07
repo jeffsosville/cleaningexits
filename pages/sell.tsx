@@ -2,6 +2,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../components/Header';
+import InquiryForm from '../components/InquiryForm';
 import Footer from '../components/Footer';
 
 export default function Sell() {
@@ -139,15 +140,14 @@ export default function Sell() {
             </ul>
           </div>
 
-          <div className="text-center">
-            <a
-              href="mailto:hello@cleaningexits.com?subject=Interested in Listing My Cleaning Business"
-              className="inline-block px-8 py-4 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition"
-            >
-              Get Started - Email Us
-            </a>
+          <div className="rounded-lg border p-6" id="get-started">
+            <h2 className="text-2xl font-bold mb-2">Get a Free, Confidential Valuation</h2>
+            <p className="text-gray-600 mb-6">
+              Tell us a little about your business. We'll follow up within one business day.
+            </p>
+            <InquiryForm mode="seller" accent="emerald" />
             <p className="mt-4 text-sm text-gray-600">
-              Or email us directly at{' '}
+              Prefer email?{' '}
               <a href="mailto:hello@cleaningexits.com" className="text-emerald-600 hover:underline">
                 hello@cleaningexits.com
               </a>
