@@ -12,6 +12,7 @@ import Link from "next/link";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { CategoryFilter, CategorySlug } from '../components/CategoryFilter';
+import FeaturedListings from '../components/FeaturedListings';
 
 const CATEGORY_LABELS: Record<string, string> = {
   commercial_cleaning:  'Commercial Cleaning',
@@ -90,6 +91,9 @@ export default function Home() {
               Every {label.toLowerCase()} business for sale in the US. Updated daily.
             </p>
           </section>
+
+          {/* Our own listings, pinned above everything else */}
+          <FeaturedListings />
 
           {/* Weekly Top 10 Banner */}
           <section className="mb-8">

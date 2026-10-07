@@ -38,6 +38,7 @@ type Listing = {
   quality_tier: string;
   quality_score: number;
   dom_badge: string;
+  inhouse?: boolean;
 };
 
 type Pagination = {
@@ -281,7 +282,13 @@ export default function CleaningIndex() {
                         </span>
                       )}
 
-                      {listing.quality_tier === 'Verified' && (
+                      {listing.inhouse && (
+                        <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
+                          ★ Exclusive · Sign NDA
+                        </span>
+                      )}
+
+                      {!listing.inhouse && listing.quality_tier === 'Verified' && (
                         <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
                           ✓ Verified
                         </span>
