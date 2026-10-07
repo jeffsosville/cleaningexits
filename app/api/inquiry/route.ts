@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please include a message.' }, { status: 400 });
 
     const sourceUrl = str(b.source_url, 500) || req.headers.get('referer') || null;
-    const logged = await logInbound({ kind, name, email, phone, business, location, revenue, message, sourceUrl });
+    // Never lose a lead because the CRM is unreachable or misconfigured: fall through to the email.
+    const logged = await logInbound({ kind, name, email, phone, business, location, revenue, message, sourceUrl })
+      .catch((e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }));
     if (!logged.ok) console.error('CRM inbound insert failed:', logged.error);
 
     const key = process.env.RESEND_API_KEY;
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
 <h2 style="margin:8px 0 16px;">${esc(name)}${business ? ` – ${esc(business)}` : ''}</h2>
 <table style="font-size:14px;">${rows.map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#666;">${k}:</td><td>${esc(v)}</td></tr>`).join('')}</table>
 ${message ? `<div style="background:#fef7ed;border-left:3px solid #b45309;padding:12px 16px;margin-top:16px;white-space:pre-wrap;">${esc(message)}</div>` : ''}
-<p style="color:#999;font-size:12px;margin-top:24px;">${logged.ok ? 'Logged to the CRM inbound queue.' : 'CRM logging FAILED – add this lead by hand.'}</p></div>`;
+<p style="color:#999;font-size:12px;margin-top:24px;">${logged.ok ? 'Logged to the CRM inbound queue.' : `CRM logging FAILED (${esc(logged.error || 'unknown')}) – add this lead by hand.`}</p></div>`;
       const send = (payload: Record<string, unknown>) =>
         fetch('https://api.resend.com/emails', {
           method: 'POST',
