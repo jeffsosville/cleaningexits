@@ -22,7 +22,7 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
       const res = await fetch('/api/inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...f, kind: mode, source_url: window.location.href }),
+        body: JSON.stringify({ ...f, website: f.hp_ref || '', kind: mode, source_url: window.location.href }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
@@ -44,7 +44,7 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 text-left">
-      <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+      <input type="text" name="hp_ref" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
       <div className="grid gap-4 sm:grid-cols-2">
         <input name="name" required placeholder="Your name" className={input} />
         <input name="email" type="email" required placeholder="Email" className={input} />
