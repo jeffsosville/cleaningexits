@@ -91,7 +91,7 @@ export async function createNDAToken(
   }
 
   const dealHubBase =
-    process.env.DEAL_HUB_URL ?? 'https://atm-brokerage-crm.vercel.app';
+    process.env.DEAL_HUB_URL ?? 'https://dealroom.sosville.co';
   const dealHubUrl = `${dealHubBase}/deals/${token}`;
 
   // Secondary write — deal_buyer_access (best effort; never block the buyer)
