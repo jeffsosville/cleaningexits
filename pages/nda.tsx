@@ -42,7 +42,7 @@ export default function NdaPage({ listing }: Props) {
           buyer_budget_range: fd.get('buyer_budget_range'),
           interest_notes: fd.get('interest_notes'),
           agree_nda: fd.get('agree_nda') === 'on',
-          website: fd.get('website') || '',
+          website: fd.get('hp_ref') || '',
           source_listing_slug: listing.id,
           source_url: `https://cleaningexits.com/listing/${listing.id}`,
           listing_title: listing.title,
@@ -51,7 +51,7 @@ export default function NdaPage({ listing }: Props) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Submission failed');
-      setDone(body.dealHubUrl || null);
+      setDone(body.dealHubUrl || 'emailed');
     } catch (err: any) {
       setError(err?.message || 'Something went wrong. Please try again.');
     } finally {
@@ -77,7 +77,7 @@ export default function NdaPage({ listing }: Props) {
               room for {listing.title}. Check your inbox &mdash; and your spam
               folder, just in case.
             </p>
-            {done && (
+            {done.startsWith('http') && (
               <a
                 href={done}
                 className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg transition"
@@ -124,7 +124,7 @@ export default function NdaPage({ listing }: Props) {
           <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6 space-y-5">
             {/* Honeypot — hidden from humans, catnip for bots */}
             <input
-              type="text" name="website" tabIndex={-1} autoComplete="off"
+              type="text" name="hp_ref" tabIndex={-1} autoComplete="off"
               aria-hidden="true"
               className="absolute left-[-9999px] w-px h-px opacity-0"
             />
