@@ -44,7 +44,7 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 text-left">
-      <input type="text" name="hp_ref" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+      <div style={{ display: 'none' }} aria-hidden="true"><input type="text" name="hp_ref" tabIndex={-1} autoComplete="off" /></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <input name="name" required placeholder="Your name" className={input} />
         <input name="email" type="email" required placeholder="Email" className={input} />

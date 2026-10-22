@@ -23,6 +23,9 @@ export default function NdaPage({ listing }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState<string | null>(null);
+  // Render time, sent with the form so the server can tell a fast bot from a
+  // person whose browser autofilled the hidden honeypot field.
+  const [loadedAt] = useState(() => Date.now());
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +46,7 @@ export default function NdaPage({ listing }: Props) {
           interest_notes: fd.get('interest_notes'),
           agree_nda: fd.get('agree_nda') === 'on',
           website: fd.get('hp_ref') || '',
+          elapsed_ms: Date.now() - loadedAt,
           source_listing_slug: listing.id,
           source_url: `https://cleaningexits.com/listing/${listing.id}`,
           listing_title: listing.title,
@@ -51,7 +55,13 @@ export default function NdaPage({ listing }: Props) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Submission failed');
-      setDone(body.dealHubUrl || 'emailed');
+      // Only confirm when the server actually created data-room access.
+      if (!body.dealHubUrl) {
+        throw new Error(
+          'We could not set up your data room access. Please email hello@cleaningexits.com and we will send it right away.'
+        );
+      }
+      setDone(body.dealHubUrl);
     } catch (err: any) {
       setError(err?.message || 'Something went wrong. Please try again.');
     } finally {
@@ -122,12 +132,10 @@ export default function NdaPage({ listing }: Props) {
           </p>
 
           <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6 space-y-5">
-            {/* Honeypot — hidden from humans, catnip for bots */}
-            <input
-              type="text" name="hp_ref" tabIndex={-1} autoComplete="off"
-              aria-hidden="true"
-              className="absolute left-[-9999px] w-px h-px opacity-0"
-            />
+            {/* Honeypot — display:none so browser autofill skips it; bots parsing the HTML still fill it */}
+            <div style={{ display: 'none' }} aria-hidden="true">
+              <input type="text" name="hp_ref" tabIndex={-1} autoComplete="off" />
+            </div>
 
             <div className="grid sm:grid-cols-2 gap-5">
               <div>

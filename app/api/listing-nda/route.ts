@@ -56,9 +56,21 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Body;
 
-    // Honeypot — bots fill hidden fields. Return success so they don't retry.
+    // Honeypot — bots fill hidden fields. Browser autofill can fill it too, so
+    // only treat it as a bot when the form was also submitted implausibly fast
+    // (or without the timing field at all). Everyone else goes through.
     if (str(body.website).length > 0) {
-      return NextResponse.json({ success: true });
+      const elapsed = Number(body.elapsed_ms);
+      const looksHuman = Number.isFinite(elapsed) && elapsed >= 3000;
+      console.warn('listing-nda honeypot filled', {
+        email: str(body.buyer_email),
+        listing: str(body.source_listing_slug),
+        elapsed_ms: body.elapsed_ms,
+        treated_as: looksHuman ? 'human' : 'bot',
+      });
+      if (!looksHuman) {
+        return NextResponse.json({ success: true });
+      }
     }
 
     const parsed = validate(body);
