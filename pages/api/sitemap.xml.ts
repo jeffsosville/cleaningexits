@@ -11,7 +11,7 @@
 //              thin city pages (noindex), individual listing pages (broker
 //              copy duplicated across the web; Google declined to index them),
 //              transactional pages (/nda, /confirm, /unsubscribe), internal
-//              pages (/vertical-demo, /why1, /audit, /daily-cleaning).
+//              pages (/vertical-demo, /why1, /daily-cleaning).
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { toStateCode, slugifyCity, CITY_INDEX_MIN, STATE_REDIRECT_MIN } from '../../lib/geo';

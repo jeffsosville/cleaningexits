@@ -87,7 +87,7 @@ export default function Subscribe() {
             <div className="text-6xl mb-4">✅</div>
             <h1 className="text-3xl font-bold mb-3">You're on the list.</h1>
             <p className="text-gray-600 text-lg mb-2">Check your email to confirm your subscription.</p>
-            <p className="text-gray-500 text-sm mb-8">First digest drops next Monday — listings matched to your profile.</p>
+            <p className="text-gray-500 text-sm mb-8">Your first issue arrives Monday morning.</p>
             <Link href="/cleaning-index?category=commercial_cleaning"
               className="inline-block bg-emerald-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition">
               Browse listings now →
@@ -101,8 +101,8 @@ export default function Subscribe() {
   return (
     <>
       <Head>
-        <title>Get the Weekly Top 10 — Cleaning Exits</title>
-        <meta name="description" content="Free weekly digest of the top 10 cleaning businesses for sale, ranked by days on market and buyer demand." />
+        <title>The CleaningExits Weekly — New Cleaning Businesses for Sale</title>
+        <meta name="description" content="Free weekly email: new cleaning businesses for sale, our exclusive listings, the strongest cash flow on the market, and what deals are selling for." />
       </Head>
       <main className="mx-auto max-w-2xl px-4 py-16">
         <div className="text-center mb-8">
@@ -111,8 +111,8 @@ export default function Subscribe() {
         <div className="rounded-2xl border bg-white p-8 shadow-sm">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">📬</div>
-            <h1 className="text-3xl font-bold mb-3">Get the Weekly Top 10</h1>
-            <p className="text-gray-600 text-lg">Top 10 cleaning businesses ranked by DOM + buyer demand. Every Monday. Free.</p>
+            <h1 className="text-3xl font-bold mb-3">The CleaningExits Weekly</h1>
+            <p className="text-gray-600 text-lg">New cleaning businesses for sale, our exclusive listings first, and what the market is paying. Every Monday. Free.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -219,7 +219,7 @@ export default function Subscribe() {
           </form>
 
           <div className="mt-8 pt-6 border-t space-y-2 text-sm text-gray-600">
-            {["Top 10 verified listings every Monday","Ranked by days on market + buyer demand","No spam, ever — unsubscribe anytime"].map((t) => (
+            {["Our exclusive listings before anyone else","Every new cleaning listing, with asking price and cash flow","Median asks and multiples, so you know what a fair price is","One email a week. Unsubscribe anytime"].map((t) => (
               <div key={t} className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

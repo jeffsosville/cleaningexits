@@ -142,14 +142,6 @@ const sections: Section[] = [
     blurb: 'What we see in the listing data that nobody publishes.',
     items: [
       {
-        title: '30-Day BizBuySell Listing Audit',
-        description:
-          'We tracked every cleaning listing for a month and documented the stale listings, duplicate posts, and phantom inventory.',
-        href: '/audit',
-        tag: 'Live Data',
-        ready: true,
-      },
-      {
         title: 'Why CleaningExits Exists',
         description:
           'The data quality argument, with screenshots. This is the short version of everything we believe.',
