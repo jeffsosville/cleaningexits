@@ -279,7 +279,7 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
               none of which a calculator can see.
             </p>
             <p>
-              <a className="btn" href="/valuation-review">
+              <a className="btn" href="/sell">
                 Request a valuation review
               </a>
             </p>
