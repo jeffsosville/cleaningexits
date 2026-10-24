@@ -255,8 +255,11 @@ export default function ValuationPage({ cfg, national, bands, segments = [], gen
             <div className="wrap">
               <h2>Multiples by type of {cfg.businessNoun}</h2>
               <p className="lede">
-                What the business does changes how buyers read the same earnings. Types with fewer
-                than {MIN_SAMPLE} listings are left out.
+                What the business does changes how buyers read the same earnings. These are{' '}
+                <strong>asking</strong> multiples on active listings; types with fewer than{' '}
+                {MIN_SAMPLE} listings are left out. Commercial businesses sell for more than
+                residential ones: larger in earnings, and valued higher per dollar once a deal closes.
+                Residential owners tend to ask above where their listings end up.
               </p>
               <table className="bands">
                 <thead>

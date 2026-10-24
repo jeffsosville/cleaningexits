@@ -82,7 +82,7 @@ export default function SegmentValuation({ cfg, seg, row, national, others, gene
             <p className="lede">{seg.lede}</p>
 
             <div className="topline">
-              <Stat label="Median multiple" value={mult(row.median_multiple)} sample={`${row.sample_size} active listings with SDE`} big />
+              <Stat label="Median asking multiple" value={mult(row.median_multiple)} sample={`${row.sample_size} active listings with SDE`} big />
               <Stat label="Middle half" value={`${mult(row.p25_multiple)}–${mult(row.p75_multiple)}`} sample="lower to upper quartile" />
               <Stat label="Median asking price" value={money(row.median_asking_price, { compact: true })} sample={`median SDE ${money(row.median_sde, { compact: true })}`} />
             </div>
@@ -139,7 +139,7 @@ export default function SegmentValuation({ cfg, seg, row, national, others, gene
                 <tr>
                   <th scope="col">Type</th>
                   <th scope="col">Listings</th>
-                  <th scope="col">Median multiple</th>
+                  <th scope="col">Median asking multiple</th>
                   <th scope="col">Median asking</th>
                 </tr>
               </thead>
