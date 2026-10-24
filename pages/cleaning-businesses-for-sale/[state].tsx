@@ -72,9 +72,18 @@ export const getStaticPaths: GetStaticPaths = async () => {
     .select('state')
     .not('state', 'is', null);
 
+  // States that redirect to /for-sale can't be prerendered (Next forbids a
+  // redirect at build time). Leave them to fallback, which allows it.
+  const { data: gatedRows } = await supabaseDealLedger
+    .from('market_stats_state')
+    .select('state_norm')
+    .eq('vertical', 'cleaning')
+    .gte('active_count', STATE_REDIRECT_MIN);
+  const gated = new Set((gatedRows || []).map(r => r.state_norm));
+
   const codes = Array.from(
     new Set((rows || []).map(r => toStateCode(r.state)).filter(Boolean) as string[])
-  );
+  ).filter(code => !gated.has(code));
 
   return {
     paths: codes.map(code => ({ params: { state: code.toLowerCase() } })),
