@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { STATE_NAMES, toStateCode, STATE_REDIRECT_MIN } from '../../lib/geo';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -16,25 +17,12 @@ const supabaseDealLedger = createClient(
   process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
 );
 
-const STATE_NAMES: Record<string, string> = {
-  'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
-  'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
-  'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
-  'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
-  'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
-  'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
-  'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
-  'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
-  'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
-  'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
-  'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
-  'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
-  'WI': 'Wisconsin', 'WY': 'Wyoming'
-};
+
 
 type StateData = {
   state: string;
   count: number;
+  href: string;
 };
 
 type AllStatesProps = {
@@ -60,16 +48,30 @@ export const getStaticProps: GetStaticProps<AllStatesProps> = async () => {
     };
   }
 
-  // Count listings per state
+  // Count listings per normalized state. "New York" and "NY" are one state;
+  // county/metro values that don't resolve are left out of the grid.
   const stateCounts = listings.reduce((acc, listing) => {
-    acc[listing.state] = (acc[listing.state] || 0) + 1;
+    const code = toStateCode(listing.state);
+    if (code) acc[code] = (acc[code] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // Link straight to the gated /for-sale page where a state has one, so the
+  // grid doesn't spend a redirect hop on every strong state.
+  const { data: statRows } = await supabaseDealLedger
+    .from('market_stats_state')
+    .select('state_norm, active_count')
+    .eq('vertical', 'cleaning')
+    .gte('active_count', STATE_REDIRECT_MIN);
+  const gated = new Set((statRows || []).map(r => r.state_norm));
 
   const states = Object.entries(stateCounts)
     .map(([state, count]) => ({
       state,
       count,
+      href: gated.has(state)
+        ? `/for-sale/${state.toLowerCase()}`
+        : `/cleaning-businesses-for-sale/${state.toLowerCase()}`,
     }))
     .sort((a, b) => b.count - a.count); // Sort by count descending
 
@@ -144,10 +146,10 @@ export default function AllStatesPage({ states, totalListings }: AllStatesProps)
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Browse by State</h2>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {states.map(({ state, count }) => (
+              {states.map(({ state, count, href }) => (
                 <Link
                   key={state}
-                  href={`/cleaning-businesses-for-sale/${state.toLowerCase()}`}
+                  href={href}
                   className="bg-white border-2 hover:border-emerald-500 rounded-lg p-5 transition group"
                 >
                   <div className="flex items-center justify-between mb-2">

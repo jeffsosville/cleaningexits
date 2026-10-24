@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { STATE_NAMES, toStateCode, stateVariants, STATE_REDIRECT_MIN } from '../../lib/geo';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -42,21 +43,7 @@ type StatePageProps = {
   stats: StateStats;
 };
 
-const STATE_NAMES: Record<string, string> = {
-  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas',
-  CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware',
-  FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
-  IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas',
-  KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
-  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
-  MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada',
-  NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York',
-  NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
-  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
-  SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
-  VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia',
-  WI: 'Wisconsin', WY: 'Wyoming'
-};
+
 
 const money = (n?: number | null) =>
   n == null
@@ -78,43 +65,64 @@ const parseRevenue = (rev: string | number | null | undefined): number | null =>
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // Get all unique states from database
-  const { data: states } = await supabaseDealLedger
+  // Pre-render only real states. Junk values ("Maricopa County") no longer
+  // get pages; full names ("New York") resolve to their code.
+  const { data: rows } = await supabaseDealLedger
     .from('cleaning_listings_direct')
     .select('state')
-    .not('state', 'is', null)
-    .order('state');
+    .not('state', 'is', null);
 
-  if (!states) return { paths: [], fallback: 'blocking' };
-
-  // Get unique states
-  const uniqueStates = Array.from(new Set(states.map(s => s.state)));
-
-  const paths = uniqueStates.map(state => ({
-    params: { state: state.toLowerCase() }
-  }));
+  const codes = Array.from(
+    new Set((rows || []).map(r => toStateCode(r.state)).filter(Boolean) as string[])
+  );
 
   return {
-    paths,
-    fallback: 'blocking' // Generate pages on-demand for new states
+    paths: codes.map(code => ({ params: { state: code.toLowerCase() } })),
+    fallback: 'blocking'
   };
 };
 
 export const getStaticProps: GetStaticProps<StatePageProps> = async context => {
-  const state = (context.params?.state as string).toUpperCase();
+  const param = context.params?.state as string;
+  const state = toStateCode(param);
+  if (!state) return { notFound: true, revalidate: 3600 };
+
+  // One canonical URL per state: /ny, never /new-york or /New%20York.
+  if (param !== state.toLowerCase()) {
+    return {
+      redirect: {
+        destination: `/cleaning-businesses-for-sale/${state.toLowerCase()}`,
+        permanent: true
+      }
+    };
+  }
+
+  // States with enough inventory have a gated, data-rich page at /for-sale.
+  // Send the old URL there so the two don't compete.
+  const { data: stat } = await supabaseDealLedger
+    .from('market_stats_state')
+    .select('active_count')
+    .eq('vertical', 'cleaning')
+    .eq('state_norm', state)
+    .maybeSingle();
+  if (stat && stat.active_count >= STATE_REDIRECT_MIN) {
+    return {
+      redirect: { destination: `/for-sale/${state.toLowerCase()}`, permanent: true }
+    };
+  }
+
   const stateFullName = STATE_NAMES[state] || state;
 
-  // Get listings for this state
   const { data: listings, error } = await supabaseDealLedger
     .from('cleaning_listings_direct')
     .select('id, header, price, city, state, cash_flow, revenue, image_url')
-    .eq('state', state)
+    .in('state', stateVariants(state))
     .not('price', 'is', null)
     .order('price', { ascending: false })
     .limit(50);
 
   if (error || !listings || listings.length === 0) {
-    return { notFound: true };
+    return { notFound: true, revalidate: 3600 };
   }
 
   // Calculate stats
@@ -215,6 +223,8 @@ export default function StatePage({
       <Head>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
+        {/* Below the /for-sale threshold: keep for visitors, out of the index. */}
+        <meta name="robots" content="noindex, follow" />
         <link
           rel="canonical"
           href={`https://cleaningexits.com/cleaning-businesses-for-sale/${state.toLowerCase()}`}

@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { STATE_NAMES, toStateCode, stateVariants, slugifyCity, CITY_INDEX_MIN } from '../../../lib/geo';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -37,21 +38,7 @@ type CityPageProps = {
   listings: Listing[];
 };
 
-const STATE_NAMES: Record<string, string> = {
-  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas',
-  CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware',
-  FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
-  IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas',
-  KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
-  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
-  MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada',
-  NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York',
-  NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
-  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
-  SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
-  VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia',
-  WI: 'Wisconsin', WY: 'Wyoming'
-};
+
 
 const money = (n?: number | null) =>
   n == null
@@ -79,68 +66,62 @@ const formatCityName = (slug: string): string => {
     .join(' ');
 };
 
-const slugifyCity = (city: string): string => {
-  return city.toLowerCase().replace(/\s+/g, '-');
-};
-
 export const getStaticPaths: GetStaticPaths = async () => {
-  // Get all unique state/city combinations
+  // Pre-render only cities that clear the index bar in a real state.
+  // Thin ones still render on demand (noindex) if someone links to them.
   const { data: locations } = await supabaseDealLedger
     .from('cleaning_listings_direct')
     .select('state, city')
     .not('state', 'is', null)
     .not('city', 'is', null);
 
-  if (!locations) return { paths: [], fallback: 'blocking' };
-
-  // Create unique state/city pairs
-  const uniquePairs = new Map<string, Set<string>>();
-
-  locations.forEach(loc => {
-    if (!uniquePairs.has(loc.state)) {
-      uniquePairs.set(loc.state, new Set());
-    }
-    uniquePairs.get(loc.state)?.add(loc.city);
+  const counts = new Map<string, number>();
+  (locations || []).forEach(loc => {
+    const code = toStateCode(loc.state);
+    if (!code) return;
+    const key = `${code.toLowerCase()}|${slugifyCity(loc.city)}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
   });
 
-  const paths: Array<{ params: { state: string; city: string } }> = [];
-
-  uniquePairs.forEach((cities, state) => {
-    cities.forEach(city => {
-      paths.push({
-        params: {
-          state: state.toLowerCase(),
-          city: slugifyCity(city)
-        }
-      });
+  const paths = Array.from(counts.entries())
+    .filter(([, n]) => n >= CITY_INDEX_MIN)
+    .map(([key]) => {
+      const [state, city] = key.split('|');
+      return { params: { state, city } };
     });
-  });
 
-  return {
-    paths: paths.slice(0, 100), // Pre-generate top 100 cities, rest on-demand
-    fallback: 'blocking'
-  };
+  return { paths, fallback: 'blocking' };
 };
 
 export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
-  const stateParam = (context.params?.state as string).toUpperCase();
+  const stateRaw = context.params?.state as string;
   const citySlug = context.params?.city as string;
-  const cityFormatted = formatCityName(citySlug);
+  const stateParam = toStateCode(stateRaw);
+  if (!stateParam) return { notFound: true, revalidate: 3600 };
 
+  if (stateRaw !== stateParam.toLowerCase()) {
+    return {
+      redirect: {
+        destination: `/cleaning-businesses-for-sale/${stateParam.toLowerCase()}/${encodeURIComponent(citySlug)}`,
+        permanent: true
+      }
+    };
+  }
+
+  const cityFormatted = formatCityName(citySlug);
   const stateFullName = STATE_NAMES[stateParam] || stateParam;
 
-  // Query database - try to match city name flexibly
   const { data: listings, error } = await supabaseDealLedger
     .from('cleaning_listings_direct')
     .select(
       'id, header, price, city, state, cash_flow, revenue, image_url, location'
     )
-    .eq('state', stateParam)
+    .in('state', stateVariants(stateParam))
     .ilike('city', cityFormatted)
     .order('price', { ascending: false });
 
   if (error || !listings || listings.length === 0) {
-    return { notFound: true };
+    return { notFound: true, revalidate: 3600 };
   }
 
   const formattedListings: Listing[] = listings.map(l => ({
@@ -219,6 +200,10 @@ export default function CityPage({
       <Head>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
+        {/* One or two listings plus boilerplate is what drags a site down. */}
+        {listings.length < CITY_INDEX_MIN && (
+          <meta name="robots" content="noindex, follow" />
+        )}
         <link
           rel="canonical"
           href={`https://cleaningexits.com/cleaning-businesses-for-sale/${state.toLowerCase()}/${slugifyCity(
