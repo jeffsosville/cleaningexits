@@ -39,6 +39,8 @@ export default function Subscribe() {
     category: "commercial_cleaning", timeline: "", financing: "", notes: "",
   });
   const [status,  setStatus]  = useState<"idle"|"loading"|"success"|"error">("idle");
+  const [loadedAt] = useState(() => Date.now());
+  const [hp, setHp] = useState("");
   const [message, setMessage] = useState("");
 
   const set = (field: string, value: any) => setForm((f) => ({ ...f, [field]: value }));
@@ -58,6 +60,8 @@ export default function Subscribe() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          hp_ref:     hp,
+          elapsed_ms: Date.now() - loadedAt,
           email:      form.email,
           first_name: form.firstName,
           budget:     form.budget,
@@ -116,6 +120,7 @@ export default function Subscribe() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div style={{ display: "none" }} aria-hidden="true"><input type="text" name="hp_ref" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} /></div>
             {/* Name + Email */}
             <div className="grid grid-cols-2 gap-4">
               <div>

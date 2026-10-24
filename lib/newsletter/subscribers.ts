@@ -3,6 +3,7 @@
 // `upsert_subscriber` (SQL) handles merging, unsubscribe suppression and the consent log.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { BRAND } from './brand';
+import { getCrmSupabase } from '@/lib/crmSupabase';
 
 let client: SupabaseClient | null = null;
 export function subscribersDb(): SupabaseClient {
@@ -63,6 +64,9 @@ export async function subscribe(i: SubscribeInput): Promise<SubscribeResult> {
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
+  if (row.status !== 'suppressed') {
+    await mirrorToCrm(i.email, row.confirmed ? 'subscribed' : 'pending', { role: i.role || 'buyer', source: i.source, first_name: i.firstName || null });
+  }
   return {
     status: row.status,
     confirmed: row.confirmed,
@@ -73,6 +77,33 @@ export async function subscribe(i: SubscribeInput): Promise<SubscribeResult> {
 
 export async function logConsent(email: string, action: 'confirm' | 'unsubscribe', source: string) {
   await subscribersDb().from('email_consent').insert({ email: email.toLowerCase(), vertical: BRAND.vertical, action, source });
+  await mirrorToCrm(email, action === 'confirm' ? 'subscribed' : 'unsubscribed', {});
+}
+
+/** Copy list status into the CRM (newsletter_subscriptions) so it shows on the person's record. Best effort. */
+export async function mirrorToCrm(email: string, status: 'subscribed' | 'pending' | 'unsubscribed',
+  extra: { role?: string; source?: string; first_name?: string | null }) {
+  try {
+    const now = new Date().toISOString();
+    const row: Record<string, unknown> = { email: email.toLowerCase().trim(), vertical: BRAND.vertical, status, updated_by: BRAND.site.replace('https://', '') };
+    if (extra.role) row.role = extra.role;
+    if (extra.source) row.source = extra.source;
+    if (extra.first_name) row.first_name = extra.first_name;
+    if (status === 'subscribed') { row.subscribed_at = now; row.unsubscribed_at = null; }
+    if (status === 'unsubscribed') row.unsubscribed_at = now;
+    const { error } = await getCrmSupabase().from('newsletter_subscriptions').upsert(row, { onConflict: 'email,vertical' });
+    if (error) console.error('CRM newsletter mirror failed:', error.message);
+  } catch (e) {
+    console.error('CRM newsletter mirror failed:', e);
+  }
+}
+
+/** Bot-pattern signups (random-string names, dotted Gmail aliases) seen in list-bombing attacks. */
+export function looksLikeBot(email: string, firstName?: string | null) {
+  const local = email.split('@')[0] || '';
+  if (firstName && /^[A-Za-z]{12,}$/.test(firstName) && /[a-z][A-Z]/.test(firstName)) return true;
+  if (/@gmail\.com$/i.test(email) && (local.match(/\./g) || []).length >= 3) return true;
+  return false;
 }
 
 export const unsubscribeUrl = (token: string | null) => `${BRAND.site}/unsubscribe?token=${token || ''}`;
