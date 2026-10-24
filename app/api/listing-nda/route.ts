@@ -48,6 +48,7 @@ function validate(b: Body): { ok: true; data: any } | { ok: false; error: string
       source_url: str(b.source_url).slice(0, 500),
       listing_title,
       listing_asking_price_display: str(b.listing_asking_price_display) || null,
+      newsletter_opt_in: b.newsletter_opt_in === true,
     },
   };
 }

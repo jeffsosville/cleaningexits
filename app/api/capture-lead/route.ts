@@ -1,3 +1,4 @@
+import { subscribe } from '@/lib/newsletter/subscribers';
 // app/api/capture-lead/route.ts
 // Simple version with ONE confirmation email via Resend API (no SDK)
 
@@ -31,18 +32,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // STEP 1: Add to subscribers table
-    await supabase
-      .from('subscribers')
-      .upsert({
-        email,
-        confirmed: true,
-        confirmed_at: new Date().toISOString(),
-        subscribed_at: new Date().toISOString()
-      }, {
-        onConflict: 'email',
-        ignoreDuplicates: false
-      });
+    // STEP 1: Add to this vertical's list (they asked for the analysis by email)
+    try {
+      await subscribe({ email, source: 'listing analysis request', confirmed: true, explicit: false, listingSlug: String(listing_id),
+        consentText: 'Requested a listing analysis by email' });
+    } catch (e) {
+      console.error('capture-lead subscribe failed (non-fatal):', e);
+    }
 
     // STEP 2: Get full listing details
     const { data: listing, error: listingError } = await supabase

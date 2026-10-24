@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import { getOurListingById, type OurListing } from '@/data/ourListings';
 import { NDA_AGREEMENT_TEXT } from '@/lib/nda/ndaTerms';
+import { NDA_OPT_IN_TEXT } from '@/lib/newsletter/brand';
 
 type Props = {
   listing: Pick<OurListing, 'id' | 'title' | 'location'> & {
@@ -45,6 +46,7 @@ export default function NdaPage({ listing }: Props) {
           buyer_budget_range: fd.get('buyer_budget_range'),
           interest_notes: fd.get('interest_notes'),
           agree_nda: fd.get('agree_nda') === 'on',
+          newsletter_opt_in: fd.get('newsletter_opt_in') === 'on',
           website: fd.get('hp_ref') || '',
           elapsed_ms: Date.now() - loadedAt,
           source_listing_slug: listing.id,
@@ -182,6 +184,11 @@ export default function NdaPage({ listing }: Props) {
                 </span>
               </label>
             </div>
+
+            <label className="flex items-start gap-3 cursor-pointer px-1">
+              <input type="checkbox" name="newsletter_opt_in" defaultChecked className="mt-1 h-4 w-4 accent-emerald-600" />
+              <span className="text-sm text-gray-600 leading-relaxed">{NDA_OPT_IN_TEXT}</span>
+            </label>
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">

@@ -2,6 +2,8 @@ import { randomBytes } from 'crypto';
 import { getCrmSupabase } from '@/lib/crmSupabase';
 import { getOurListingById } from '@/data/ourListings';
 import { getVerticalId } from '@/lib/crmInbound';
+import { subscribe, NDA_OPT_IN_TEXT } from '@/lib/newsletter/subscribers';
+import { BRAND } from '@/lib/newsletter/brand';
 
 /**
  * Ported from atmbrokerage-next/lib/nda/createToken.ts.
@@ -29,6 +31,7 @@ export type CreateTokenInput = {
   ip_address?: string | null;
   nda_version?: string | null;
   nda_text?: string | null;
+  newsletter_opt_in?: boolean;
 };
 
 export type CreateTokenResult = {
@@ -109,16 +112,29 @@ export async function createNDAToken(
 
   await sendEmails(input, dealHubUrl, token, !!dealId);
 
-  try {
-    await subscribeToMailchimp({
-      email: input.buyer_email,
-      first_name: input.buyer_name.split(' ')[0] ?? '',
-      last_name: input.buyer_name.split(' ').slice(1).join(' ') || '',
-      phone: input.buyer_phone,
-      company: input.buyer_company ?? '',
-    });
-  } catch (err) {
-    console.error('Mailchimp subscribe failed (non-fatal):', err);
+  // Newsletter opt-in (box on the NDA form, checked by default). Best effort: never block the buyer.
+  if (input.newsletter_opt_in) {
+    try {
+      const [first, ...rest] = input.buyer_name.split(' ');
+      await subscribe({
+        email: input.buyer_email,
+        source: `${BRAND.site.replace('https://', '')}/nda`,
+        role: 'buyer',
+        confirmed: true,
+        explicit: false,
+        firstName: first || null,
+        lastName: rest.join(' ') || null,
+        phone: input.buyer_phone,
+        listingSlug: input.source_listing_slug,
+        tags: ['nda-signed'],
+        profile: { budget: input.buyer_budget_range ?? null },
+        consentText: NDA_OPT_IN_TEXT,
+        ip: input.ip_address ?? null,
+        userAgent: input.user_agent ?? null,
+      });
+    } catch (err) {
+      console.error('Newsletter subscribe failed (non-fatal):', err);
+    }
   }
 
   return { success: true, token, dealHubUrl };
@@ -176,51 +192,6 @@ async function sendEmails(
   } catch (err) {
     console.error('Broker email failed:', err);
   }
-}
-
-async function subscribeToMailchimp(args: {
-  email: string; first_name: string; last_name: string;
-  phone: string; company: string;
-}): Promise<void> {
-  const apiKey = process.env.MAILCHIMP_API_KEY;
-  const listId = process.env.MAILCHIMP_LIST_ID;
-  if (!apiKey || !listId) return;
-  const dataCenter = apiKey.split('-')[1];
-  if (!dataCenter) return;
-
-  const crypto = await import('crypto');
-  const emailHash = crypto
-    .createHash('md5')
-    .update(args.email.toLowerCase())
-    .digest('hex');
-  const auth = `Basic ${Buffer.from(`anystring:${apiKey}`).toString('base64')}`;
-  const base = `https://${dataCenter}.api.mailchimp.com/3.0/lists/${listId}/members/${emailHash}`;
-
-  await fetch(base, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: auth },
-    body: JSON.stringify({
-      email_address: args.email,
-      status_if_new: 'subscribed',
-      status: 'subscribed',
-      merge_fields: {
-        FNAME: args.first_name, LNAME: args.last_name,
-        PHONE: args.phone, COMPANY: args.company,
-      },
-      tags: ['nda-signed', 'cleaning'],
-    }),
-  });
-
-  await fetch(`${base}/tags`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: auth },
-    body: JSON.stringify({
-      tags: [
-        { name: 'nda-signed', status: 'active' },
-        { name: 'cleaning', status: 'active' },
-      ],
-    }),
-  });
 }
 
 function esc(s: string | null | undefined): string {

@@ -1,6 +1,8 @@
 // pages/api/confirm.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { logConsent } from "@/lib/newsletter/subscribers";
+import { BRAND } from "@/lib/newsletter/brand";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -27,6 +29,7 @@ export default async function handler(
       .from("subscribers")
       .select("*")
       .eq("confirmation_token", token)
+      .eq("vertical", BRAND.vertical)
       .single();
 
     if (findError || !subscriber) {
@@ -52,6 +55,7 @@ export default async function handler(
       .eq("id", subscriber.id);
 
     if (updateError) throw updateError;
+    await logConsent(subscriber.email, "confirm", "email confirm link").catch(() => {});
 
     return res.status(200).json({ 
       message: "Subscription confirmed successfully" 

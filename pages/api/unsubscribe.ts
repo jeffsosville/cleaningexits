@@ -1,6 +1,7 @@
 // pages/api/unsubscribe.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { logConsent } from "@/lib/newsletter/subscribers";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -46,7 +47,7 @@ export default async function handler(
     try {
       const { data: subscriber, error: findError } = await supabase
         .from("subscribers")
-        .select("id")
+        .select("id, email")
         .eq("unsubscribe_token", token)
         .single();
 
@@ -65,6 +66,7 @@ export default async function handler(
         .eq("id", subscriber.id);
 
       if (updateError) throw updateError;
+      await logConsent(subscriber.email, "unsubscribe", "unsubscribe link").catch(() => {});
 
       return res.status(200).json({ 
         message: "Successfully unsubscribed" 
