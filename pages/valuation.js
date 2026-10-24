@@ -11,9 +11,11 @@ import Head from 'next/head';
 import { useState, useMemo } from 'react';
 import BaseStyles from '../components/BaseStyles';
 import { getSiteConfig } from '../lib/siteConfig';
+import { slugForSegment, segmentsFor } from '../lib/segments';
 import {
   getNationalStats,
   getSdeBands,
+  getSegments,
   isPublishable,
   MIN_SAMPLE,
   money,
@@ -21,7 +23,7 @@ import {
   asOf,
 } from '../lib/marketStats';
 
-export default function ValuationPage({ cfg, national, bands, generatedAt }) {
+export default function ValuationPage({ cfg, national, bands, segments = [], generatedAt }) {
   const [sde, setSde] = useState('');
 
   const numericSde = useMemo(() => {
@@ -64,6 +66,20 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
           text: `Across ${national.sde_sample} listed ${cfg.businessNounPlural} with reported cash flow, the median asking price is ${mult(national.median_multiple)} seller's discretionary earnings. Smaller operations trade lower and larger ones higher; the full range by size band is published on this page.`,
         },
       },
+      ...(segments.length
+        ? [
+            {
+              '@type': 'Question',
+              name: `Do different kinds of ${cfg.businessNounPlural} sell for different multiples?`,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: `Yes. Median asking multiples by type: ${segments
+                  .map((g) => `${g.label} ${mult(g.median_multiple)} (${g.sample_size} listings)`)
+                  .join('; ')}. Size still matters more than type; compare against the SDE bands too.`,
+              },
+            },
+          ]
+        : []),
       {
         '@type': 'Question',
         name: `How long does it take to sell a ${cfg.businessNoun}?`,
@@ -198,6 +214,12 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
             <p className="lede">
               Size is the single largest determinant of multiple. Bands below the{' '}
               {MIN_SAMPLE}-listing minimum are shown with sample size and no median.
+              {cfg.vertical === 'cleaning' && (
+                <>
+                  {' '}
+                  <a href="/valuation/sde-multiples">How to calculate your SDE &rarr;</a>
+                </>
+              )}
             </p>
 
             <table className="bands">
@@ -227,6 +249,40 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
             </table>
           </div>
         </section>
+
+        {segments.length > 0 && (
+          <section>
+            <div className="wrap">
+              <h2>Multiples by type of {cfg.businessNoun}</h2>
+              <p className="lede">
+                What the business does changes how buyers read the same earnings. Types with fewer
+                than {MIN_SAMPLE} listings are left out.
+              </p>
+              <table className="bands">
+                <thead>
+                  <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">Listings</th>
+                    <th scope="col">Lower</th>
+                    <th scope="col">Median</th>
+                    <th scope="col">Upper</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {segments.map((g) => (
+                    <tr key={g.segment}>
+                      <th scope="row">{g.href ? <a href={g.href}>{g.label}</a> : g.label}</th>
+                      <td className="num">{g.sample_size}</td>
+                      <td className="num">{mult(g.p25_multiple)}</td>
+                      <td className="num strong">{mult(g.median_multiple)}</td>
+                      <td className="num">{mult(g.p75_multiple)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         <section>
           <div className="wrap">
@@ -269,6 +325,20 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
             </p>
           </div>
         </section>
+
+        {cfg.vertical === 'cleaning' && (
+          <section>
+            <div className="wrap narrow">
+              <h2>Go deeper</h2>
+              <ul className="related">
+                <li><a href="/valuation/residential">What a residential cleaning business is worth</a></li>
+                <li><a href="/valuation/commercial">What a commercial or janitorial business is worth</a></li>
+                <li><a href="/valuation/sde-multiples">SDE multiples and how to calculate your SDE</a></li>
+                <li><a href="/selling-your-cleaning-business">How to prepare a cleaning business for sale</a></li>
+              </ul>
+            </div>
+          </section>
+        )}
 
         <section className="cta">
           <div className="wrap narrow">
@@ -425,6 +495,8 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
         }
         .btn:hover { text-decoration: none; opacity: 0.92; }
         .foot { padding: 32px 0 64px; }
+        .related { padding-left: 20px; }
+        .related li { margin: 8px 0; font-size: 1.05rem; }
 
         @media (max-width: 640px) {
           .range { grid-template-columns: 1fr; gap: 12px; }
@@ -437,16 +509,41 @@ export default function ValuationPage({ cfg, national, bands, generatedAt }) {
 
 export async function getStaticProps() {
   const cfg = getSiteConfig();
-  const [national, bands] = await Promise.all([
+  const [national, bands, segRows] = await Promise.all([
     getNationalStats(cfg.vertical),
     getSdeBands(cfg.vertical),
+    // Segment view is optional: a vertical without one still builds.
+    getSegments(cfg.vertical).catch(() => []),
   ]);
+
+  const LABELS = {
+    carpet: 'Carpet cleaning',
+    window: 'Window cleaning',
+    'pressure-washing': 'Pressure washing',
+    restoration: 'Restoration',
+  };
+  const spokeCfg = segmentsFor(cfg.vertical);
+  const segments = segRows
+    .filter((r) => isPublishable(r.sample_size))
+    .map((r) => {
+      const slug = slugForSegment(cfg.vertical, r.segment);
+      return {
+        segment: r.segment,
+        label: (slug && spokeCfg[slug].label) || LABELS[r.segment] || r.segment,
+        href: slug ? `/valuation/${slug}` : null,
+        sample_size: r.sample_size,
+        p25_multiple: r.p25_multiple,
+        median_multiple: r.median_multiple,
+        p75_multiple: r.p75_multiple,
+      };
+    });
 
   return {
     props: {
       cfg,
       national,
       bands,
+      segments,
       generatedAt: new Date().toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',

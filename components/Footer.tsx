@@ -14,6 +14,9 @@ export default function Footer() {
     {
       title: 'Sellers',
       links: [
+        { label: 'What Is My Business Worth?', href: '/valuation' },
+        { label: 'Residential Valuations', href: '/valuation/residential' },
+        { label: 'Commercial Valuations', href: '/valuation/commercial' },
         { label: 'Sell Your Business', href: '/sell' },
         { label: 'Resources', href: '/resources' },
       ],

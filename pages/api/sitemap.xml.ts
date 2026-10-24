@@ -26,9 +26,11 @@ const BASE_URL = 'https://cleaningexits.com';
 // [path, changefreq, priority]. Every path here must match a file in pages/.
 const STATIC_PAGES: Array<[string, string, string]> = [
   ['/', 'daily', '1.0'],
-  ['/valuation', 'weekly', '0.9'],
+  ['/valuation', 'weekly', '1.0'],
+  ['/valuation/residential', 'weekly', '0.9'],
+  ['/valuation/commercial', 'weekly', '0.9'],
+  ['/valuation/sde-multiples', 'weekly', '0.9'],
   ['/selling-your-cleaning-business', 'monthly', '0.9'],
-  ['/cleaning-business-valuation-guide', 'monthly', '0.9'],
   ['/market-report', 'weekly', '0.9'],
   ['/sell', 'monthly', '0.8'],
   ['/listings', 'daily', '0.8'],

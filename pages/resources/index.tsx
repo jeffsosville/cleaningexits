@@ -40,7 +40,7 @@ const sections: Section[] = [
         title: 'Cleaning Business Valuation Guide',
         description:
           'How commercial cleaning businesses actually get valued — SDE vs. EBITDA, where the multiples land, and what moves them.',
-        href: '/cleaning-business-valuation-guide',
+        href: '/valuation',
         tag: 'Valuation',
         readTime: '15 min read',
         ready: true,
