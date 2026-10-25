@@ -16,6 +16,8 @@ import {
   getNationalStats,
   getSdeBands,
   getSegments,
+  getPublishableStates,
+  STATE_NAMES,
   isPublishable,
   MIN_SAMPLE,
   money,
@@ -23,7 +25,7 @@ import {
   asOf,
 } from '../lib/marketStats';
 
-export default function ValuationPage({ cfg, national, bands, segments = [], generatedAt }) {
+export default function ValuationPage({ cfg, national, bands, segments = [], states = [], generatedAt }) {
   const [sde, setSde] = useState('');
 
   const numericSde = useMemo(() => {
@@ -338,6 +340,13 @@ export default function ValuationPage({ cfg, national, bands, segments = [], gen
                 <li><a href="/valuation/commercial">What a commercial or janitorial business is worth</a></li>
                 <li><a href="/valuation/sde-multiples">SDE multiples and how to calculate your SDE</a></li>
                 <li><a href="/selling-your-cleaning-business">How to prepare a cleaning business for sale</a></li>
+                {states.map((code) => (
+                  <li key={code}>
+                    <a href={`/for-sale/${code.toLowerCase()}`}>
+                      What cleaning businesses are selling for in {STATE_NAMES[code] || code}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           </section>
@@ -518,6 +527,10 @@ export async function getStaticProps() {
     // Segment view is optional: a vertical without one still builds.
     getSegments(cfg.vertical).catch(() => []),
   ]);
+  // State pages that exist, linked from the pillar so they inherit its authority.
+  const states = (await getPublishableStates(cfg.vertical, cfg.geoThreshold).catch(() => [])).map(
+    (s) => s.state_norm
+  );
 
   const LABELS = {
     carpet: 'Carpet cleaning',
@@ -547,6 +560,7 @@ export async function getStaticProps() {
       national,
       bands,
       segments,
+      states,
       generatedAt: new Date().toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',

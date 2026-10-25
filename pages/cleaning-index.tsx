@@ -178,8 +178,11 @@ export default function CleaningIndex() {
   return (
     <>
       <Head>
-        <title>{label} Businesses For Sale | {total} Listings | CleaningExits</title>
-        <meta name="description" content={`Find ${label.toLowerCase()} businesses for sale. ${total} listings sorted by days on market. Updated daily from DealLedger.`} />
+        {/* Listings load client-side, so the server-rendered HTML Google sees
+            has total = 0. Keep the count out of the title and description. */}
+        <title>{`${label} Businesses For Sale | The Cleaning Index | CleaningExits`}</title>
+        <meta name="description" content={`Browse ${label.toLowerCase()} businesses for sale from independent brokers across the US, with asking price and cash flow. Updated daily.`} />
+        <link rel="canonical" href="https://cleaningexits.com/cleaning-index" />
       </Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
