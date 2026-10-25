@@ -139,8 +139,17 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
     .or(cityFilter)
     .order('price', { ascending: false });
 
-  if (error || !listings || listings.length === 0) {
-    return { notFound: true, revalidate: 3600 };
+  if (error) return { notFound: true, revalidate: 60 };
+  // No listings in this city right now: go up to the state page rather than
+  // 404. Temporary, because listings come back.
+  if (!listings || listings.length === 0) {
+    return {
+      redirect: {
+        destination: `/cleaning-businesses-for-sale/${stateParam.toLowerCase()}`,
+        permanent: false
+      },
+      revalidate: 3600
+    };
   }
 
   const formattedListings: Listing[] = listings.map(l => ({
