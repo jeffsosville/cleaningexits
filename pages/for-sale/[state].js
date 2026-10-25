@@ -20,8 +20,9 @@ import {
   asOf,
   STATE_NAMES,
 } from '../../lib/marketStats';
+import { getIndexableCities } from '../../lib/cityIndex';
 
-export default function StatePage({ cfg, stat, national, listings, stateName, generatedAt }) {
+export default function StatePage({ cfg, stat, national, listings, cities, stateName, generatedAt }) {
   const title = `${cfg.businessNounPlural} for sale in ${stateName} | ${cfg.siteName}`;
   const desc = `${stat.active_count} active ${cfg.businessNoun} listings in ${stateName}. Median asking ${money(stat.median_asking_price, { compact: true })}. Compared against national figures, updated daily.`;
 
@@ -121,6 +122,22 @@ export default function StatePage({ cfg, stat, national, listings, stateName, ge
           </div>
         </section>
 
+        {cities.length > 0 ? (
+          <section>
+            <div className="wrap">
+              <h2>Browse by city</h2>
+              <ul className="cities">
+                {cities.map((c) => (
+                  <li key={c.slug}>
+                    <a href={`/cleaning-businesses-for-sale/${c.state}/${c.slug}`}>{c.name}</a>{' '}
+                    <span className="sample">{c.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
+
         <section className="cta">
           <div className="wrap narrow">
             <h2>Selling in {stateName}?</h2>
@@ -169,6 +186,16 @@ export default function StatePage({ cfg, stat, national, listings, stateName, ge
           font-size: 0.88rem;
           color: var(--muted);
         }
+        ul.cities {
+          list-style: none;
+          padding: 0;
+          margin: 24px 0 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 24px;
+        }
+        ul.cities a { font-weight: 500; color: var(--ink); }
+        ul.cities a:hover { color: var(--accent); }
         .cta { background: var(--ink); color: var(--paper); }
         .cta :global(h2) { color: var(--paper); }
         .btn {
@@ -199,10 +226,14 @@ export async function getStaticProps({ params }) {
   const cfg = getSiteConfig();
   const code = String(params.state).toUpperCase();
 
-  const [stat, national, listings] = await Promise.all([
+  // City pages only exist for cleaning. Linking them from here gives the
+  // indexed city pages an indexable parent instead of leaving the sitemap as
+  // their only way in.
+  const [stat, national, listings, cities] = await Promise.all([
     getStateStat(cfg.vertical, code),
     getNationalStats(cfg.vertical),
     getListings(cfg.vertical, { stateCode: code, status: 'active', limit: 60 }),
+    cfg.vertical === 'cleaning' ? getIndexableCities(code) : Promise.resolve([]),
   ]);
 
   if (!stat || stat.active_count < cfg.geoThreshold) return { notFound: true };
@@ -213,6 +244,7 @@ export async function getStaticProps({ params }) {
       stat,
       national,
       listings,
+      cities,
       stateName: STATE_NAMES[code] || code,
       generatedAt: new Date().toLocaleDateString('en-US', {
         month: 'long',

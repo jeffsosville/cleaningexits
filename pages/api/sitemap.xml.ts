@@ -14,7 +14,8 @@
 //              pages (/vertical-demo, /why1, /daily-cleaning).
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { toStateCode, slugifyCity, CITY_INDEX_MIN, STATE_REDIRECT_MIN } from '../../lib/geo';
+import { STATE_REDIRECT_MIN } from '../../lib/geo';
+import { getIndexableCities } from '../../lib/cityIndex';
 
 const supabaseDealLedger = createClient(
   process.env.DEALLEDGER_SUPABASE_URL as string,
@@ -78,24 +79,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entries.push(entry(`/for-sale/${String(r.state_norm).toLowerCase()}`, today, 'daily', '0.8'));
     }
 
-    // City pages that clear the index bar, under normalized state codes only.
-    const { data: locs, error: locErr } = await supabaseDealLedger
-      .from('cleaning_listings_direct')
-      .select('state, city')
-      .not('state', 'is', null)
-      .not('city', 'is', null);
-    if (locErr) throw locErr;
-
-    const counts = new Map<string, number>();
-    for (const l of locs || []) {
-      const code = toStateCode(l.state);
-      if (!code) continue;
-      const key = `/cleaning-businesses-for-sale/${code.toLowerCase()}/${slugifyCity(l.city)}`;
-      counts.set(key, (counts.get(key) || 0) + 1);
+    // City pages that clear the index bar, aliases folded into their
+    // canonical slug (Kings County -> Brooklyn).
+    for (const c of await getIndexableCities()) {
+      entries.push(entry(`/cleaning-businesses-for-sale/${c.state}/${c.slug}`, today, 'weekly', '0.6'));
     }
-    counts.forEach((n, path) => {
-      if (n >= CITY_INDEX_MIN) entries.push(entry(path, today, 'weekly', '0.6'));
-    });
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

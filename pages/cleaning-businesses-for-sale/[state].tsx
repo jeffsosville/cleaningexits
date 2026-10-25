@@ -4,7 +4,15 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { STATE_NAMES, toStateCode, stateVariants, STATE_REDIRECT_MIN } from '../../lib/geo';
+import {
+  STATE_NAMES,
+  toStateCode,
+  stateVariants,
+  slugifyCity,
+  canonicalCitySlug,
+  cityNameFromSlug,
+  STATE_REDIRECT_MIN
+} from '../../lib/geo';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -139,9 +147,15 @@ export const getStaticProps: GetStaticProps<StatePageProps> = async context => {
   const validRevenue = listings
     .map(l => parseRevenue(l.revenue))
     .filter((r): r is number => r !== null);
-  const cities = Array.from(
-    new Set(listings.filter(l => l.city).map(l => l.city!))
-  );
+  // One entry per canonical city slug, so Brooklyn and Kings County don't
+  // both get a link.
+  const cityBySlug = new Map<string, string>();
+  listings.forEach(l => {
+    if (!l.city) return;
+    const slug = canonicalCitySlug(state, slugifyCity(l.city));
+    if (slug && !cityBySlug.has(slug)) cityBySlug.set(slug, cityNameFromSlug(slug));
+  });
+  const cities = Array.from(cityBySlug.values());
 
   const stats: StateStats = {
     total_listings: listings.length,
@@ -342,9 +356,7 @@ export default function StatePage({
                 {stats.cities.map(city => (
                   <Link
                     key={city}
-                    href={`/cleaning-businesses-for-sale/${state.toLowerCase()}/${city
-                      .toLowerCase()
-                      .replace(/\s+/g, '-')}`}
+                    href={`/cleaning-businesses-for-sale/${state.toLowerCase()}/${slugifyCity(city)}`}
                     className="px-4 py-2 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition text-sm font-medium"
                   >
                     {city}
