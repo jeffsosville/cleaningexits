@@ -11,7 +11,8 @@ import {
   slugifyCity,
   canonicalCitySlug,
   cityNameFromSlug,
-  STATE_REDIRECT_MIN
+  STATE_REDIRECT_MIN,
+  STATE_INDEX_MIN
 } from '../../lib/geo';
 
 const supabase = createClient(
@@ -246,8 +247,11 @@ export default function StatePage({
       <Head>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
-        {/* Below the /for-sale threshold: keep for visitors, out of the index. */}
-        <meta name="robots" content="noindex, follow" />
+        {/* Thin states stay out of the index; states with real inventory were
+            ranking (TX, NC) and stay in. */}
+        {stats.total_listings < STATE_INDEX_MIN && (
+          <meta name="robots" content="noindex, follow" />
+        )}
         <link
           rel="canonical"
           href={`https://cleaningexits.com/cleaning-businesses-for-sale/${state.toLowerCase()}`}

@@ -7,7 +7,7 @@
 // What's in:   real static pages (paths verified against pages/), the gated
 //              /for-sale/{state} pages, and city pages at or above
 //              CITY_INDEX_MIN listings.
-// What's out:  /cleaning-businesses-for-sale/{state} (redirect or noindex now),
+// What's out:  /cleaning-businesses-for-sale/{state} below STATE_INDEX_MIN,
 //              thin city pages (noindex), individual listing pages (broker
 //              copy duplicated across the web; Google declined to index them),
 //              transactional pages (/nda, /confirm, /unsubscribe), internal
@@ -15,7 +15,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { STATE_REDIRECT_MIN } from '../../lib/geo';
-import { getIndexableCities, getStateUpdated } from '../../lib/cityIndex';
+import { getIndexableCities, getStateUpdated, getIndexableStatePages } from '../../lib/cityIndex';
 
 const supabaseDealLedger = createClient(
   process.env.DEALLEDGER_SUPABASE_URL as string,
@@ -83,6 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const r of stateRows || []) {
       const code = String(r.state_norm);
       entries.push(entry(`/for-sale/${code.toLowerCase()}`, stateUpdated.get(code) || null, 'daily', '0.8'));
+    }
+
+    // Old-template state pages with real inventory (below the /for-sale bar).
+    for (const st of await getIndexableStatePages()) {
+      entries.push(
+        entry(`/cleaning-businesses-for-sale/${st.state}`, stateUpdated.get(st.state.toUpperCase()) || null, 'daily', '0.7')
+      );
     }
 
     // City pages that clear the index bar, aliases folded into their

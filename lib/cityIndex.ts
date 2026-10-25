@@ -8,7 +8,9 @@ import {
   slugifyCity,
   canonicalCitySlug,
   cityNameFromSlug,
-  CITY_INDEX_MIN
+  CITY_INDEX_MIN,
+  STATE_INDEX_MIN,
+  STATE_REDIRECT_MIN
 } from './geo';
 
 export type CityCount = {
@@ -90,4 +92,39 @@ export async function getIndexableCities(stateCode?: string): Promise<CityCount[
   return (await getCityCounts())
     .filter(c => c.count >= CITY_INDEX_MIN && (!st || c.state === st))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/**
+ * Old-template state pages (/cleaning-businesses-for-sale/{st}) that should be
+ * indexed: at least STATE_INDEX_MIN priced listings, and not big enough to
+ * have redirected to /for-sale/{st}. Texas and North Carolina were ranking on
+ * page one or two before a blanket noindex hid them.
+ */
+export async function getIndexableStatePages(): Promise<Array<{ state: string; count: number }>> {
+  const counts = new Map<string, number>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db()
+      .from('cleaning_listings_direct')
+      .select('state')
+      .not('state', 'is', null)
+      .not('price', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    for (const r of (data as Array<{ state: string }>) || []) {
+      const code = toStateCode(r.state);
+      if (code) counts.set(code, (counts.get(code) || 0) + 1);
+    }
+    if (!data || data.length < PAGE) break;
+  }
+  const { data: gated } = await db()
+    .from('market_stats_state')
+    .select('state_norm')
+    .eq('vertical', 'cleaning')
+    .gte('active_count', STATE_REDIRECT_MIN);
+  const redirected = new Set((gated || []).map((r: { state_norm: string }) => r.state_norm));
+  return Array.from(counts.entries())
+    .filter(([code, n]) => n >= STATE_INDEX_MIN && !redirected.has(code))
+    .map(([code, n]) => ({ state: code.toLowerCase(), count: n }))
+    .sort((a, b) => b.count - a.count);
 }

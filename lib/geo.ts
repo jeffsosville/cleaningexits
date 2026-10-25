@@ -101,6 +101,9 @@ export function citySlugVariants(state: string, canonical: string): string[] {
   return [canonical, ...aliases];
 }
 
+/** Old-template state pages at or above this many priced listings are indexed. */
+export const STATE_INDEX_MIN = 5;
+
 /** City pages below this many listings ship with noindex,follow. */
 export const CITY_INDEX_MIN = 3;
 
