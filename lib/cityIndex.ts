@@ -16,7 +16,10 @@ export type CityCount = {
   slug: string; // canonical slug
   name: string;
   count: number;
+  updated: string | null; // newest listing's first-seen date, YYYY-MM-DD
 };
+
+type LocationRow = { state: string; city: string; first_seen: string | null };
 
 // Created on first use so importing this file never throws on a deploy that
 // lacks the DealLedger env vars.
@@ -31,18 +34,18 @@ const db = () =>
 // through it so city counts don't silently truncate once it grows past that.
 const PAGE = 1000;
 
-async function fetchLocations(): Promise<Array<{ state: string; city: string }>> {
-  const rows: Array<{ state: string; city: string }> = [];
+export async function fetchLocations(): Promise<LocationRow[]> {
+  const rows: LocationRow[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db()
       .from('cleaning_listings_direct')
-      .select('state, city')
+      .select('state, city, first_seen')
       .not('state', 'is', null)
       .not('city', 'is', null)
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
-    rows.push(...((data as Array<{ state: string; city: string }>) || []));
+    rows.push(...((data as LocationRow[]) || []));
     if (!data || data.length < PAGE) break;
   }
   return rows;
@@ -58,10 +61,27 @@ export async function getCityCounts(): Promise<CityCount[]> {
     const slug = canonicalCitySlug(state, raw);
     const key = `${state}/${slug}`;
     const hit = byKey.get(key);
-    if (hit) hit.count++;
-    else byKey.set(key, { state, slug, name: cityNameFromSlug(slug), count: 1 });
+    const seen = r.first_seen ? String(r.first_seen).slice(0, 10) : null;
+    if (hit) {
+      hit.count++;
+      if (seen && (!hit.updated || seen > hit.updated)) hit.updated = seen;
+    } else {
+      byKey.set(key, { state, slug, name: cityNameFromSlug(slug), count: 1, updated: seen });
+    }
   }
   return Array.from(byKey.values());
+}
+
+/** Newest first-seen date per state code (uppercase), for sitemap lastmod. */
+export async function getStateUpdated(): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const r of await fetchLocations()) {
+    const code = toStateCode(r.state);
+    const seen = r.first_seen ? String(r.first_seen).slice(0, 10) : null;
+    if (!code || !seen) continue;
+    if (!out.has(code) || seen > (out.get(code) as string)) out.set(code, seen);
+  }
+  return out;
 }
 
 /** City pages at or above CITY_INDEX_MIN, optionally for one state, most listings first. */

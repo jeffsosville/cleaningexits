@@ -106,6 +106,7 @@ export default function Subscribe() {
     <>
       <Head>
         <title>The CleaningExits Weekly — New Cleaning Businesses for Sale</title>
+        <link rel="canonical" href="https://cleaningexits.com/subscribe" />
         <meta name="description" content="Free weekly email: new cleaning businesses for sale, our exclusive listings, the strongest cash flow on the market, and what deals are selling for." />
       </Head>
       <main className="mx-auto max-w-2xl px-4 py-16">

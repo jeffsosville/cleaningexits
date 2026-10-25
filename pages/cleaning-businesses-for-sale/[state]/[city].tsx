@@ -12,9 +12,19 @@ import {
   canonicalCitySlug,
   citySlugVariants,
   cityNameFromSlug,
-  CITY_INDEX_MIN
+  CITY_INDEX_MIN,
+  STATE_REDIRECT_MIN
 } from '../../../lib/geo';
 import { getIndexableCities } from '../../../lib/cityIndex';
+import {
+  summarize,
+  categoryRows,
+  mixPhrase,
+  pctDiff,
+  MIN_N,
+  Summary,
+  CategoryRow
+} from '../../../lib/cityStats';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -38,6 +48,8 @@ type Listing = {
   revenue: string | number | null;
   image_url: string | null;
   location: string | null;
+  category: string | null;
+  days_on_market: number | null;
 };
 
 type CityPageProps = {
@@ -46,6 +58,11 @@ type CityPageProps = {
   city: string;
   cityFormatted: string;
   listings: Listing[];
+  cityStats: Summary;
+  stateStats: Summary;
+  categories: CategoryRow[];
+  stateHref: string;
+  dataThrough: string | null;
 };
 
 
@@ -116,7 +133,7 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
   const { data: listings, error } = await supabaseDealLedger
     .from('cleaning_listings_direct')
     .select(
-      'id, header, price, city, state, cash_flow, revenue, image_url, location'
+      'id, header, price, city, state, cash_flow, revenue, image_url, location, category, days_on_market, scraped_at'
     )
     .in('state', stateVariants(stateParam))
     .or(cityFilter)
@@ -135,8 +152,37 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
     cash_flow: l.cash_flow,
     revenue: l.revenue,
     image_url: l.image_url,
-    location: l.location
+    location: l.location,
+    category: l.category,
+    days_on_market: l.days_on_market
   }));
+
+  // Statewide figures from the same view, so city and state compare like
+  // with like. A few hundred rows at most, under the 1,000-row cap.
+  const [{ data: stateRows }, { data: stateStat }] = await Promise.all([
+    supabaseDealLedger
+      .from('cleaning_listings_direct')
+      .select('price, cash_flow, days_on_market, category')
+      .in('state', stateVariants(stateParam)),
+    supabaseDealLedger
+      .from('market_stats_state')
+      .select('active_count')
+      .eq('vertical', 'cleaning')
+      .eq('state_norm', stateParam)
+      .maybeSingle()
+  ]);
+
+  // Link up to whichever state page is the indexable one.
+  const stateHref =
+    stateStat && stateStat.active_count >= STATE_REDIRECT_MIN
+      ? `/for-sale/${stateParam.toLowerCase()}`
+      : `/cleaning-businesses-for-sale/${stateParam.toLowerCase()}`;
+
+  const latest = listings
+    .map(l => l.scraped_at)
+    .filter(Boolean)
+    .sort()
+    .pop();
 
   return {
     props: {
@@ -144,7 +190,18 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
       stateFullName,
       city: cityFormatted,
       cityFormatted,
-      listings: formattedListings
+      listings: formattedListings,
+      cityStats: summarize(formattedListings),
+      stateStats: summarize(stateRows || []),
+      categories: categoryRows(formattedListings),
+      stateHref,
+      dataThrough: latest
+        ? new Date(latest).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+          })
+        : null
     },
     revalidate: 3600
   };
@@ -154,19 +211,34 @@ export default function CityPage({
   state,
   stateFullName,
   city,
-  listings
+  listings,
+  cityStats,
+  stateStats,
+  categories,
+  stateHref,
+  dataThrough
 }: CityPageProps) {
-  const pricedListings = listings.filter(l => l.price);
-  const avgPrice =
-    pricedListings.length > 0
-      ? pricedListings.reduce((sum, l) => sum + (l.price || 0), 0) /
-        pricedListings.length
-      : 0;
+  const n = listings.length;
+  const mix = mixPhrase(categories);
+  const priceVsState = pctDiff(cityStats.medianPrice, stateStats.medianPrice);
+  // Prefer the local multiple; fall back to the state's, labeled as such.
+  const localMultiple = cityStats.medianMultiple != null;
+  const multiple = localMultiple ? cityStats.medianMultiple : stateStats.medianMultiple;
+  const x = (m: number | null) => (m == null ? null : `${m.toFixed(1)}x`);
+  const plural = n === 1 ? 'business' : 'businesses';
+  const pricedCategories = categories.filter(c => c.medianPrice != null);
 
-  const metaTitle = `${listings.length} Cleaning Businesses for Sale in ${city}, ${state} | Cleaning Exits`;
-  const metaDescription = `Buy an established cleaning business in ${city}, ${stateFullName}. ${listings.length} verified listings. Average price ${money(
-    avgPrice
-  )}. SBA financing available. No franchises.`;
+  const metaTitle = `${n} Cleaning ${n === 1 ? 'Business' : 'Businesses'} for Sale in ${city}, ${state} | Cleaning Exits`;
+  const metaDescription = [
+    `${n} cleaning ${plural} for sale in ${city}, ${stateFullName}${mix ? `: ${mix}` : ''}.`,
+    cityStats.medianPrice != null ? `Median asking ${money(cityStats.medianPrice)}.` : '',
+    multiple != null
+      ? `${localMultiple ? 'Median' : `${stateFullName} median`} ${x(multiple)} SDE.`
+      : '',
+    'Updated daily.'
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Schema.org structured data (typed as any so we can build it flexibly)
   const schemaData: any = {
@@ -249,7 +321,7 @@ export default function CityPage({
               </Link>
               <span className="mx-2 text-emerald-200">/</span>
               <Link
-                href={`/cleaning-businesses-for-sale/${state.toLowerCase()}`}
+                href={stateHref}
                 className="text-emerald-100 hover:text-white"
               >
                 {stateFullName}
@@ -263,27 +335,27 @@ export default function CityPage({
             </h1>
 
             <p className="text-xl text-emerald-50 mb-6">
-              {listings.length} verified commercial cleaning{' '}
-              {listings.length === 1 ? 'business' : 'businesses'} available now
+              {n} active {plural}
+              {mix ? `: ${mix}` : ''}
             </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-emerald-100 text-sm mb-1">Available</div>
-                <div className="text-2xl font-bold">{listings.length}</div>
-              </div>
-
-              {avgPrice > 0 && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                  <div className="text-emerald-100 text-sm mb-1">Avg Price</div>
-                  <div className="text-2xl font-bold">{money(avgPrice)}</div>
-                </div>
-              )}
-
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <div className="text-emerald-100 text-sm mb-1">Financing</div>
-                <div className="text-lg font-bold">90% SBA</div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Tile label="For sale" value={String(n)} />
+              <Tile
+                label="Median asking"
+                value={cityStats.medianPrice != null ? money(cityStats.medianPrice) : null}
+                sub={`${cityStats.priceN} priced`}
+              />
+              <Tile
+                label={localMultiple ? 'Median multiple' : `${state} median multiple`}
+                value={multiple != null ? `${x(multiple)} SDE` : null}
+                sub={`${localMultiple ? cityStats.multipleN : stateStats.multipleN} with cash flow`}
+              />
+              <Tile
+                label="Median SDE"
+                value={cityStats.medianSde != null ? money(cityStats.medianSde) : null}
+                sub={`${cityStats.multipleN} with cash flow`}
+              />
             </div>
           </div>
         </div>
@@ -348,76 +420,132 @@ export default function CityPage({
             ))}
           </div>
 
-          {/* SEO Content */}
+          {/* Market read, written from this page's own numbers */}
           <div className="bg-white rounded-lg border p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Buying a Cleaning Business in {city}, {stateFullName}
+              The {city} market right now
             </h2>
 
             <div className="prose max-w-none text-gray-700">
               <p className="mb-4">
-                {city} has {listings.length} verified cleaning{' '}
-                {listings.length === 1 ? 'business' : 'businesses'} currently
-                available for acquisition. These established operations offer
-                recurring revenue, trained teams, and proven systems that new
-                startups take years to develop.
+                {n} cleaning {plural} {n === 1 ? 'is' : 'are'} listed for sale in {city}
+                {mix ? `: ${mix}` : ''}.
+                {cityStats.medianPrice != null && (
+                  <>
+                    {' '}The median asking price is {money(cityStats.medianPrice)} across{' '}
+                    {cityStats.priceN} priced listings
+                    {priceVsState != null && stateStats.medianPrice != null && (
+                      <>
+                        ,{' '}
+                        {priceVsState === 0
+                          ? 'in line with'
+                          : `${Math.abs(priceVsState)}% ${priceVsState > 0 ? 'above' : 'below'}`}{' '}
+                        the {stateFullName} median of {money(stateStats.medianPrice)}
+                      </>
+                    )}
+                    .
+                  </>
+                )}
               </p>
+
+              {multiple != null && (
+                <p className="mb-4">
+                  {localMultiple ? (
+                    <>
+                      Where the broker published cash flow ({cityStats.multipleN} listings), {city}{' '}
+                      businesses are asking a median {x(multiple)} seller's discretionary earnings
+                      {cityStats.medianSde != null && <> on a median SDE of {money(cityStats.medianSde)}</>}.
+                      {stateStats.medianMultiple != null && (
+                        <>
+                          {' '}Across {stateFullName} the figure is {x(stateStats.medianMultiple)} (
+                          {stateStats.multipleN} listings).
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      Too few {city} listings publish cash flow to give a local multiple. Across{' '}
+                      {stateFullName}, businesses in this index ask a median {x(multiple)} SDE (
+                      {stateStats.multipleN} listings).
+                    </>
+                  )}{' '}
+                  These are asking figures; closed deals usually come in lower.
+                </p>
+              )}
+
+              {categories.length > 1 && pricedCategories.length > 0 && (
+                <>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 mt-6">
+                    By type of business
+                  </h3>
+                  <table className="w-full text-sm mb-4">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 font-medium">Type</th>
+                        <th className="py-2 font-medium">Listings</th>
+                        <th className="py-2 font-medium">Median asking</th>
+                        <th className="py-2 font-medium">Median multiple</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categories.map(c => (
+                        <tr key={c.key} className="border-b last:border-0">
+                          <td className="py-2 capitalize">{c.label}</td>
+                          <td className="py-2">{c.count}</td>
+                          <td className="py-2">{c.medianPrice != null ? money(c.medianPrice) : '—'}</td>
+                          <td className="py-2">
+                            {c.medianMultiple != null ? `${x(c.medianMultiple)} (${c.multipleN})` : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mb-4 text-sm text-gray-500">
+                    Medians shown where at least {MIN_N} listings report the figure. Laundromats
+                    and dry cleaners price on equipment and lease terms; contract cleaning
+                    companies price on recurring revenue, so their multiples are not comparable.
+                  </p>
+                </>
+              )}
 
               <h3 className="text-xl font-bold text-gray-900 mb-3 mt-6">
-                Why Buy Instead of Start?
+                Selling or buying in {city}
               </h3>
               <p className="mb-4">
-                Acquiring an existing cleaning business in {city} eliminates the
-                2-3 year ramp-up period required for startups. You're buying
-                existing contracts, equipment, employees, and most importantly -
-                cash flow from day one. The seller has already solved the
-                hardest problems: finding clients, hiring reliable staff, and
-                building operational systems.
+                Owners: see what a {city} business like yours would list for on the{' '}
+                <Link href="/valuation" className="text-emerald-600 hover:underline">
+                  valuation page
+                </Link>
+                , which uses the same live data, or{' '}
+                <Link href="/sell" className="text-emerald-600 hover:underline">
+                  talk to us about selling
+                </Link>
+                . Buyers: most acquisitions in this price range are financed with an SBA 7(a)
+                loan, and the full {stateFullName} picture is on the{' '}
+                <Link href={stateHref} className="text-emerald-600 hover:underline">
+                  {stateFullName} page
+                </Link>
+                .
               </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mb-3 mt-6">
-                Typical Valuation Multiples
-              </h3>
-              <p className="mb-4">
-                Commercial cleaning businesses in {city} typically sell for
-                2.0-3.5x annual Seller's Discretionary Earnings (SDE). This
-                multiple varies based on client concentration, contract terms,
-                employee retention, and growth trajectory. Businesses with
-                long-term commercial contracts and recurring revenue command
-                premium valuations.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mb-3 mt-6">
-                SBA Financing for {city} Businesses
-              </h3>
-              <p className="mb-4">
-                Most cleaning business acquisitions in {city} qualify for SBA
-                7(a) loans, which allow up to 90% financing. This means
-                qualified buyers can acquire a cash-flowing business with as
-                little as 10% down. We connect buyers with SBA-preferred lenders
-                who specialize in cleaning industry acquisitions.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mb-3 mt-6">
-                Our Co-Brokerage Advantage
-              </h3>
-              <p className="mb-4">
-                Unlike traditional marketplaces, Cleaning Exits operates as a
-                co-broker, representing YOUR interests throughout the
-                acquisition process at no cost to you. We provide transparent
-                valuation analysis, connect you directly with listing brokers,
-                and guide you through due diligence and closing.
-              </p>
-
-              <p className="mb-4 font-semibold text-gray-900">
-                Ready to explore cleaning businesses for sale in {city}? Browse
-                our verified listings above or contact us to discuss your
-                acquisition criteria.
-              </p>
+              {dataThrough && (
+                <p className="text-sm text-gray-500">
+                  Data through {dataThrough}.
+                </p>
+              )}
             </div>
           </div>
         </main>
       </div>
     </>
+  );
+}
+
+function Tile({ label, value, sub }: { label: string; value: string | null; sub?: string }) {
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+      <div className="text-emerald-100 text-sm mb-1">{label}</div>
+      <div className="text-2xl font-bold">{value ?? '—'}</div>
+      {sub && <div className="text-emerald-100 text-xs mt-1">{sub}</div>}
+    </div>
   );
 }

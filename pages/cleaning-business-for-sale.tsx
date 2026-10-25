@@ -3,40 +3,61 @@ import Head from "next/head";
 import Link from "next/link";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { GetStaticProps } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
-export default function CleaningBusinessForSale() {
+// Live counts, refreshed daily. The page said "824+ verified listings" and
+// "1,500+ brokers" long after both stopped being true.
+const supabaseDealLedger = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL as string,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY as string
+);
+
+type Props = { listingCount: number; brokerCount: number };
+
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const { data } = await supabaseDealLedger
+    .from('cleaning_listings_direct')
+    .select('broker_account')
+    .range(0, 4999);
+  const rows = data || [];
+  return {
+    props: {
+      listingCount: rows.length,
+      brokerCount: new Set(rows.map(r => r.broker_account).filter(Boolean)).size
+    },
+    revalidate: 86400
+  };
+};
+
+export default function CleaningBusinessForSale({ listingCount, brokerCount }: Props) {
+  const title = `Cleaning Business For Sale | ${listingCount} Active Listings`;
+  const desc = `Find the right cleaning business for sale. ${listingCount} active cleaning businesses from ${brokerCount} brokers, with a buying guide, valuation multiples and financing basics.`;
   return (
     <>
       <Head>
-        <title>Cleaning Business For Sale | 824+ Verified Commercial Cleaning Businesses</title>
-        <meta
-          name="description"
-          content="Find the right cleaning business for sale. Browse 824+ verified commercial cleaning companies with complete financials. Expert buying guide, valuation tips, and vetted listings from 1,500+ brokers."
-        />
-        <meta name="keywords" content="cleaning business for sale, commercial cleaning business for sale, janitorial business for sale, buy cleaning business" />
-        
+        <title>{title}</title>
+        <meta name="description" content={desc} />
+        <link rel="canonical" href="https://cleaningexits.com/cleaning-business-for-sale" />
+
         {/* Open Graph */}
-        <meta property="og:title" content="Cleaning Business For Sale | 824+ Verified Listings" />
-        <meta property="og:description" content="Find verified cleaning businesses for sale. No franchises, no dead listings." />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content="Find active cleaning businesses for sale. No franchise lead funnels, no dead listings." />
         <meta property="og:type" content="website" />
-        
-        {/* Schema Markup */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": "Cleaning Business For Sale",
-            "description": "Complete guide to buying a cleaning business with 824+ verified listings",
-            "mainEntity": {
-              "@type": "ItemList",
-              "numberOfItems": 824,
-              "itemListElement": {
-                "@type": "ListItem",
-                "name": "Commercial Cleaning Businesses"
-              }
-            }
-          })}
-        </script>
+
+        {/* Schema Markup: raw JSON, not React text, so quotes aren't escaped */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebPage',
+              name: 'Cleaning Business For Sale',
+              description: `Guide to buying a cleaning business, with ${listingCount} active listings`,
+              url: 'https://cleaningexits.com/cleaning-business-for-sale'
+            })
+          }}
+        />
       </Head>
 
       <Header />
@@ -48,8 +69,8 @@ export default function CleaningBusinessForSale() {
             Cleaning Business For Sale
           </h1>
           <p className="text-xl text-gray-700 mb-6">
-            Browse 824+ verified commercial cleaning businesses with transparent financials. 
-            No franchises. No maid services. No dead listings.
+            Browse {listingCount} active cleaning businesses with transparent financials. 
+            No franchise lead funnels. No dead listings.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -73,11 +94,11 @@ export default function CleaningBusinessForSale() {
           <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-8 text-white shadow-lg">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div>
-                <div className="text-4xl font-bold mb-2">824+</div>
-                <div className="text-emerald-100">Verified Listings</div>
+                <div className="text-4xl font-bold mb-2">{listingCount}</div>
+                <div className="text-emerald-100">Active Listings</div>
               </div>
               <div>
-                <div className="text-4xl font-bold mb-2">1,500+</div>
+                <div className="text-4xl font-bold mb-2">{brokerCount}</div>
                 <div className="text-emerald-100">Broker Sources</div>
               </div>
               <div>
@@ -351,9 +372,9 @@ export default function CleaningBusinessForSale() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="text-3xl mb-3">🎯</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Verified Listings Only</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Real Listings Only</h3>
               <p className="text-gray-600">
-                Every listing is verified from actual business brokers. No franchise lead funnels, 
+                Every listing comes from an actual business broker. No franchise lead funnels, 
                 no fake listings, no "opportunities" that don't exist. Just real businesses for sale.
               </p>
             </div>
@@ -362,7 +383,7 @@ export default function CleaningBusinessForSale() {
               <div className="text-3xl mb-3">🔍</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Comprehensive Coverage</h3>
               <p className="text-gray-600">
-                We aggregate from 1,500+ business brokers nationwide, giving you access to far more 
+                We aggregate from {brokerCount} business brokers nationwide, giving you access to far more 
                 listings than any single broker or marketplace. See the entire market in one place.
               </p>
             </div>
@@ -371,7 +392,7 @@ export default function CleaningBusinessForSale() {
               <div className="text-3xl mb-3">⚡</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Updated Daily</h3>
               <p className="text-gray-600">
-                New listings added every day. Dead listings removed immediately. Get real-time access 
+                New listings added every day. Listings drop off once the broker takes them down. Get real-time access 
                 to the freshest opportunities before they're gone.
               </p>
             </div>
@@ -380,8 +401,8 @@ export default function CleaningBusinessForSale() {
               <div className="text-3xl mb-3">✂️</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">No Noise</h3>
               <p className="text-gray-600">
-                We filter out residential maid services, franchise opportunities, and other noise. 
-                Focus on commercial cleaning businesses with real enterprise value.
+                We filter out franchise sales funnels, other industries, and sold or under-contract 
+                listings, so what you see is a cleaning business you can actually buy.
               </p>
             </div>
           </div>
@@ -394,7 +415,7 @@ export default function CleaningBusinessForSale() {
               Ready to Find Your Cleaning Business?
             </h2>
             <p className="text-xl text-emerald-50 mb-8 max-w-2xl mx-auto">
-              Browse 824+ verified listings from commercial janitorial companies to specialty 
+              Browse {listingCount} active listings from commercial janitorial companies to specialty 
               cleaning services. Start your search today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -402,7 +423,7 @@ export default function CleaningBusinessForSale() {
                 href="/cleaning-index"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-emerald-600 font-bold shadow-lg hover:bg-gray-50 transition"
               >
-                Browse All 824+ Listings →
+                Browse All {listingCount} Listings →
               </Link>
               <Link
                 href="/subscribe"
@@ -488,7 +509,7 @@ export default function CleaningBusinessForSale() {
             Start Your Search Today
           </h2>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Join thousands of buyers who use CleaningExits to find verified cleaning business 
+            Browse active cleaning business 
             opportunities. Updated daily with new listings.
           </p>
           <Link

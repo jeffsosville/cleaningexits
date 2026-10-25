@@ -65,7 +65,7 @@ export default function Footer() {
             Built for speed and signal. No fluff.
           </p>
           <p className="text-sm text-gray-500">
-            © 2025 Cleaning Exits. All rights reserved.
+            © {new Date().getFullYear()} Cleaning Exits. All rights reserved.
           </p>
         </div>
       </div>

@@ -207,7 +207,15 @@ export default function MarketReport({ cfg, national, bands, states, generatedAt
                 <tbody>
                   {rankedStates.map((s) => (
                     <tr key={s.state_norm}>
-                      <th scope="row">{STATE_NAMES[s.state_norm] || s.state_norm}</th>
+                      <th scope="row">
+                        {s.active_count >= cfg.geoThreshold ? (
+                          <a href={`/for-sale/${s.state_norm.toLowerCase()}`}>
+                            {STATE_NAMES[s.state_norm] || s.state_norm}
+                          </a>
+                        ) : (
+                          STATE_NAMES[s.state_norm] || s.state_norm
+                        )}
+                      </th>
                       <td className="num">{s.active_count}</td>
                       <td className="num">{money(s.median_asking_price, { compact: true }) ?? '—'}</td>
                       <td className="num">{money(s.median_sde, { compact: true }) ?? '—'}</td>
