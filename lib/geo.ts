@@ -64,6 +64,43 @@ export function slugifyCity(city: string): string {
   return city.toLowerCase().trim().replace(/\s+/g, '-');
 }
 
+/** "st.-louis" -> "St. Louis". Inverse of slugifyCity, used for display and
+ * for the ilike lookup on the city page. */
+export function cityNameFromSlug(slug: string): string {
+  return slug
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Broker text names the same place several ways, and each spelling used to
+// become its own city page: Brooklyn and Kings County, "Louis, MO" (a
+// truncated St. Louis). Each alias 301s to its canonical slug, and the
+// canonical page pulls in the alias's listings. Keys are `{state}/{slug}`.
+export const CITY_ALIASES: Record<string, string> = {
+  'ny/kings-county': 'brooklyn',
+  'ny/queens-county': 'queens',
+  'ny/new-york-county': 'manhattan',
+  'ny/richmond-county': 'staten-island',
+  'ny/bronx-county': 'bronx',
+  'mo/louis': 'st.-louis',
+  'mo/st-louis': 'st.-louis',
+  'mo/saint-louis': 'st.-louis',
+};
+
+export function canonicalCitySlug(state: string, slug: string): string {
+  return CITY_ALIASES[`${state.toLowerCase()}/${slug}`] || slug;
+}
+
+/** The canonical slug plus every alias that folds into it. */
+export function citySlugVariants(state: string, canonical: string): string[] {
+  const prefix = `${state.toLowerCase()}/`;
+  const aliases = Object.entries(CITY_ALIASES)
+    .filter(([key, target]) => target === canonical && key.startsWith(prefix))
+    .map(([key]) => key.slice(prefix.length));
+  return [canonical, ...aliases];
+}
+
 /** City pages below this many listings ship with noindex,follow. */
 export const CITY_INDEX_MIN = 3;
 

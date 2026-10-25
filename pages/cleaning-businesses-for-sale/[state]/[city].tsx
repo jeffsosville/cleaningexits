@@ -4,7 +4,17 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { STATE_NAMES, toStateCode, stateVariants, slugifyCity, CITY_INDEX_MIN } from '../../../lib/geo';
+import {
+  STATE_NAMES,
+  toStateCode,
+  stateVariants,
+  slugifyCity,
+  canonicalCitySlug,
+  citySlugVariants,
+  cityNameFromSlug,
+  CITY_INDEX_MIN
+} from '../../../lib/geo';
+import { getIndexableCities } from '../../../lib/cityIndex';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -59,38 +69,14 @@ const parseRevenue = (rev: string | number | null | undefined): number | null =>
   return isNaN(num) ? null : num;
 };
 
-const formatCityName = (slug: string): string => {
-  return slug
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
 export const getStaticPaths: GetStaticPaths = async () => {
   // Pre-render only cities that clear the index bar in a real state.
   // Thin ones still render on demand (noindex) if someone links to them.
-  const { data: locations } = await supabaseDealLedger
-    .from('cleaning_listings_direct')
-    .select('state, city')
-    .not('state', 'is', null)
-    .not('city', 'is', null);
-
-  const counts = new Map<string, number>();
-  (locations || []).forEach(loc => {
-    const code = toStateCode(loc.state);
-    if (!code) return;
-    const key = `${code.toLowerCase()}|${slugifyCity(loc.city)}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-
-  const paths = Array.from(counts.entries())
-    .filter(([, n]) => n >= CITY_INDEX_MIN)
-    .map(([key]) => {
-      const [state, city] = key.split('|');
-      return { params: { state, city } };
-    });
-
-  return { paths, fallback: 'blocking' };
+  const cities = await getIndexableCities();
+  return {
+    paths: cities.map(c => ({ params: { state: c.state, city: c.slug } })),
+    fallback: 'blocking'
+  };
 };
 
 export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
@@ -108,8 +94,24 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
     };
   }
 
-  const cityFormatted = formatCityName(citySlug);
+  // Brooklyn and Kings County are one page. Aliases 301 to the canonical slug.
+  const canonical = canonicalCitySlug(stateParam, citySlug);
+  if (canonical !== citySlug) {
+    return {
+      redirect: {
+        destination: `/cleaning-businesses-for-sale/${stateParam.toLowerCase()}/${encodeURIComponent(canonical)}`,
+        permanent: true
+      }
+    };
+  }
+
+  const cityFormatted = cityNameFromSlug(citySlug);
   const stateFullName = STATE_NAMES[stateParam] || stateParam;
+  // The canonical page shows its aliases' listings too. Values are quoted
+  // because "St. Louis" has a period, which PostgREST reads as syntax.
+  const cityFilter = citySlugVariants(stateParam, citySlug)
+    .map(slug => `city.ilike."${cityNameFromSlug(slug)}"`)
+    .join(',');
 
   const { data: listings, error } = await supabaseDealLedger
     .from('cleaning_listings_direct')
@@ -117,7 +119,7 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
       'id, header, price, city, state, cash_flow, revenue, image_url, location'
     )
     .in('state', stateVariants(stateParam))
-    .ilike('city', cityFormatted)
+    .or(cityFilter)
     .order('price', { ascending: false });
 
   if (error || !listings || listings.length === 0) {
