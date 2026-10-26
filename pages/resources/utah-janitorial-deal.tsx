@@ -9,6 +9,7 @@ export default function UtahJanitorialDeal() {
     <>
       <Head>
         <title>This Week's Deal: Why the Utah Janitorial Company is Hot | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/resources/utah-janitorial-deal" />
         <meta name="description" content="Deep-dive analysis of a $2.5M revenue cleaning business with $600K cash flow. Valuation, financing, risks, and opportunities." />
       </Head>
 

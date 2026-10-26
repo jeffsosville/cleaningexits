@@ -273,7 +273,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
   return (
     <>
       <Head>
-        <title>{listing.title || 'Business Listing'} | Cleaning Exits</title>
+        <title>{`${listing.title || 'Business Listing'} | Cleaning Exits`}</title>
         <meta name="description" content={listing.description?.substring(0, 160) || 'Cleaning business for sale'} />
         <link rel="canonical" href={`https://cleaningexits.com/listing/${listing.id}`} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateListingSchema()) }} />

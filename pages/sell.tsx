@@ -10,6 +10,7 @@ export default function Sell() {
     <>
       <Head>
         <title>Sell Your Cleaning Business | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/sell" />
         <meta name="description" content="Get your commercial cleaning business in front of thousands of serious buyers." />
       </Head>
 

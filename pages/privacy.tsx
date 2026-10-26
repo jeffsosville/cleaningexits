@@ -9,6 +9,7 @@ export default function Privacy() {
     <>
       <Head>
         <title>Privacy Policy | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/privacy" />
         <meta name="description" content="Privacy Policy for Cleaning Exits" />
       </Head>
 

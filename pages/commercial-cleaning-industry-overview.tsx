@@ -5,6 +5,7 @@ export default function CommercialCleaningIndustryOverview() {
     <>
       <Head>
         <title>Commercial Cleaning Industry Overview | CleaningExits</title>
+        <link rel="canonical" href="https://cleaningexits.com/commercial-cleaning-industry-overview" />
         <meta name="description" content="Comprehensive overview of the commercial cleaning and janitorial services industry including market size, employment statistics, industry trends, and business structure." />
       </Head>
 

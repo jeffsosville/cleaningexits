@@ -2,7 +2,7 @@
 // CHANGES FROM PREVIOUS VERSION:
 // 1. Default category → 'commercial_cleaning'
 // 2. Hero copy is dynamic per selected category
-// 3. Stats bar: Active Listings + Median DOM (from DealLedger) + % over 1 year
+// 3. Stats bar: Active Listings (from DealLedger). No days-on-market figures.
 // 4. Meta tags updated for commercial cleaning
 // 5. Browse CTA links to correct category
 
@@ -36,7 +36,8 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<CategorySlug>('commercial_cleaning');
   const [stats, setStats]                       = useState<Stats>({ totalVerified: 0, medianDom: null, pctOver365: null });
   const [categoryCounts, setCategoryCounts]     = useState<Record<CategorySlug, number>>({} as Record<CategorySlug, number>);
-  const [statsLoading, setStatsLoading]         = useState(false);
+  // Starts true so the server-rendered HTML shows '—', not a zero count.
+  const [statsLoading, setStatsLoading]         = useState(true);
 
   const fetchStats = useCallback(async (category: CategorySlug) => {
     setStatsLoading(true);
@@ -63,14 +64,16 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>{label} Businesses For Sale | CleaningExits</title>
+        {/* One string: JSX with mixed text and {label} renders a literal
+            "<!-- -->" inside <title>, which Google shows as-is. */}
+        <title>{`${label} Businesses For Sale | CleaningExits`}</title>
         <meta name="description" content={
-          `Find verified ${label.toLowerCase()} businesses for sale. ` +
-          `${stats.totalVerified} active listings updated daily. ` +
-          `Filter by state, price, and days on market.`
+          `${label} businesses for sale across the US, gathered from business brokers ` +
+          `and updated daily. Filter by state and price.`
         } />
+        <link rel="canonical" href="https://cleaningexits.com/" />
         <meta property="og:title"       content={`${label} Businesses For Sale | CleaningExits`} />
-        <meta property="og:description" content={`The only marketplace that shows days on market and buyer view counts for ${label.toLowerCase()} businesses.`} />
+        <meta property="og:description" content={`Every ${label.toLowerCase()} business for sale in the US, updated daily.`} />
       </Head>
 
       <div className="min-h-screen bg-white">
@@ -85,7 +88,7 @@ export default function Home() {
             </h1>
             <p className="text-gray-500 mb-1">by CleaningExits</p>
             <p className="text-xl font-semibold text-gray-800 mb-2">
-              {statsLoading ? '—' : stats.totalVerified.toLocaleString()} Verified Listings
+              {statsLoading ? '—' : stats.totalVerified.toLocaleString()} Active Listings
             </p>
             <p className="text-gray-500">
               Every {label.toLowerCase()} business for sale in the US. Updated daily.
@@ -101,7 +104,7 @@ export default function Home() {
               <div>
                 <div className="font-bold text-white">Weekly Top 10 — {label}</div>
                 <div className="text-emerald-100 text-sm">
-                  Best new listings ranked by DOM + buyer demand. Every Monday.
+                  Best new listings, ranked. Every Monday.
                 </div>
               </div>
               <Link
@@ -125,24 +128,12 @@ export default function Home() {
           {/* Stats — sourced from DealLedger */}
           <section className="mb-10">
             <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 gap-4 text-center">
                 <div>
                   <div className={`text-3xl md:text-4xl font-bold text-emerald-600 ${statsLoading ? 'opacity-40' : ''}`}>
                     {statsLoading ? '—' : stats.totalVerified.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">Active Listings</div>
-                </div>
-                <div>
-                  <div className={`text-3xl md:text-4xl font-bold text-emerald-600 ${statsLoading ? 'opacity-40' : ''}`}>
-                    {statsLoading ? '—' : stats.medianDom !== null ? `${stats.medianDom}d` : '—'}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">Median Days on Market</div>
-                </div>
-                <div>
-                  <div className={`text-3xl md:text-4xl font-bold text-emerald-600 ${statsLoading ? 'opacity-40' : ''}`}>
-                    {statsLoading ? '—' : stats.pctOver365 !== null ? `${stats.pctOver365}%` : '—'}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">Listed Over 1 Year</div>
                 </div>
               </div>
               <p className="text-center text-xs text-gray-400 mt-4">
@@ -160,7 +151,7 @@ export default function Home() {
               >
                 Browse All {statsLoading ? '' : stats.totalVerified.toLocaleString()} {label} Businesses →
               </Link>
-              <p className="text-gray-500 text-sm mt-4">Filter by state, price, and days on market</p>
+              <p className="text-gray-500 text-sm mt-4">Filter by state and price</p>
             </div>
           </section>
 

@@ -9,6 +9,7 @@ export default function Terms() {
     <>
       <Head>
         <title>Terms of Service | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/terms" />
         <meta name="description" content="Terms of Service for Cleaning Exits" />
       </Head>
 
