@@ -139,8 +139,15 @@ export const getStaticProps: GetStaticProps<StatePageProps> = async context => {
     .order('price', { ascending: false })
     .limit(50);
 
-  if (error || !listings || listings.length === 0) {
-    return { notFound: true, revalidate: 3600 };
+  if (error) return { notFound: true, revalidate: 60 };
+  // A real state with no inventory right now (or after a category cleanup):
+  // send visitors and any ranking it had to the directory instead of a 404.
+  // Temporary, because listings come back.
+  if (!listings || listings.length === 0) {
+    return {
+      redirect: { destination: '/cleaning-businesses-for-sale', permanent: false },
+      revalidate: 3600
+    };
   }
 
   // Calculate stats
