@@ -9,6 +9,7 @@ export default function SellingGuide() {
     <>
       <Head>
         <title>The Definitive Guide to Prepping Your Cleaning Business for Sale | CleaningExits</title>
+        <link rel="canonical" href="https://cleaningexits.com/selling-your-cleaning-business" />
         <meta name="description" content="Maximize your cleaning business value with expert preparation strategies. Complete guide covering financials, operations, due diligence, and valuation." />
       </Head>
 

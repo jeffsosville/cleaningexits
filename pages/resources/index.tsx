@@ -227,6 +227,7 @@ export default function Resources() {
     <>
       <Head>
         <title>Resources | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/resources" />
         <meta
           name="description"
           content="Guides, templates, calculators, and original listing data for buying and selling commercial cleaning businesses."

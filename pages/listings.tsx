@@ -8,6 +8,7 @@ export default function ListingsPage() {
     <>
       <Head>
         <title>Business Listings | Cleaning Exits - Profitable Opportunities Daily</title>
+        <link rel="canonical" href="https://cleaningexits.com/listings" />
         <meta name="description" content="Browse thousands of profitable business opportunities including cleaning services, franchises, and service businesses. Updated daily with new listings from the marketplace." />
         <meta name="keywords" content="business for sale, cleaning business, business opportunities, franchise opportunities, service business, profitable business" />
         <meta property="og:title" content="Business Listings | Cleaning Exits" />

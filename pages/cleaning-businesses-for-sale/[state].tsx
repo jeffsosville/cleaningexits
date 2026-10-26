@@ -221,9 +221,9 @@ export default function StatePage({
   });
 
   const metaTitle = `${stats.total_listings} Cleaning Businesses for Sale in ${stateFullName} | Cleaning Exits`;
-  const metaDescription = `Browse ${stats.total_listings} verified cleaning businesses for sale in ${stateFullName}. Average price ${money(
+  const metaDescription = `Browse ${stats.total_listings} cleaning businesses for sale in ${stateFullName}. Average price ${money(
     stats.avg_price
-  )}. No franchises. Direct broker connections. SBA financing available.`;
+  )}. Direct broker connections. SBA financing available.`;
 
   // Schema.org structured data
   const schemaData = {
@@ -305,7 +305,7 @@ export default function StatePage({
             </h1>
 
             <p className="text-xl text-emerald-50 mb-6">
-              {stats.total_listings} verified commercial cleaning businesses
+              {stats.total_listings} cleaning businesses
               available
             </p>
 
@@ -488,7 +488,7 @@ export default function StatePage({
               <p className="mb-4">
                 {stateFullName} offers excellent opportunities for
                 entrepreneurs looking to acquire established cleaning
-                businesses. With {stats.total_listings} verified listings
+                businesses. With {stats.total_listings} listings
                 currently available, buyers can find commercial cleaning
                 companies across {stats.cities.length} cities throughout the
                 state.
@@ -521,12 +521,10 @@ export default function StatePage({
               </h3>
               <ul className="mb-4 space-y-2">
                 <li>
-                  ✓ Verified cleaning businesses only - no franchises or lead
-                  generation schemes
+                  ✓ Asking price and cash flow shown wherever the broker reports them
                 </li>
                 <li>
-                  ✓ Direct relationships with 1,500+ business brokers
-                  nationwide
+                  ✓ Listings gathered from business brokers nationwide
                 </li>
                 <li>
                   ✓ Transparent pricing and valuation analysis for every

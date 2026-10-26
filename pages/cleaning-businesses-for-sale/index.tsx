@@ -86,7 +86,7 @@ export const getStaticProps: GetStaticProps<AllStatesProps> = async () => {
 
 export default function AllStatesPage({ states, totalListings }: AllStatesProps) {
   const metaTitle = 'Cleaning Businesses for Sale by State | Cleaning Exits';
-  const metaDescription = `Browse ${totalListings.toLocaleString()} verified cleaning businesses for sale across ${states.length} states. No franchises. Direct broker connections. SBA financing available.`;
+  const metaDescription = `Browse ${totalListings.toLocaleString()} cleaning businesses for sale across ${states.length} states. Direct broker connections. SBA financing available.`;
 
   return (
     <>
@@ -118,7 +118,7 @@ export default function AllStatesPage({ states, totalListings }: AllStatesProps)
               Cleaning Businesses for Sale by State
             </h1>
             <p className="text-xl text-emerald-50 mb-8">
-              {totalListings.toLocaleString()} verified commercial cleaning businesses across {states.length} states
+              {totalListings.toLocaleString()} cleaning businesses across {states.length} states
             </p>
             <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-lg px-6 py-3">
               <div className="text-center">
@@ -175,7 +175,7 @@ export default function AllStatesPage({ states, totalListings }: AllStatesProps)
             <div className="prose max-w-none text-gray-700">
               <p className="text-lg mb-6">
                 The commercial cleaning industry offers one of the most stable, recession-resistant business models available. 
-                With {totalListings.toLocaleString()} verified listings across the United States, Cleaning Exits provides the 
+                With {totalListings.toLocaleString()} listings across the United States, Cleaning Exits provides the 
                 largest transparent marketplace for cleaning business acquisitions.
               </p>
 
@@ -252,15 +252,11 @@ export default function AllStatesPage({ states, totalListings }: AllStatesProps)
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 font-bold">•</span>
-                  <span>Direct relationships with 1,500+ business brokers nationwide</span>
+                  <span>Listings gathered from business brokers nationwide</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 font-bold">•</span>
-                  <span>No franchises, MLMs, or lead generation schemes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold">•</span>
-                  <span>Verified listings with real financial data</span>
+                  <span>Asking price and cash flow shown wherever the broker reports them</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-600 font-bold">•</span>
@@ -271,7 +267,7 @@ export default function AllStatesPage({ states, totalListings }: AllStatesProps)
               <div className="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-6 mt-8">
                 <h3 className="text-xl font-bold text-emerald-900 mb-2">Ready to Find Your Next Business?</h3>
                 <p className="text-emerald-800 mb-4">
-                  Browse our verified listings by state above, or contact us to discuss your specific acquisition criteria. 
+                  Browse listings by state above, or contact us to discuss your specific acquisition criteria. 
                   Our team specializes in matching buyers with the right opportunities and guiding them through the entire 
                   acquisition process.
                 </p>

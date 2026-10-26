@@ -10,6 +10,7 @@ export default function Contact() {
     <>
       <Head>
         <title>Contact Us | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/contact" />
         <meta name="description" content="Get in touch with Cleaning Exits about buying or selling a cleaning business." />
       </Head>
 

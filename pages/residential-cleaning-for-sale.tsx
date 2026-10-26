@@ -45,7 +45,7 @@ export default function ResidentialCleaningPage({ listings, totalCount, avgPrice
     <>
       <Head>
         <title>Residential Cleaning Businesses for Sale | Cleaning Exits</title>
-        <meta name="description" content={`${totalCount} residential cleaning businesses for sale. Browse verified home cleaning and maid service opportunities with detailed financials.`} />
+        <meta name="description" content={`${totalCount} residential cleaning businesses for sale. Browse home cleaning and maid service opportunities with detailed financials.`} />
         <link rel="canonical" href="https://cleaningexits.com/residential-cleaning-for-sale" />
       </Head>
 
@@ -59,7 +59,7 @@ export default function ResidentialCleaningPage({ listings, totalCount, avgPrice
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white py-16">
           <div className="max-w-7xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Residential Cleaning Businesses for Sale</h1>
-            <p className="text-xl text-emerald-100 mb-8">{totalCount} verified residential cleaning and maid service businesses available</p>
+            <p className="text-xl text-emerald-100 mb-8">{totalCount} residential cleaning and maid service businesses available</p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white/10 backdrop-blur rounded-lg p-4">

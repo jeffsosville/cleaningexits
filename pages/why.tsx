@@ -10,6 +10,7 @@ export default function Why() {
     <>
       <Head>
         <title>Why CleaningExits | The BizBuySell Problem</title>
+        <link rel="canonical" href="https://cleaningexits.com/why" />
         <meta name="description" content="We analyzed 1,000+ cleaning businesses on BizBuySell. Only 39% are legitimate. Here's the data that exposes a broken marketplace." />
       </Head>
 

@@ -90,6 +90,7 @@ export default function Top10({ listings }: { listings: Listing[] }) {
     <div className="min-h-screen p-8">
       <Head>
         <title>Top 10 | CleaningExits</title>
+        <link rel="canonical" href="https://cleaningexits.com/top10" />
       </Head>
 
       <h1 className="text-4xl font-bold mb-8">Top 10 Cleaning Businesses</h1>

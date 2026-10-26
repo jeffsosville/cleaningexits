@@ -9,6 +9,7 @@ export default function About() {
     <>
       <Head>
         <title>About Us | Cleaning Exits</title>
+        <link rel="canonical" href="https://cleaningexits.com/about" />
         <meta
           name="description"
           content="Cleaning Exits is a data-first marketplace for buying and selling commercial cleaning businesses. Here's who we are and why we built it."
