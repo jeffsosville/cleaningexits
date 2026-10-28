@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logInbound, SITE } from '@/lib/crmInbound';
+import { verifyRecaptcha } from '@/lib/recaptcha';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,16 @@ export async function POST(req: NextRequest) {
   try {
     const b = (await req.json()) as Record<string, unknown>;
     if (str(b.website)) return NextResponse.json({ success: true }); // honeypot
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+    const captcha = await verifyRecaptcha(b.recaptcha_token, 'inquiry', ip);
+    if (!captcha.ok) {
+      console.warn('inquiry rejected by reCAPTCHA:', captcha.reason, captcha.score);
+      return NextResponse.json(
+        { error: "We couldn't verify this submission. Please try again, or email hello@cleaningexits.com." },
+        { status: 400 },
+      );
+    }
 
     const kind = b.kind === 'seller' ? 'seller_lead' : 'buyer_question';
     const name = str(b.name, 120);
