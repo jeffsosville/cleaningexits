@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '';
 
@@ -40,6 +40,7 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
   const [error, setError] = useState('');
   const a = ACCENTS[accent];
+  const loadedAt = useRef(Date.now());
   useEffect(loadRecaptcha, []);
   const input = `w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 ${a.ring}`;
 
@@ -53,7 +54,7 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
       const res = await fetch('/api/inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...f, website: f.hp_ref || '', kind: mode, source_url: window.location.href, recaptcha_token }),
+        body: JSON.stringify({ ...f, website: f.hp_ref || '', kind: mode, source_url: window.location.href, recaptcha_token, elapsed_ms: Date.now() - loadedAt.current }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Something went wrong. Please try again.');

@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 const NOTIFY_FROM = 'CleaningExits <notifications@cleaningexits.com>';
 const NOTIFY_TO = ['john@atmbrokerage.com', 'hello@cleaningexits.com'];
 const BRAND = 'CleaningExits';
+const MIN_FILL_MS = 5000; // no person fills this form in under 5s
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
@@ -21,6 +22,14 @@ export async function POST(req: NextRequest) {
     const b = (await req.json()) as Record<string, unknown>;
     if (str(b.website)) return NextResponse.json({ success: true }); // honeypot
 
+    // Bots that drive a real browser get a valid reCAPTCHA token, but submit within seconds of the page
+    // loading. Answer as if it worked so they don't adapt; nothing is logged to the CRM and no email goes out.
+    const elapsed = Number(b.elapsed_ms);
+    if (!Number.isFinite(elapsed) || elapsed < MIN_FILL_MS) {
+      console.warn('inquiry: bot-like submission ignored', { elapsed_ms: b.elapsed_ms, name: str(b.name, 120), email: str(b.email) });
+      return NextResponse.json({ success: true });
+    }
+
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
     const captcha = await verifyRecaptcha(b.recaptcha_token, 'inquiry', ip);
     if (!captcha.ok) {
@@ -30,6 +39,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+    console.log('inquiry: reCAPTCHA passed', { score: captcha.score, skipped: !!captcha.skipped, elapsed_ms: elapsed });
 
     const kind = b.kind === 'seller' ? 'seller_lead' : 'buyer_question';
     const name = str(b.name, 120);
