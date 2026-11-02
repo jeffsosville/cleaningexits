@@ -235,7 +235,7 @@ export default function Subscribe() {
             ))}
           </div>
         </div>
-        <p className="text-center text-sm text-gray-500 mt-6">Join buyers who trust Cleaning Exits for verified opportunities</p>
+        <p className="text-center text-sm text-gray-500 mt-6">Join buyers who use Cleaning Exits to find broker-listed opportunities</p>
       </main>
     </>
   );

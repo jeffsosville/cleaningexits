@@ -190,8 +190,9 @@ export default function DailyCleaning({ rows, hadError, errMsg }: Props) {
         <title>Cleaning Exits — Today’s Listings</title>
         <meta
           name="description"
-          content="Fresh, verified cleaning business listings added today. No franchises, no lead-gen noise."
+          content="Cleaning business listings added today, from business brokers."
         />
+        <link rel="canonical" href="https://cleaningexits.com/daily-cleaning" />
       </Head>
 
       <main className="mx-auto max-w-6xl px-4 py-8">

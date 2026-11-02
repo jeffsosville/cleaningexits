@@ -126,8 +126,10 @@ export const getStaticProps: GetStaticProps<CityPageProps> = async context => {
   const stateFullName = STATE_NAMES[stateParam] || stateParam;
   // The canonical page shows its aliases' listings too. Values are quoted
   // because "St. Louis" has a period, which PostgREST reads as syntax.
+  // Spaces become `_` (any one character) so a slug like miami-dade-county
+  // still matches "Miami-Dade County": slugs lose the space/hyphen difference.
   const cityFilter = citySlugVariants(stateParam, citySlug)
-    .map(slug => `city.ilike."${cityNameFromSlug(slug)}"`)
+    .map(slug => `city.ilike."${cityNameFromSlug(slug).replace(/ /g, '_')}"`)
     .join(',');
 
   const { data: listings, error } = await supabaseDealLedger

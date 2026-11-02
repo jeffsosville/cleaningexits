@@ -234,7 +234,7 @@ export default function CommercialCleaningIndustryOverview() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold mb-4">About CleaningExits</h2>
-          <p className="mb-4">CleaningExits is the leading marketplace for cleaning business acquisitions, providing comprehensive market intelligence, valuation services, and transaction support for the cleaning industry. Our platform aggregates 25,000+ cleaning business listings from 1,500+ brokers, creating the most comprehensive database of cleaning businesses for sale in North America.</p>
+          <p className="mb-4">CleaningExits is the leading marketplace for cleaning business acquisitions, providing comprehensive market intelligence, valuation services, and transaction support for the cleaning industry. Our platform tracks active cleaning business listings from business brokers across the United States, with valuation multiples and market data drawn from those listings.</p>
           <p className="mb-4">For industry research, acquisition opportunities, or to list a cleaning business for sale, visit <a href="https://cleaningexits.com" className="text-blue-600 hover:underline">cleaningexits.com</a>.</p>
           <p className="italic text-gray-600">Published: December 2025</p>
         </section>

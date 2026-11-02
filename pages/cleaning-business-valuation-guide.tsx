@@ -201,7 +201,7 @@ export default function CleaningBusinessValuationGuide() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold mb-4">About CleaningExits</h2>
-          <p className="mb-4">CleaningExits is a specialized marketplace for cleaning business acquisitions, providing valuation services, buyer matching, and transaction support exclusively for the cleaning industry. Our database includes 25,000+ cleaning business listings aggregated from 1,500+ brokers nationwide, providing comprehensive market intelligence for buyers and sellers.</p>
+          <p className="mb-4">CleaningExits is a specialized marketplace for cleaning business acquisitions, providing valuation services, buyer matching, and transaction support exclusively for the cleaning industry. Our database tracks active cleaning business listings from business brokers nationwide, providing market data for buyers and sellers.</p>
           <p className="mb-4">For cleaning business valuation inquiries or acquisition opportunities, visit <a href="https://cleaningexits.com" className="text-blue-600 hover:underline">cleaningexits.com</a>.</p>
           <p className="italic text-gray-600">Published: December 2025</p>
         </section>
