@@ -119,6 +119,13 @@ export const CITY_ALIASES: Record<string, string> = {
   'va/in-charlottesville': 'charlottesville',
   'ga/location-chamblee': 'chamblee',
   'ok/near-atoka': 'atoka',
+  'ny/financing-suffolk': 'suffolk-county',
+  'ny/florist-suffolk': 'suffolk-county',
+  'ny/florist-queens': 'queens',
+  'ma/estate-middlesex': 'middlesex-county',
+  'mo/charles-county': 'st.-charles-county',
+  // Hyphenated in the source; the city page's lookup matches the hyphen.
+  'fl/miami-dade-county': 'miami',
 };
 
 export function canonicalCitySlug(state: string, slug: string): string {
