@@ -41,6 +41,26 @@ export default function StatePage({ cfg, stat, national, listings, cities, state
         <title>{title}</title>
         <meta name="description" content={desc} />
         <link rel="canonical" href={`${cfg.domain}/for-sale/${stat.state_norm.toLowerCase()}`} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'CollectionPage',
+              name: `${cfg.businessNounPlural} for sale in ${stateName}`,
+              url: `${cfg.domain}/for-sale/${stat.state_norm.toLowerCase()}`,
+              description: desc,
+              dateModified: stat.data_through,
+              mainEntity: {
+                '@type': 'ItemList',
+                numberOfItems: stat.active_count,
+                itemListElement: listings.slice(0, 30).map((l, i) => ({
+                  '@type': 'ListItem', position: i + 1, name: l.title, url: l.url,
+                })),
+              },
+            }),
+          }}
+        />
       </Head>
       <BaseStyles accent={cfg.accent} />
 
@@ -52,8 +72,15 @@ export default function StatePage({ cfg, stat, national, listings, cities, state
               {cfg.businessNounPlural} for sale in {stateName}
             </h1>
             <p className="lede">
-              {stat.active_count} active listings, plus {stat.archive_count} closed or withdrawn
-              in the archive. Figures below compare {stateName} against the national market.
+              {stat.active_count} {cfg.businessNounPlural.toLowerCase()} are for sale in {stateName}
+              {stat.median_asking_price
+                ? `, with a median asking price of ${money(stat.median_asking_price, { compact: true })}`
+                : ''}
+              {isPublishable(stat.sde_sample) && stat.median_multiple
+                ? ` and a median of ${mult(stat.median_multiple)} seller cash flow`
+                : ''}
+              . Another {stat.archive_count} have closed or been withdrawn. Data through{' '}
+              {asOf(stat.data_through)}; figures below compare {stateName} against the national market.
             </p>
 
             <div className="grid">
