@@ -124,6 +124,11 @@ export const CITY_ALIASES: Record<string, string> = {
   'ny/florist-queens': 'queens',
   'ma/estate-middlesex': 'middlesex-county',
   'mo/charles-county': 'st.-charles-county',
+  'ma/florist-middlesex': 'middlesex-county',
+  'ny/suffolk': 'suffolk-county',
+  'ca/in-bell': 'bell',
+  'co/location-lakewood': 'lakewood',
+  'tx/in-austin': 'austin',
   // Hyphenated in the source; the city page's lookup matches the hyphen.
   'fl/miami-dade-county': 'miami',
 };
