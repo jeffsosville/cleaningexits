@@ -142,25 +142,9 @@ const sections: Section[] = [
     blurb: 'What we see in the listing data that nobody publishes.',
     items: [
       {
-        title: 'Why CleaningExits Exists',
-        description:
-          'The data quality argument, with screenshots. This is the short version of everything we believe.',
-        href: '/why',
-        tag: 'Position',
-        ready: true,
-      },
-      {
         title: 'Quarterly Cleaning Multiples Report',
         description:
           'Median asking multiple by revenue band, updated every quarter from live listing data. No survey, no self-reporting.',
-        href: '#',
-        tag: 'Report',
-        ready: false,
-      },
-      {
-        title: 'Days on Market by State',
-        description:
-          'How long cleaning businesses actually sit, broken out by geography and price band.',
         href: '#',
         tag: 'Report',
         ready: false,

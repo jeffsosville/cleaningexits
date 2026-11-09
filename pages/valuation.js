@@ -82,14 +82,6 @@ export default function ValuationPage({ cfg, national, bands, segments = [], sta
             },
           ]
         : []),
-      {
-        '@type': 'Question',
-        name: `How long does it take to sell a ${cfg.businessNoun}?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: `Listings that actually closed spent a median of ${national.median_dom_sold} days on market. Figures based on currently active listings understate this substantially, because listings still on the market are measured mid-run rather than at completion.`,
-        },
-      },
     ],
   };
 
@@ -303,33 +295,6 @@ export default function ValuationPage({ cfg, national, bands, segments = [], sta
           </div>
         </section>
 
-        <section className="dom">
-          <div className="wrap narrow">
-            <p className="eyebrow">A correction</p>
-            <h2>How long a sale actually takes</h2>
-            <p>
-              Active listings in this market show a median of{' '}
-              <span className="num">{national.median_dom_active}</span> days on market. Listings
-              that actually sold show{' '}
-              <span className="num hot">{national.median_dom_sold}</span> days.
-            </p>
-            <p>
-              Both numbers are correct and they measure different things. Anything still listed is
-              being measured partway through its run, which drags the figure down. Only completed
-              sales tell you how long the process takes. Most published &ldquo;days on
-              market&rdquo; statistics use the first method, which is why the number you have
-              probably seen is roughly{' '}
-              <span className="num">
-                {Math.round(national.median_dom_sold / Math.max(national.median_dom_active, 1))}×
-              </span>{' '}
-              too low.
-            </p>
-            <p className="sample">
-              Based on {national.active_count} active and {national.sold_count} closed listings
-              across {national.broker_count} brokerages. Data through {asOf(national.data_through)}.
-            </p>
-          </div>
-        </section>
 
         {cfg.vertical === 'cleaning' && (
           <section>
@@ -492,7 +457,6 @@ export default function ValuationPage({ cfg, national, bands, segments = [], sta
         .driver { border-top: 2px solid var(--ink); padding-top: 14px; }
         .driver p { margin: 0; color: var(--muted); font-size: 0.96rem; }
 
-        .dom :global(.hot) { color: var(--hot); }
         .cta { background: var(--ink); color: var(--paper); }
         .cta :global(h2) { color: var(--paper); }
         .cta .sample { color: #9fb0b8; }

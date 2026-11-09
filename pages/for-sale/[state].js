@@ -169,9 +169,7 @@ export default function StatePage({ cfg, stat, national, listings, cities, state
           <div className="wrap narrow">
             <h2>Selling in {stateName}?</h2>
             <p>
-              The median business here spent{' '}
-              <span className="num">{national.median_dom_sold}</span> days on market before
-              closing. Knowing your range before you list is what keeps you off that curve.
+              Knowing your range before you list is what keeps a sale moving.
             </p>
             <p>
               <a className="btn" href="/valuation">

@@ -90,6 +90,7 @@ export default function Top10({ listings }: { listings: Listing[] }) {
     <div className="min-h-screen p-8">
       <Head>
         <title>Top 10 | CleaningExits</title>
+        <meta name="robots" content="noindex, follow" />
         <link rel="canonical" href="https://cleaningexits.com/top10" />
       </Head>
 

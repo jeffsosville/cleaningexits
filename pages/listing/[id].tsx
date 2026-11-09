@@ -276,6 +276,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
         <title>{`${listing.title || 'Business Listing'} | Cleaning Exits`}</title>
         <meta name="description" content={listing.description?.substring(0, 160) || 'Cleaning business for sale'} />
         <link rel="canonical" href={`https://cleaningexits.com/listing/${listing.id}`} />
+        {String(listing.id).startsWith('top10-') && <meta name="robots" content="noindex, follow" />}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateListingSchema()) }} />
         <meta property="og:title" content={listing.title || 'Business Listing'} />
         <meta property="og:description" content={listing.description?.substring(0, 160) || ''} />
@@ -444,7 +445,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
 
               {listing.verified_date && (
                 <div className="text-sm text-gray-500 text-center">
-                  Verified on {new Date(listing.verified_date).toLocaleDateString()}
+                  Last checked {new Date(listing.verified_date).toLocaleDateString()}
                 </div>
               )}
             </div>
@@ -465,7 +466,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
                   rel="noopener noreferrer"
                   className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-lg transition text-lg mb-4"
                 >
-                  {listing.direct_broker_url ? 'Contact Broker Directly →' : 'View on BizBuySell →'}
+                  {listing.direct_broker_url ? 'Contact Broker Directly →' : 'View Listing →'}
                 </a>
 
                 {listing.broker_account && (
