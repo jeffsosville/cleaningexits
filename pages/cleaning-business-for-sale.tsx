@@ -42,7 +42,7 @@ export default function CleaningBusinessForSale({ listingCount, brokerCount }: P
 
         {/* Open Graph */}
         <meta property="og:title" content={title} />
-        <meta property="og:description" content="Find active cleaning businesses for sale. No franchise lead funnels, no dead listings." />
+        <meta property="og:description" content="Find active cleaning businesses for sale, straight from business brokers. No dead listings." />
         <meta property="og:type" content="website" />
 
         {/* Schema Markup: raw JSON, not React text, so quotes aren't escaped */}
@@ -70,7 +70,7 @@ export default function CleaningBusinessForSale({ listingCount, brokerCount }: P
           </h1>
           <p className="text-xl text-gray-700 mb-6">
             Browse {listingCount} active cleaning businesses with transparent financials. 
-            No franchise lead funnels. No dead listings.
+            Straight from business brokers. No dead listings.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -374,8 +374,7 @@ export default function CleaningBusinessForSale({ listingCount, brokerCount }: P
               <div className="text-3xl mb-3">🎯</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Real Listings Only</h3>
               <p className="text-gray-600">
-                Every listing comes from an actual business broker. No franchise lead funnels, 
-                no fake listings, no "opportunities" that don't exist. Just real businesses for sale.
+                Every listing comes from an actual business broker or seller. No fake listings, no "opportunities" that don't exist. Just real businesses for sale.
               </p>
             </div>
 
@@ -401,7 +400,7 @@ export default function CleaningBusinessForSale({ listingCount, brokerCount }: P
               <div className="text-3xl mb-3">✂️</div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">No Noise</h3>
               <p className="text-gray-600">
-                We filter out franchise sales funnels, other industries, and sold or under-contract 
+                We filter out other industries and sold or under-contract 
                 listings, so what you see is a cleaning business you can actually buy.
               </p>
             </div>

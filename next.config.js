@@ -11,6 +11,10 @@ const nextConfig = {
       // live /valuation pillar now replaces; two pages chasing one query
       // split the ranking. Point it at the pillar.
       { source: '/cleaning-business-valuation-guide', destination: '/valuation', permanent: true },
+      // /why was a competitor teardown with 2025 numbers the site no longer matches.
+      // Temporary so a rewrite can take the URL back.
+      { source: '/why', destination: '/about', permanent: false },
+      { source: '/why1', destination: '/about', permanent: false },
     ];
   },
   async rewrites() {

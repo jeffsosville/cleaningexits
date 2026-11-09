@@ -23,7 +23,7 @@ import {
 
 export default function MarketReport({ cfg, national, bands, states, generatedAt, quarter }) {
   const title = `${cfg.industryLabel} Market Report ${quarter} | ${cfg.siteName}`;
-  const desc = `Median ${mult(national.median_multiple)} SDE, ${money(national.median_asking_price, { compact: true })} median asking price, ${national.median_dom_sold}-day median time to sale. ${national.active_count} active listings across ${national.broker_count} brokerages. Free to republish.`;
+  const desc = `Median ${mult(national.median_multiple)} SDE, ${money(national.median_asking_price, { compact: true })} median asking price. ${national.active_count} active listings across ${national.broker_count} brokerages. Free to republish.`;
 
   const datasetSchema = {
     '@context': 'https://schema.org',
@@ -38,7 +38,6 @@ export default function MarketReport({ cfg, national, bands, states, generatedAt
       'Median asking price',
       "Median seller's discretionary earnings",
       'Median asking price to SDE multiple',
-      'Median days on market',
     ],
   };
 
@@ -93,9 +92,9 @@ export default function MarketReport({ cfg, national, bands, states, generatedAt
                 sub={`${national.sde_sample} obs.`}
               />
               <Cell
-                label="Days to sale"
-                value={String(national.median_dom_sold)}
-                sub={`${national.sold_count} closed`}
+                label="Brokerages"
+                value={String(national.broker_count)}
+                sub={`${national.active_count} listings`}
               />
             </div>
           </div>
@@ -157,38 +156,11 @@ export default function MarketReport({ cfg, national, bands, states, generatedAt
           </div>
         </section>
 
-        <section className="correction">
-          <div className="wrap narrow">
-            <p className="eyebrow">Finding 03 · Correction</p>
-            <h2>The days-on-market figure in circulation is wrong</h2>
-            <p>
-              Active listings show a median of{' '}
-              <span className="num">{national.median_dom_active}</span> days on market. Closed
-              sales show <span className="num hot">{national.median_dom_sold}</span>.
-            </p>
-            <p>
-              The gap is not seasonal and it is not a data error. It is survivorship: a listing
-              still on the market is being measured before it finishes, so any average built from
-              live inventory is measuring incomplete runs. Most published time-to-sale figures for
-              small business sales are computed this way, which understates the real figure by
-              roughly{' '}
-              <span className="num">
-                {Math.round(national.median_dom_sold / Math.max(national.median_dom_active, 1))}×
-              </span>
-              .
-            </p>
-            <p>
-              For an owner planning an exit, the operational number is{' '}
-              <span className="num">{national.median_dom_sold}</span> days from listing to close,
-              before any pre-sale preparation.
-            </p>
-          </div>
-        </section>
 
         {rankedStates.length > 0 && (
           <section>
             <div className="wrap narrow">
-              <p className="eyebrow">Finding 04</p>
+              <p className="eyebrow">Finding 03</p>
               <h2>Where the inventory is</h2>
               <p>
                 Active listings concentrate in a small number of states. Only{' '}
@@ -232,9 +204,7 @@ export default function MarketReport({ cfg, national, bands, states, generatedAt
             <h2>Method</h2>
             <p>
               Listings are collected directly from brokerage websites, not from a single
-              marketplace, and observed repeatedly over time. Days on market is measured from
-              first observation rather than from a self-reported listing date, so it reflects when
-              a listing actually appeared.
+              marketplace, and observed repeatedly over time.
             </p>
             <p>
               Multiples are asking price divided by reported seller&rsquo;s discretionary

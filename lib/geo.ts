@@ -127,6 +127,8 @@ export const CITY_ALIASES: Record<string, string> = {
   'ma/florist-middlesex': 'middlesex-county',
   'ny/suffolk': 'suffolk-county',
   'ca/in-bell': 'bell',
+  // BW Laundry Sales lists its office city; the laundromats are across LA County.
+  'ca/bell-gardens': 'los-angeles-county',
   'co/location-lakewood': 'lakewood',
   'tx/in-austin': 'austin',
   // Hyphenated in the source; the city page's lookup matches the hyphen.

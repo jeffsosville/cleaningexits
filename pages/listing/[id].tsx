@@ -276,6 +276,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
         <title>{`${listing.title || 'Business Listing'} | Cleaning Exits`}</title>
         <meta name="description" content={listing.description?.substring(0, 160) || 'Cleaning business for sale'} />
         <link rel="canonical" href={`https://cleaningexits.com/listing/${listing.id}`} />
+        {String(listing.id).startsWith('top10-') && <meta name="robots" content="noindex, follow" />}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateListingSchema()) }} />
         <meta property="og:title" content={listing.title || 'Business Listing'} />
         <meta property="og:description" content={listing.description?.substring(0, 160) || ''} />
