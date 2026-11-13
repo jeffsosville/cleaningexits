@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { getCrmSupabase } from '@/lib/crmSupabase';
 import { getOurListingById } from '@/data/ourListings';
+import { isHouseFirm } from '@/lib/nda/ndaTerms';
 import { getVerticalId } from '@/lib/crmInbound';
 import { subscribe, NDA_OPT_IN_TEXT } from '@/lib/newsletter/subscribers';
 import { BRAND } from '@/lib/newsletter/brand';
@@ -44,6 +45,19 @@ export type CreateTokenResult = {
 const NOTIFY_FROM = 'CleaningExits <notifications@cleaningexits.com>';
 const NOTIFY_TO = ['john@atmbrokerage.com', 'hello@cleaningexits.com'];
 const REPLY_TO = 'hello@cleaningexits.com';
+
+/** Who the buyer deals with: CleaningExits for house listings, the partner broker otherwise. */
+type Sender = { house: boolean; firm: string; name: string; email: string; phone: string };
+function senderFor(listing: Awaited<ReturnType<typeof getOurListingById>>): Sender {
+  const b = listing?.broker;
+  const house = isHouseFirm(b?.firm);
+  if (house || !b) {
+    return { house: true, firm: 'CleaningExits', name: 'The CleaningExits Team', email: REPLY_TO, phone: '+1 888-430-5535' };
+  }
+  return { house: false, firm: b.firm, name: b.name, email: b.email, phone: b.phone };
+}
+// Sent through our verified domain, under the broker's name, with replies going to the broker.
+const fromFor = (s: Sender) => `${s.firm.replace(/[<>"]/g, '')} <notifications@cleaningexits.com>`;
 
 export async function createNDAToken(
   input: CreateTokenInput
@@ -110,10 +124,11 @@ export async function createNDAToken(
     console.error('deal_buyer_access write failed (non-fatal):', err);
   }
 
-  await sendEmails(input, dealHubUrl, token, !!dealId);
+  const sender = senderFor(listing);
+  await sendEmails(input, dealHubUrl, token, !!dealId, sender);
 
-  // Newsletter opt-in (box on the NDA form, checked by default). Best effort: never block the buyer.
-  if (input.newsletter_opt_in) {
+  // Newsletter opt-in (box on the NDA form, checked by default; house listings only). Best effort: never block the buyer.
+  if (input.newsletter_opt_in && sender.house) {
     try {
       const [first, ...rest] = input.buyer_name.split(' ');
       await subscribe({
@@ -144,7 +159,8 @@ async function sendEmails(
   input: CreateTokenInput,
   dealHubUrl: string,
   token: string,
-  matched: boolean
+  matched: boolean,
+  sender: Sender
 ) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -170,12 +186,12 @@ async function sendEmails(
 
   try {
     await send({
-      from: NOTIFY_FROM,
+      from: sender.house ? NOTIFY_FROM : fromFor(sender),
       to: [input.buyer_email],
-      reply_to: REPLY_TO,
+      reply_to: sender.email,
       subject: `Your access to the ${input.listing_title} data room`,
-      html: buyerHtml(input, dealHubUrl),
-      text: buyerText(input, dealHubUrl),
+      html: buyerHtml(input, dealHubUrl, sender),
+      text: buyerText(input, dealHubUrl, sender),
     });
   } catch (err) {
     console.error('Buyer email failed:', err);
@@ -183,11 +199,12 @@ async function sendEmails(
 
   try {
     await send({
-      from: NOTIFY_FROM,
-      to: NOTIFY_TO,
+      from: sender.house ? NOTIFY_FROM : fromFor(sender),
+      // Partner listings: the broker gets the alert; we keep a copy while piloting.
+      to: sender.house ? NOTIFY_TO : Array.from(new Set([sender.email, ...NOTIFY_TO])),
       reply_to: input.buyer_email,
       subject: `[NDA${matched ? '' : ' - UNMATCHED'}] ${input.buyer_name} - ${input.listing_title}`,
-      html: brokerHtml(input, dealHubUrl, token, matched),
+      html: brokerHtml(input, dealHubUrl, token, matched, sender),
     });
   } catch (err) {
     console.error('Broker email failed:', err);
@@ -201,7 +218,7 @@ function esc(s: string | null | undefined): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function buyerHtml(i: CreateTokenInput, url: string): string {
+function buyerHtml(i: CreateTokenInput, url: string, s: Sender): string {
   const price = i.listing_asking_price_display ? ` - ${i.listing_asking_price_display}` : '';
   return `
 <!DOCTYPE html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1a1612;line-height:1.6;max-width:600px;margin:0 auto;padding:24px;">
@@ -211,13 +228,13 @@ function buyerHtml(i: CreateTokenInput, url: string): string {
 <p style="margin:24px 0;"><a href="${url}" style="background:#b45309;color:#fff;padding:14px 22px;text-decoration:none;border-radius:4px;font-weight:600;display:inline-block;">Open the Data Room</a></p>
 <p style="font-size:13px;color:#4a443b;">Or paste this into your browser: <a href="${url}" style="color:#b45309;">${url}</a></p>
 <p>Questions go through the data room and we will respond promptly.</p>
-<p>Thanks again,<br>&mdash; The CleaningExits Team</p>
+<p>Thanks again,<br>&mdash; ${esc(s.name)}${s.house ? '' : `, ${esc(s.firm)}`}</p>
 <p style="font-size:12px;color:#8a8275;margin-top:32px;border-top:1px solid #e5e0d5;padding-top:16px;">
-<a href="https://cleaningexits.com" style="color:#8a8275;">cleaningexits.com</a> &middot; <a href="mailto:hello@cleaningexits.com" style="color:#8a8275;">hello@cleaningexits.com</a> &middot; +1 888-430-5535
+${s.house ? '<a href="https://cleaningexits.com" style="color:#8a8275;">cleaningexits.com</a> &middot; ' : ''}<a href="mailto:${esc(s.email)}" style="color:#8a8275;">${esc(s.email)}</a> &middot; ${esc(s.phone)}
 </p></body></html>`.trim();
 }
 
-function buyerText(i: CreateTokenInput, url: string): string {
+function buyerText(i: CreateTokenInput, url: string, s: Sender): string {
   const price = i.listing_asking_price_display ? ` - ${i.listing_asking_price_display}` : '';
   return `Hi ${i.buyer_name},
 
@@ -229,13 +246,13 @@ ${url}
 
 Questions go through the data room and we will respond promptly.
 
--- The CleaningExits Team
-cleaningexits.com | hello@cleaningexits.com | +1 888-430-5535
+-- ${s.name}${s.house ? '' : `, ${s.firm}`}
+${s.house ? 'cleaningexits.com | ' : ''}${s.email} | ${s.phone}
 `;
 }
 
 function brokerHtml(
-  i: CreateTokenInput, url: string, token: string, matched: boolean
+  i: CreateTokenInput, url: string, token: string, matched: boolean, s: Sender
 ): string {
   const price = i.listing_asking_price_display ? ` (${i.listing_asking_price_display})` : '';
   const banner = matched ? '' : `
@@ -247,7 +264,7 @@ The buyer's Deal Hub will be empty. Set <code>crmDealId</code> for
 
   return `
 <!DOCTYPE html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1a1612;line-height:1.55;max-width:640px;margin:0 auto;padding:24px;">
-<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#b45309;margin-bottom:8px;">New NDA Lead - CleaningExits</div>
+<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#b45309;margin-bottom:8px;">New NDA Lead - ${esc(s.firm)}</div>
 <h2 style="margin:0 0 24px 0;font-size:22px;">${esc(i.buyer_name)} - ${esc(i.listing_title)}${esc(price)}</h2>
 ${banner}
 <table style="border-collapse:collapse;width:100%;margin-bottom:24px;">
