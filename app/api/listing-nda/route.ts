@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createNDAToken } from '@/lib/nda/createToken';
+import { getOurListingById } from '@/data/ourListings';
 import {
   NDA_VERSION,
-  NDA_AGREEMENT_TEXT,
+  ndaAgreementText,
+  isHouseFirm,
   NDA_COOKIE_NAME,
   NDA_COOKIE_MAX_AGE,
   addTokenToCookieMap,
@@ -85,13 +87,19 @@ export async function POST(req: NextRequest) {
       req.headers.get('x-real-ip') ||
       null;
 
+    // The firm comes from the listing on the server, never from the form.
+    const listing = await getOurListingById(parsed.data.source_listing_slug);
+    const firm = listing?.broker?.firm || null;
+    const house = isHouseFirm(firm);
+
     const result = await createNDAToken({
       ...parsed.data,
+      newsletter_opt_in: house ? parsed.data.newsletter_opt_in : false,
       referrer: req.headers.get('referer') || null,
       user_agent: req.headers.get('user-agent') || null,
       ip_address: ipAddress,
       nda_version: NDA_VERSION,
-      nda_text: NDA_AGREEMENT_TEXT,
+      nda_text: ndaAgreementText(firm || undefined),
     });
 
     if (!result.success || !result.token) {

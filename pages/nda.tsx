@@ -3,12 +3,13 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import { getOurListingById, type OurListing } from '@/data/ourListings';
-import { NDA_AGREEMENT_TEXT } from '@/lib/nda/ndaTerms';
+import { ndaAgreementText, isHouseFirm } from '@/lib/nda/ndaTerms';
 import { NDA_OPT_IN_TEXT } from '@/lib/newsletter/brand';
 
 type Props = {
   listing: Pick<OurListing, 'id' | 'title' | 'location'> & {
     priceDisplay: string | null;
+    firm: string;
   };
 };
 
@@ -180,15 +181,18 @@ export default function NdaPage({ listing }: Props) {
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" name="agree_nda" required className="mt-1 h-4 w-4 accent-emerald-600" />
                 <span className="text-sm text-gray-700 leading-relaxed">
-                  {NDA_AGREEMENT_TEXT}
+                  {ndaAgreementText(listing.firm)}
                 </span>
               </label>
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer px-1">
-              <input type="checkbox" name="newsletter_opt_in" defaultChecked className="mt-1 h-4 w-4 accent-emerald-600" />
-              <span className="text-sm text-gray-600 leading-relaxed">{NDA_OPT_IN_TEXT}</span>
-            </label>
+            {/* Partner-broker listings: the buyer belongs to that broker, so no opt-in to our list. */}
+            {isHouseFirm(listing.firm) && (
+              <label className="flex items-start gap-3 cursor-pointer px-1">
+                <input type="checkbox" name="newsletter_opt_in" defaultChecked className="mt-1 h-4 w-4 accent-emerald-600" />
+                <span className="text-sm text-gray-600 leading-relaxed">{NDA_OPT_IN_TEXT}</span>
+              </label>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">
@@ -229,6 +233,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
         priceDisplay: listing.price
           ? `$${listing.price.toLocaleString('en-US')}`
           : null,
+        firm: listing.broker?.firm || 'CleaningExits',
       },
     },
   };

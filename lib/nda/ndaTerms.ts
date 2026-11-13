@@ -7,13 +7,29 @@
  */
 export const NDA_VERSION = '2026-08-09';
 
-export const NDA_AGREEMENT_TEXT =
-  'I agree to keep all listing and Deal Hub information strictly confidential. ' +
-  'I will not share, distribute, or use it for any purpose other than evaluating ' +
-  'a potential acquisition, and I will not contact, solicit, or attempt to ' +
-  'transact directly with the seller or any party identified through this listing ' +
-  'except through CleaningExits. By checking this box, I am electronically signing ' +
-  'this agreement and intend to be legally bound by its full terms.';
+/** The firm a listing belongs to when it's our own (house) listing. */
+export const HOUSE_FIRM = 'CleaningExits';
+
+/**
+ * NDA text for a listing. Partner-broker listings (broker firm set on the listing)
+ * name that broker as the only party the buyer may transact through.
+ * The template is unchanged, so NDA_VERSION stays; the exact text, with the firm,
+ * is stored on each deal_tokens row.
+ */
+export function ndaAgreementText(firm: string = HOUSE_FIRM): string {
+  return (
+    'I agree to keep all listing and Deal Hub information strictly confidential. ' +
+    'I will not share, distribute, or use it for any purpose other than evaluating ' +
+    'a potential acquisition, and I will not contact, solicit, or attempt to ' +
+    'transact directly with the seller or any party identified through this listing ' +
+    `except through ${firm || HOUSE_FIRM}. By checking this box, I am electronically signing ` +
+    'this agreement and intend to be legally bound by its full terms.'
+  );
+}
+
+export const NDA_AGREEMENT_TEXT = ndaAgreementText();
+
+export const isHouseFirm = (firm?: string | null) => !firm || firm.trim().toLowerCase() === HOUSE_FIRM.toLowerCase();
 
 export const NDA_COOKIE_NAME = 'cex_nda_access';
 export const NDA_COOKIE_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
