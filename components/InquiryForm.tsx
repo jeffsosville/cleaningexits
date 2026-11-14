@@ -58,6 +58,9 @@ export default function InquiryForm({ mode, accent = 'emerald' }: Props) {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
+      // GA4 conversion: mark "generate_lead" as a key event in GA to count valuation requests.
+      const g = (window as any).gtag;
+      if (typeof g === 'function') g('event', 'generate_lead', { form: mode, page: window.location.pathname });
       setState('done');
     } catch (err: any) {
       setError(err.message);

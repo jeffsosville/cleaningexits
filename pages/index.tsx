@@ -182,6 +182,14 @@ export default function Home({ initial }: { initial: Initial }) {
               Every {label.toLowerCase()} business for sale in the US. Updated daily.
             </p>
             {summary && <p className="text-gray-600 max-w-2xl mx-auto mt-4 text-base">{summary}</p>}
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/valuation" className="rounded-xl bg-emerald-600 px-6 py-3 text-white font-semibold shadow-md hover:bg-emerald-700 transition">
+                What&apos;s my cleaning business worth? →
+              </Link>
+              <Link href="/cleaning-index" className="rounded-xl border border-emerald-600 px-6 py-3 text-emerald-700 font-semibold hover:bg-emerald-50 transition">
+                Browse all listings
+              </Link>
+            </div>
           </section>
 
           {/* Our own listings, pinned above everything else */}
@@ -258,7 +266,7 @@ export default function Home({ initial }: { initial: Initial }) {
             <div className="rounded-2xl border border-gray-200 p-6 bg-white">
               <h3 className="font-bold text-lg mb-2">Sell Your {label} Business</h3>
               <p className="text-gray-600 mb-4">
-                Get in front of serious buyers. Free listing, no commission taken.
+                Get a free, confidential valuation, then decide whether to sell. No obligation.
               </p>
               <Link href="/sell" className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
                 List your business →

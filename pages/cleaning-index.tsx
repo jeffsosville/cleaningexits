@@ -106,11 +106,9 @@ export default function CleaningIndex() {
   const [page, setPage]                         = useState(1);
   const [search, setSearch]                     = useState('');
   const [searchInput, setSearchInput]           = useState('');
-  const [categoryCounts, setCategoryCounts]     = useState<Record<string, number>>({
-    all: 0, commercial_cleaning: 0, residential_cleaning: 0, laundromat: 0,
-    landscaping: 0, pool_service: 0, pressure_washing: 0, junk_removal: 0,
-    dry_cleaner: 0, pest_control: 0,
-  });
+  // Empty until /api/stats answers: CategoryFilter hides a count it doesn't have,
+  // instead of flashing "0" on every tab.
+  const [categoryCounts, setCategoryCounts]     = useState<Record<string, number>>({});
 
   // Fetch category counts on mount
   useEffect(() => {

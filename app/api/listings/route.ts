@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { brokerName } from '@/lib/brokerName';
 
 // Backed by a live DealLedger view — never statically cache this route.
 import { getOurListings, filterOurListings } from '@/data/ourListings';
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
       estimated_listed_date: r.estimated_listed_date,
       first_seen:            r.first_seen,
       url:                   r.url,
-      broker_account:        r.broker_account,
+      broker_account:        brokerName(r.broker_account) || null,
       broker_id:             r.broker_id,
       contact_name:          r.contact_name,
       contact_phone:         r.contact_phone,

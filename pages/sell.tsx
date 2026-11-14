@@ -11,7 +11,7 @@ export default function Sell() {
       <Head>
         <title>Sell Your Cleaning Business | Cleaning Exits</title>
         <link rel="canonical" href="https://cleaningexits.com/sell" />
-        <meta name="description" content="Get your commercial cleaning business in front of thousands of serious buyers." />
+        <meta name="description" content="Get a free, confidential valuation and put your cleaning business in front of serious buyers." />
       </Head>
 
       <Header />
@@ -21,7 +21,7 @@ export default function Sell() {
         
         <div className="bg-white rounded-xl border p-8 mb-8">
           <p className="text-lg text-gray-700 mb-6">
-            Get your commercial cleaning business in front of thousands of qualified buyers 
+            Get your commercial cleaning business in front of qualified buyers 
             who are actively looking for opportunities like yours.
           </p>
 
@@ -60,7 +60,7 @@ export default function Sell() {
               <li className="flex items-start gap-3">
                 <span className="text-emerald-600 font-bold text-xl">✓</span>
                 <div>
-                  <strong>Weekly Exposure</strong> - Featured in our Top 10 email to thousands of buyers
+                  <strong>Weekly Exposure</strong> - Featured in our weekly Top 10 email to cleaning-business buyers
                 </div>
               </li>
               <li className="flex items-start gap-3">
