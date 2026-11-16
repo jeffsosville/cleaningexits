@@ -10,7 +10,8 @@ import {
   cityNameFromSlug,
   CITY_INDEX_MIN,
   STATE_INDEX_MIN,
-  STATE_REDIRECT_MIN
+  STATE_REDIRECT_MIN,
+  stateVariants
 } from './geo';
 
 export type CityCount = {
@@ -58,7 +59,8 @@ export async function getCityCounts(): Promise<CityCount[]> {
   for (const r of await fetchLocations()) {
     const code = toStateCode(r.state);
     const raw = slugifyCity(r.city || '');
-    if (!code || !raw) continue;
+    // Same raw state values the city page queries, so a counted listing is a shown one.
+    if (!code || !raw || !stateVariants(code).includes(r.state)) continue;
     const state = code.toLowerCase();
     const slug = canonicalCitySlug(state, raw);
     const key = `${state}/${slug}`;
@@ -113,7 +115,11 @@ export async function getIndexableStatePages(): Promise<Array<{ state: string; c
     if (error) throw error;
     for (const r of (data as Array<{ state: string }>) || []) {
       const code = toStateCode(r.state);
-      if (code) counts.set(code, (counts.get(code) || 0) + 1);
+      // Count only the raw values the state page itself queries
+      // (.in('state', stateVariants(code))). "Eugene, OR" resolves to OR but
+      // never shows on /or, so counting it listed a noindexed page in the sitemap.
+      if (code && stateVariants(code).includes(r.state))
+        counts.set(code, (counts.get(code) || 0) + 1);
     }
     if (!data || data.length < PAGE) break;
   }
