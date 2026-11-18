@@ -52,7 +52,7 @@ function senderFor(listing: Awaited<ReturnType<typeof getOurListingById>>): Send
   const b = listing?.broker;
   const house = isHouseFirm(b?.firm);
   if (house || !b) {
-    return { house: true, firm: 'CleaningExits', name: 'The CleaningExits Team', email: REPLY_TO, phone: '+1 888-430-5535' };
+    return { house: true, firm: 'CleaningExits', name: 'The CleaningExits Team', email: REPLY_TO, phone: '+1 888-820-7798' };
   }
   return { house: false, firm: b.firm, name: b.name, email: b.email, phone: b.phone };
 }

@@ -149,7 +149,7 @@ function toListing(r: any): OurListing {
       name: r.broker_name ?? 'John Sosville',
       firm: r.broker_firm ?? 'CleaningExits',
       email: r.broker_email ?? 'hello@cleaningexits.com',
-      phone: r.broker_phone ?? '888-430-5535',
+      phone: r.broker_phone ?? '888-820-7798',
     },
   };
 }

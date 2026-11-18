@@ -88,7 +88,7 @@ ${message ? `<div style="background:#fef7ed;border-left:3px solid #b45309;paddin
       await send({
         from: NOTIFY_FROM, to: [email], reply_to: 'hello@cleaningexits.com',
         subject: `Thanks for reaching out to ${BRAND}`,
-        text: `Hi ${name.split(' ')[0]},\n\nThanks for reaching out. We've got your note and will be in touch within one business day.\n\n– The ${BRAND} Team\n${SITE} · hello@cleaningexits.com · 888-430-5535\n`,
+        text: `Hi ${name.split(' ')[0]},\n\nThanks for reaching out. We've got your note and will be in touch within one business day.\n\n– The ${BRAND} Team\n${SITE} · hello@cleaningexits.com · 888-820-7798\n`,
       });
     }
 

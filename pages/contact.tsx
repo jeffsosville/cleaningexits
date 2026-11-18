@@ -37,6 +37,16 @@ export default function Contact() {
             </div>
 
             <div>
+              <h2 className="text-xl font-semibold mb-2">Phone</h2>
+              <a
+                href="tel:+18888207798"
+                className="text-emerald-600 hover:text-emerald-700 text-lg"
+              >
+                (888) 820-7798
+              </a>
+            </div>
+
+            <div>
               <h2 className="text-xl font-semibold mb-2">For Buyers</h2>
               <p className="text-gray-600">
                 Interested in a specific listing? Just fill out the form on that listing's page 

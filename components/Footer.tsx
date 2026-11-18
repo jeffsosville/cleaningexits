@@ -64,6 +64,11 @@ export default function Footer() {
           <p className="text-sm font-semibold text-gray-700 mb-2">
             Built for speed and signal. No fluff.
           </p>
+          <p className="text-sm text-gray-600 mb-2">
+            <a href="tel:+18888207798" className="hover:text-emerald-600 transition">
+              (888) 820-7798
+            </a>
+          </p>
           <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} Cleaning Exits. All rights reserved.
           </p>
