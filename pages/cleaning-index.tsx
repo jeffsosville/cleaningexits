@@ -72,22 +72,6 @@ const fmtDate = (d: string | null) => {
   catch { return null; }
 };
 
-const domColor = (dom: number | null) => {
-  if (dom == null) return 'text-gray-400';
-  if (dom <= 14)  return 'text-emerald-600';
-  if (dom <= 90)  return 'text-gray-700';
-  if (dom <= 180) return 'text-amber-600';
-  return 'text-red-500';
-};
-
-const domLabel = (dom: number | null) => {
-  if (dom == null) return null;
-  if (dom <= 14)  return `🟢 ${dom}d on market`;
-  if (dom <= 90)  return `${dom}d on market`;
-  if (dom <= 180) return `⏳ ${dom}d on market`;
-  return `🔴 ${dom}d on market`;
-};
-
 export default function CleaningIndex() {
   const router = useRouter();
 
@@ -195,7 +179,7 @@ export default function CleaningIndex() {
           </h1>
           {!loading && (
             <p className="text-gray-600 text-lg">
-              {total.toLocaleString()} listings — sorted by days on market
+              {total.toLocaleString()} listings — newest first
             </p>
           )}
         </header>
@@ -308,18 +292,12 @@ export default function CleaningIndex() {
                       )}
                     </div>
 
-                    {/* Financials + DOM + views */}
+                    {/* Financials + views */}
                     <div className="mt-2 text-sm text-gray-600 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span><span className="text-gray-500">Price</span> <span className="font-medium text-gray-900">{money(listing.price)}</span></span>
 
                       {listing.cash_flow != null && (
                         <span><span className="text-gray-500">Cash flow</span> <span className="font-medium text-gray-900">{money(listing.cash_flow)}</span></span>
-                      )}
-
-                      {listing.days_on_market !== null && (
-                        <span className={`font-semibold ${domColor(listing.days_on_market)}`}>
-                          {domLabel(listing.days_on_market)}
-                        </span>
                       )}
 
                       {/* Promote view count to a real badge — this is the wedge. */}

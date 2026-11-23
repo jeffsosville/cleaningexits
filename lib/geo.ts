@@ -123,6 +123,7 @@ export const CITY_ALIASES: Record<string, string> = {
   'ny/florist-suffolk': 'suffolk-county',
   'ny/florist-queens': 'queens',
   'ma/estate-middlesex': 'middlesex-county',
+  'ms/estate-hinds': 'hinds-county',
   'mo/charles-county': 'st.-charles-county',
   'ma/florist-middlesex': 'middlesex-county',
   'ny/suffolk': 'suffolk-county',

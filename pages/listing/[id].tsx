@@ -361,16 +361,10 @@ function ListingDetail({ listing }: { listing: Listing }) {
               </div>
 
               {/* DealLedger market intelligence — the wedge */}
-              {(listing.days_on_market != null || listing.listing_views != null || listedDate) && (
+              {(listing.listing_views != null || listedDate) && (
                 <div className="bg-white p-6 rounded-lg border">
                   <h3 className="font-bold text-gray-900 mb-4 text-lg">Market Intelligence</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {listing.days_on_market != null && (
-                      <div>
-                        <div className="text-sm text-gray-600 mb-1">Days on Market</div>
-                        <div className="text-2xl font-bold text-gray-900">{listing.days_on_market}d</div>
-                      </div>
-                    )}
                     {listing.listing_views != null && listing.listing_views > 0 && (
                       <div>
                         <div className="text-sm text-gray-600 mb-1">Buyer Views</div>
@@ -391,7 +385,7 @@ function ListingDetail({ listing }: { listing: Listing }) {
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-4">
-                    Sourced from <a href="https://dealledger.org" className="underline hover:text-gray-600" target="_blank" rel="noopener noreferrer">DealLedger</a> — buyer view counts and DOM are not available on most marketplaces.
+                    Sourced from <a href="https://dealledger.org" className="underline hover:text-gray-600" target="_blank" rel="noopener noreferrer">DealLedger</a> — buyer view counts are not available on most marketplaces.
                   </p>
                 </div>
               )}

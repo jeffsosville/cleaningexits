@@ -138,9 +138,6 @@ export default function StatePage({ cfg, stat, national, listings, cities, state
                     {l.cash_flow ? (
                       <span className="num">{money(l.cash_flow, { compact: true })} SDE</span>
                     ) : null}
-                    {l.days_on_market ? (
-                      <span className="sample">{l.days_on_market}d listed</span>
-                    ) : null}
                     {l.broker_name ? <span className="sample">{l.broker_name}</span> : null}
                   </div>
                 </li>
