@@ -134,6 +134,15 @@ export const CITY_ALIASES: Record<string, string> = {
   'tx/in-austin': 'austin',
   // Hyphenated in the source; the city page's lookup matches the hyphen.
   'fl/miami-dade-county': 'miami',
+  // Same county with and without the word "County" (2 + 1 listings).
+  'nc/mecklenburg': 'mecklenburg-county',
+  // Broker text glued onto the city name.
+  'id/janitorial-boise': 'boise',
+  'nc/locations-asheville': 'asheville',
+  'ny/business-tonawanda': 'tonawanda',
+  'ok/near-jenks': 'jenks',
+  'tx/in-amarillo': 'amarillo',
+  'fl/franchise-pensacola': 'pensacola',
 };
 
 export function canonicalCitySlug(state: string, slug: string): string {

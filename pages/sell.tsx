@@ -66,7 +66,7 @@ export default function Sell() {
               <li className="flex items-start gap-3">
                 <span className="text-emerald-600 font-bold text-xl">✓</span>
                 <div>
-                  <strong>Verified Buyers</strong> - We work with serious buyers, not tire-kickers
+                  <strong>Serious Buyers</strong> - We work with serious buyers, not tire-kickers
                 </div>
               </li>
               <li className="flex items-start gap-3">
