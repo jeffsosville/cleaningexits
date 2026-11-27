@@ -15,7 +15,10 @@ import { GetServerSideProps } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import ValuationAnalysis from '../../components/ValuationAnalysis';
 import OurListingDetail from '../../components/OurListingDetail';
+import RelatedLinks from '../../components/RelatedLinks';
 import { getOurListingById, type OurListing } from '@/data/ourListings';
+import { getListingContext, type ListingContext } from '@/lib/listingContext';
+import { metaDescription, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 // Local CleaningExits Supabase (top10 + merge tables)
 const supabaseLocal = createClient(
@@ -115,7 +118,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   // ─── 0. In-house (CleaningExits-brokered) listings live in the CRM ───────
   const ours = await getOurListingById(id);
-  if (ours) return { props: { ourListing: ours } };
+  if (ours) {
+    const links = await getListingContext(ours.state, ours.city, ours.id);
+    return { props: { ourListing: ours, context: links } };
+  }
 
   let listing: Listing | null = null;
 
@@ -228,16 +234,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   if (!listing) return { notFound: true };
-  return { props: { listing } };
+  const links = await getListingContext(listing.state, listing.city, listing.id);
+  return { props: { listing, context: links } };
 };
 
-export default function ListingPage({ listing, ourListing }: { listing?: Listing; ourListing?: OurListing }) {
-  if (ourListing) return <OurListingDetail listing={ourListing} />;
+export default function ListingPage({ listing, ourListing, context }: { listing?: Listing; ourListing?: OurListing; context: ListingContext }) {
+  if (ourListing) return <OurListingDetail listing={ourListing} context={context} />;
   if (!listing) return null;
-  return <ListingDetail listing={listing} />;
+  return <ListingDetail listing={listing} context={context} />;
 }
 
-function ListingDetail({ listing }: { listing: Listing }) {
+function ListingDetail({ listing, context }: { listing: Listing; context: ListingContext }) {
   const generateListingSchema = () => {
     const schema: any = {
       "@context": "https://schema.org",
@@ -274,19 +281,19 @@ function ListingDetail({ listing }: { listing: Listing }) {
     <>
       <Head>
         <title>{`${listing.title || 'Business Listing'} | Cleaning Exits`}</title>
-        <meta name="description" content={listing.description?.substring(0, 160) || 'Cleaning business for sale'} />
+        <meta name="description" content={metaDescription(listing.description) || 'Cleaning business for sale'} />
         <link rel="canonical" href={`https://cleaningexits.com/listing/${listing.id}`} />
         {String(listing.id).startsWith('top10-') && <meta name="robots" content="noindex, follow" />}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateListingSchema()) }} />
         <meta property="og:title" content={listing.title || 'Business Listing'} />
-        <meta property="og:description" content={listing.description?.substring(0, 160) || ''} />
-        <meta property="og:image" content={listing.image_url || 'https://cleaningexits.com/og-default.jpg'} />
+        <meta property="og:description" content={metaDescription(listing.description)} />
+        <meta property="og:image" content={listing.image_url || DEFAULT_OG_IMAGE} />
         <meta property="og:type" content="product" />
         <meta property="og:url" content={`https://cleaningexits.com/listing/${listing.id}`} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={listing.title || 'Business Listing'} />
-        <meta name="twitter:description" content={listing.description?.substring(0, 160) || ''} />
-        <meta name="twitter:image" content={listing.image_url || 'https://cleaningexits.com/og-default.jpg'} />
+        <meta name="twitter:description" content={metaDescription(listing.description)} />
+        <meta name="twitter:image" content={listing.image_url || DEFAULT_OG_IMAGE} />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
@@ -437,6 +444,8 @@ function ListingDetail({ listing }: { listing: Listing }) {
                 </div>
               )}
 
+              <RelatedLinks context={context} />
+
               {listing.verified_date && (
                 <div className="text-sm text-gray-500 text-center">
                   Last checked {new Date(listing.verified_date).toLocaleDateString()}
@@ -485,3 +494,4 @@ function ListingDetail({ listing }: { listing: Listing }) {
     </>
   );
 }
+
