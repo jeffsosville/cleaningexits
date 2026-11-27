@@ -3,7 +3,10 @@ import Link from 'next/link';
 import Header from './Header';
 import Footer from './Footer';
 import InquiryForm from './InquiryForm';
+import RelatedLinks from './RelatedLinks';
 import type { OurListing } from '@/data/ourListings';
+import type { ListingContext } from '@/lib/listingContext';
+import { metaDescription, compactMoney, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 // In-house (CleaningExits-brokered) listing page. Laid out like the atmbrokerage.com listing
 // pages: headline + price, intro, key figures, services, the rest of the write-up, business
@@ -45,14 +48,81 @@ const Bullets = ({ items }: { items: string[] }) => (
   </ul>
 );
 
-export default function OurListingDetail({ listing }: { listing: OurListing }) {
-  const url = `https://cleaningexits.com/listing/${listing.id}`;
+const SITE = 'https://cleaningexits.com';
+
+/** Pull a figure out of the free-text financials by label, e.g. /revenue/i. */
+const figure = (l: OurListing, re: RegExp) => l.financials.find((f) => re.test(f.label))?.value ?? null;
+
+function listingSchema(l: OurListing, url: string, description: string, ctx: ListingContext | undefined) {
+  const props = l.financials.map((f) => ({ '@type': 'PropertyValue', name: f.label, value: f.value }));
+  const product: any = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: l.title,
+    description,
+    url,
+    image: DEFAULT_OG_IMAGE,
+    category: l.category || 'Cleaning business',
+    brand: { '@type': 'Brand', name: 'CleaningExits' },
+    offers: {
+      '@type': 'Offer',
+      url,
+      priceCurrency: 'USD',
+      ...(l.price != null ? { price: l.price } : {}),
+      availability:
+        l.status === 'sold' ? 'https://schema.org/SoldOut'
+        : l.status === 'under_loi' ? 'https://schema.org/LimitedAvailability'
+        : 'https://schema.org/InStock',
+      ...(l.listedOn ? { validFrom: l.listedOn } : {}),
+      seller: { '@type': 'Organization', name: l.broker.firm, email: l.broker.email, telephone: l.broker.phone },
+    },
+  };
+  if (props.length) product.additionalProperty = props;
+  if (l.city || l.state) {
+    product.areaServed = {
+      '@type': 'Place',
+      address: { '@type': 'PostalAddress', addressLocality: l.city, addressRegion: l.state, addressCountry: 'US' },
+    };
+  }
+  const crumbs = [
+    { name: 'Listings', item: `${SITE}/listings` },
+    ...(ctx?.state ? [{ name: ctx.state.name, item: SITE + ctx.state.href }] : []),
+    ...(ctx?.city ? [{ name: ctx.city.name, item: SITE + ctx.city.href }] : []),
+    { name: l.title, item: url },
+  ];
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.item })),
+  };
+  return [product, breadcrumb];
+}
+
+export default function OurListingDetail({ listing, context }: { listing: OurListing; context?: ListingContext }) {
+  const url = `${SITE}/listing/${listing.id}`;
   const blocks = parseBody(listing.summary || '');
   const introIdx = blocks.findIndex((b) => b.kind === 'p');
   const intro = introIdx >= 0 ? (blocks[introIdx] as { text: string }).text : '';
   const rest = blocks.filter((_, i) => i !== introIdx);
   const sold = listing.status === 'sold';
   const underLoi = listing.status === 'under_loi';
+
+  // Lead with the numbers buyers (and AI answers) quote, then the intro.
+  const sde = figure(listing, /sde|discretionary|cash flow/i);
+  const revenue = figure(listing, /revenue/i);
+  const facts = [
+    listing.price != null ? `${compactMoney(listing.price)} asking` : null,
+    sde ? `${sde} SDE` : null,
+    revenue ? `${revenue} revenue` : null,
+  ].filter(Boolean).join(', ');
+  const noun = (listing.category || 'Cleaning business').replace(/s$/, '');
+  const lead = `${noun} for sale${listing.location ? ` in ${listing.location}` : ''}${facts ? `: ${facts}.` : '.'}`;
+  const description = metaDescription(`${lead} ${intro}`);
+  const baseTitle = listing.title.replace(/\s*[–—-]\s*for sale\s*$/i, '');
+  const pageTitle = `${baseTitle} for Sale${listing.price != null ? ` – ${compactMoney(listing.price)}` : ''} | CleaningExits`;
+  const listedDate = listing.listedOn
+    ? new Date(listing.listedOn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+    : null;
 
   const details: [string, string | null][] = [
     ['Asking Price', money(listing.price)],
@@ -74,21 +144,29 @@ export default function OurListingDetail({ listing }: { listing: OurListing }) {
   return (
     <>
       <Head>
-        <title>{`${listing.title} | Cleaning Exits`}</title>
-        <meta name="description" content={intro.substring(0, 160)} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={description} />
         <link rel="canonical" href={url} />
         <meta property="og:title" content={listing.title} />
-        <meta property="og:description" content={intro.substring(0, 200)} />
+        <meta property="og:description" content={description} />
         <meta property="og:type" content="product" />
         <meta property="og:url" content={url} />
+        <meta property="og:image" content={DEFAULT_OG_IMAGE} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={listing.title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={DEFAULT_OG_IMAGE} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listingSchema(listing, url, description, context)) }} />
       </Head>
 
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Link href="/cleaning-index" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold">
-          ← All cleaning businesses for sale
-        </Link>
+        <nav aria-label="Breadcrumb" className="text-sm font-semibold text-gray-500">
+          <Link href="/listings" className="text-emerald-600 hover:text-emerald-700">Listings</Link>
+          {context?.state && (<> <span className="mx-1">›</span> <Link href={context.state.href} className="text-emerald-600 hover:text-emerald-700">{context.state.name}</Link></>)}
+          {context?.city && (<> <span className="mx-1">›</span> <Link href={context.city.href} className="text-emerald-600 hover:text-emerald-700">{context.city.name}</Link></>)}
+        </nav>
 
         <div className="grid lg:grid-cols-3 gap-10 mt-4">
           <article className="lg:col-span-2 space-y-6 leading-relaxed">
@@ -104,6 +182,7 @@ export default function OurListingDetail({ listing }: { listing: OurListing }) {
               <p className="mt-2 text-xl font-bold text-gray-900">
                 {listing.category || 'Cleaning Business'} – {money(listing.price)}
               </p>
+              {listedDate && <p className="mt-1 text-sm text-gray-500">Listed <time dateTime={listing.listedOn}>{listedDate}</time></p>}
             </div>
 
             {intro && <p className="text-gray-800">{intro}</p>}
@@ -145,6 +224,8 @@ export default function OurListingDetail({ listing }: { listing: OurListing }) {
                 </p>
               </section>
             )}
+
+            {context && <RelatedLinks context={context} />}
 
             <section className="pt-4">
               <h2 className="text-xl font-bold text-gray-900 mb-1">Questions about this listing?</h2>

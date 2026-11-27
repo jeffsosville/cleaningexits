@@ -18,11 +18,14 @@ interface ListingsResponse {
   };
 }
 
-export const ListingsGrid: React.FC = () => {
-  const [listings, setListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` is the first page, rendered on the server by pages/listings.tsx so
+// crawlers that don't run JavaScript (GPTBot, ClaudeBot, PerplexityBot) see
+// real listings instead of a loading skeleton and a "0 listings" count.
+export const ListingsGrid: React.FC<{ initial?: ListingsResponse | null }> = ({ initial }) => {
+  const [listings, setListings] = useState<any[]>(initial?.listings ?? []);
+  const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState(initial?.pagination ?? {
     page: 1,
     limit: 20,
     total: 0,
@@ -70,7 +73,7 @@ export const ListingsGrid: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchListings();
+    if (!initial) fetchListings();
   }, []);
 
   const handleFilterChange = (newFilters: typeof filters) => {
@@ -107,11 +110,12 @@ export const ListingsGrid: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Business Opportunities
+            Cleaning Businesses for Sale
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Discover {pagination.total.toLocaleString()} profitable business listings, 
-            updated daily from the marketplace
+            {pagination.total > 0
+              ? `${pagination.total.toLocaleString()} cleaning businesses for sale, gathered from broker websites and updated daily`
+              : 'Cleaning businesses for sale, gathered from broker websites and updated daily'}
           </p>
         </div>
 

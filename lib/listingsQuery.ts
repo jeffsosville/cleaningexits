@@ -1,0 +1,171 @@
+// lib/listingsQuery.ts
+// The /listings query, shared by the JSON API (app/api/listings/route.ts) and
+// the server-rendered first page of /listings. Both must return the same
+// rows, or the page crawlers see won't match the page users filter.
+import { createClient } from '@supabase/supabase-js';
+import { brokerName } from '@/lib/brokerName';
+import { getOurListings, filterOurListings } from '@/data/ourListings';
+
+const supabase = createClient(
+  process.env.DEALLEDGER_SUPABASE_URL!,
+  process.env.DEALLEDGER_SUPABASE_SERVICE_KEY!
+);
+
+export type ListingsParams = { get(name: string): string | null };
+
+const VALID_CATEGORIES = [
+  'commercial_cleaning', 'residential_cleaning', 'laundromat',
+  'landscaping', 'pool_service', 'pressure_washing',
+  'junk_removal', 'dry_cleaner', 'pest_control',
+];
+
+const TIER_ORDER: Record<string, number> = {
+  'Verified': 0,
+  'Likely Real': 1,
+  'Unverified': 2,
+  'Likely Junk': 3,
+};
+
+function domBadge(dom: number | null | undefined): string {
+  if (dom == null) return 'unknown';
+  if (dom < 30)  return 'green';
+  if (dom < 90)  return 'yellow';
+  if (dom < 365) return 'orange';
+  return 'red';
+}
+
+export async function queryListings(searchParams: ListingsParams) {
+  const page         = parseInt(searchParams.get('page')   || '1');
+  const limit        = Math.min(100, parseInt(searchParams.get('limit') || '20'));
+  const search       = searchParams.get('search')   || '';
+  const location     = searchParams.get('location') || '';
+  const minPrice     = searchParams.get('minPrice');
+  const maxPrice     = searchParams.get('maxPrice');
+  const maxDom       = searchParams.get('maxDom');
+  const hiddenGem    = searchParams.get('hidden_gem')   === 'true';
+  const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
+
+  const rawCategory = searchParams.get('category') || 'commercial_cleaning';
+  const category = VALID_CATEGORIES.includes(rawCategory) ? rawCategory : 'commercial_cleaning';
+
+  // Default is ascending DOM = newest listings first.
+  // Previously defaulted to descending, which surfaced the oldest listings.
+  const sortAsc = searchParams.get('sortOrder') !== 'desc';
+
+  // ── Build query against DealLedger `cleaning_listings_direct` ────────────
+  let query = supabase
+    .from('cleaning_listings_direct')
+    .select(
+      `id, listing_number, header, price, cash_flow, state, city,
+       category, days_on_market, listing_views, estimated_listed_date,
+       first_seen, url, broker_account, contact_name, contact_phone,
+       price_reduced, relisted, direct_broker_url, broker_id,
+       is_active, quality_score, quality_tier`,
+      { count: 'exact' }
+    )
+    .eq('is_active', true);
+
+  if (category !== 'all') query = query.eq('category', category);
+  if (search)             query = query.or(`header.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%`);
+  if (location)           query = query.or(`city.ilike.%${location}%,state.ilike.%${location}%`);
+  if (minPrice)           query = query.gte('price', parseInt(minPrice));
+  if (maxPrice)           query = query.lte('price', parseInt(maxPrice));
+  if (maxDom)             query = query.lte('days_on_market', parseInt(maxDom));
+  if (hiddenGem)          query = query.lt('days_on_market', 30).lt('listing_views', 50);
+  if (verifiedOnly)       query = query.eq('quality_tier', 'Verified');
+
+  query = query.order('days_on_market', { ascending: sortAsc, nullsFirst: false });
+
+  // Paginate through everything to allow client-side quality_tier sort below.
+  let raw: any[] = [];
+  let offset = 0;
+  while (true) {
+    const { data: batch, error } = await query.range(offset, offset + 999);
+    if (error) throw error;
+    if (!batch || batch.length === 0) break;
+    raw = raw.concat(batch);
+    if (batch.length < 1000) break;
+    offset += 1000;
+  }
+
+  const mapped = raw.map(r => ({
+    id:                    r.id,
+    listing_number:        r.listing_number,
+    header:                r.header,
+    price:                 r.price,
+    cash_flow:             r.cash_flow,
+    state:                 r.state,
+    city:                  r.city,
+    category:              r.category,
+    days_on_market:        r.days_on_market,
+    listing_views:         r.listing_views,
+    estimated_listed_date: r.estimated_listed_date,
+    first_seen:            r.first_seen,
+    url:                   r.url,
+    broker_account:        brokerName(r.broker_account) || null,
+    broker_id:             r.broker_id,
+    contact_name:          r.contact_name,
+    contact_phone:         r.contact_phone,
+    price_reduced:         !!r.price_reduced,
+    relisted:              !!r.relisted,
+    direct_broker_url:     r.direct_broker_url,
+    quality_tier:          r.quality_tier   || 'Unverified',
+    quality_score:         r.quality_score  || 0,
+    dom_badge:             domBadge(r.days_on_market),
+  }));
+
+  // Sort by quality tier (Verified first), preserving DOM order within tier.
+  const warehouseSorted = mapped.sort((a, b) => {
+    const aTier = TIER_ORDER[a.quality_tier] ?? 2;
+    const bTier = TIER_ORDER[b.quality_tier] ?? 2;
+    return aTier - bTier;
+  });
+
+  // Our own (CleaningExits-brokered) listings come from the CRM and lead the grid.
+  const ours = filterOurListings(await getOurListings(), { search, minPrice, maxPrice, location }).map((l) => ({
+    id:                    l.id,
+    listing_number:        null,
+    header:                l.title,
+    price:                 l.price,
+    cash_flow:             l.cash_flow,
+    state:                 l.state,
+    city:                  l.city,
+    category:              l.category,
+    days_on_market:        null,
+    listing_views:         null,
+    estimated_listed_date: l.listedOn,
+    first_seen:            l.listedOn,
+    url:                   l.listing_url,
+    broker_account:        'CleaningExits',
+    broker_id:             null,
+    contact_name:          l.broker.name,
+    contact_phone:         l.broker.phone,
+    price_reduced:         false,
+    relisted:              false,
+    direct_broker_url:     l.listing_url,
+    quality_tier:          'Verified',
+    quality_score:         100,
+    dom_badge:             domBadge(null),
+    inhouse:               true,
+  }));
+  const sorted: any[] = [...ours, ...warehouseSorted];
+
+  const total      = sorted.length;
+  const startIdx   = (page - 1) * limit;
+  const paginated  = sorted.slice(startIdx, startIdx + limit);
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    listings: paginated,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+    source: 'dealledger',
+    verified_count: sorted.filter(l => l.quality_tier === 'Verified').length,
+  };
+}

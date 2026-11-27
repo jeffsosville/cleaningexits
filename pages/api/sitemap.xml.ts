@@ -4,18 +4,22 @@
 // URL in a sitemap as "please index this", so listing thin or broken pages
 // here actively hurts the site.
 //
-// What's in:   real static pages (paths verified against pages/), the gated
+// What's in:   in-house (CleaningExits-brokered) listing pages — original
+//              copy that exists nowhere else — real static pages (paths
+//              verified against pages/), the gated
 //              /for-sale/{state} pages, and city pages at or above
 //              CITY_INDEX_MIN listings.
 // What's out:  /cleaning-businesses-for-sale/{state} below STATE_INDEX_MIN,
-//              thin city pages (noindex), individual listing pages (broker
-//              copy duplicated across the web; Google declined to index them),
+//              thin city pages (noindex), individual warehouse listing pages
+//              (broker copy duplicated across the web; Google declined to
+//              index them),
 //              transactional pages (/nda, /confirm, /unsubscribe), internal
 //              pages (/vertical-demo, /why1, /daily-cleaning).
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { STATE_REDIRECT_MIN } from '../../lib/geo';
 import { getIndexableCities, getStateUpdated, getIndexableStatePages } from '../../lib/cityIndex';
+import { getOurListings } from '../../data/ourListings';
 
 const supabaseDealLedger = createClient(
   process.env.DEALLEDGER_SUPABASE_URL as string,
@@ -94,6 +98,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // canonical slug (Kings County -> Brooklyn).
     for (const c of await getIndexableCities()) {
       entries.push(entry(`/cleaning-businesses-for-sale/${c.state}/${c.slug}`, c.updated, 'weekly', '0.6'));
+    }
+
+    // In-house listings: our own write-ups, not scraped broker copy.
+    for (const l of await getOurListings()) {
+      entries.push(entry(`/listing/${l.id}`, l.listedOn ? String(l.listedOn).slice(0, 10) : null, 'weekly', '0.9'));
     }
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
